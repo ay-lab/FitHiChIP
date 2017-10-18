@@ -3,33 +3,98 @@ FitHiChIP_HiCPro
 ----------------
 
 Software for analyzing HiChIP data and deriving the statistical significant interactions.
+
 Uses outputs of HiC-Pro pipeline (the valid paired end reads), and applies the package FitHiC (custom implemented to 
 process HiChIP data) to derive the significant interactions.
+
 Also employs a basic normalization method, by using the bias correction technique mentioned in FitHiC.
+		
 		The bias is computed by taking the ratio of coverage (of the current interval) with the mean coverage of all the intervals.
+		
 		Bias values for both of the interacting regions are accounted to filter the interactions, and compute the relative probability of a particular interaction.
 
 Prerequisites
 -------------
+
 FitHiChIP_HiCPro requires the following packages / libraries to be installed:
 
 1) The package HiC-pro (obtained from "https://github.com/nservant/HiC-Pro")
+	
 	The package is used to align input fasta files to produce a valid pairs file (containing paired end reads). 
+	
 	This file is applied to another utility named "build_matrix" to produce the interaction matrix at a specified resolution.
 	FitHiChIP_HiCPro requires the valid pairs file and (optionally) the interaction matrix files as the input.
+
 2) Python (version 2.7 was used for development)
+	
 	Python libraries to be installed:
 		OptionParser (from the library optparse), gzip
+
 3) R (version 3.3.3 was used for development)
+	
 	R Libraries to be installed:
 		optparse, ggplot2, splines, fdrtool, parallel
 
 FitHiChIP_HiCPro is tested in linux environment, and requires bash for executing the main script.
 
+Extracting the archieve
+-----------------------
+
+A) Download source code and data archieve from GitHub.
+
+B) Unpack the 'TestData.tar.gz', by using the following command:
+	tar -zxvf TestData.tar.gz
+
+	The extracted folder named "TestData" contains the following files:
+		
+		1) Sample_ValidPairs.txt.gz: Sample valid pairs file, an output from HiC-Pro pipeline.
+		
+		2) Sample.Peaks: Reference peak information
+		
+		3) MboI_hg19_RE_Fragments.bed: Restriction fragments generated using MboI RE on the reference genome 'hg19'
+	
+-------------
+*************
+Download data (mandatory step)
+************
+--------------
+
+	The user needs to download the following files and place them within the "TestData" folder:
+		1) Download chromosome size file of the reference chromosome hg19, by using the following link:
+			
+			http://hgdownload.soe.ucsc.edu/goldenPath/hg19/bigZips/hg19.chrom.sizes
+		
+		2) Download the reference genome (hg19) fasta sequence and its index
+			 
+			 http://hgdownload.soe.ucsc.edu/goldenPath/hg19/bigZips/hg19.2bit   (downloads hg19 genome in 2 bit format)
+
+			 A utility program, twoBitToFa can be used to extract .fa file(s) from this file.  
+			 
+			 See also:	http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/
+
+			 See the description in http://hgdownload.soe.ucsc.edu/goldenPath/hg19/bigZips/
+
+		 3) Index the converted fasta file (to create .fai file)
+
+		 	Generated .fa and .fai files are to be placed within the folder "TestData"
+
+		 4) Download the mappability file:
+		 	
+		 	http://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeMapability/wgEncodeCrgMapabilityAlign50mer.bigWig
+
+	 	5) Convert it to bedgraph format, using the UCSC utilty "BigWigToBedgraph" by using the following command:
+	 		
+	 		BigWigToBedgraph wgEncodeCrgMapabilityAlign50mer.bigWig wgEncodeCrgMapabilityAlign50mer.bedGraph
+
+	 		Place this file within the "TestData" folder.
+
+
 Execution
------------
+---------
 Upon extracting the archieve, the file "FitHiChIP_HiCPro.sh" is the main executable.
+
 A text file "configfile" lists the configuration parameters (described below in detail).
+
 The folder "TestData" contains a sample valid pairs file, and associated files with respect to the reference genome hg19.
 
 The tool is executed by typing the following command in a bash terminal:
@@ -37,12 +102,20 @@ The tool is executed by typing the following command in a bash terminal:
 FitHiChIP_HiCPro.sh -C configfile -b 0/1 -e 0/1 -l 0.2 -h 5
 
 Where:
+	
 	configfile: configuration file listing input data and various input options, output directory, etc.
+	
 	-b 0/1: A binary option. If 1, indicates that the output interactions will be filtered according to the bias values.
-	-e 0/1: A binary option. If 1, indicates that the probability of interactions (used in FitHiC) will be multiplied with the bias values.
+	
+	-e 0/1: A binary option. If 1, indicates that the probability of interactions (used in FitHiC) will be multiplied with the bias 
+	values.
+	
 	-l NUM1: A number (integer or fraction) depicting the lower cutoff threshold of bias. Default 0.2
+	
 	-h NUM2: A number (integer or fraction) depicting the higher cutoff threshold of bias. Default 5
+	
 		If -b option is 1, the interactions whose both ends (reads) have bias values within the thresholds specified in -l and -h options, are processed for finding the significant interactions using FitHiC.
+	
 		If -b option is 0, these thresholds do not have any impact.
 
 
@@ -59,8 +132,10 @@ Different parameters of th current pipeline, and their default values are summar
 
 A) ValidPairs: 
 	Output of HiC-pro pipeline, as a .txt or .txt.gz file. It contains the paired end reads (one line for 
-	each read) involving cis or trans interactions. Current pipeline extracts the CIS interactions from the 
-	given validpairs file.
+	each read) involving cis or trans interactions. 
+
+	Current pipeline extracts the CIS interactions from the given validpairs file.
+	
 	Note: If not specified, the parameters (B) and (C) need to be specified.
 
 B) Interval:
@@ -109,13 +184,13 @@ I) MappabilityFile:
 	If user has bigWig file, the following UCSC utility is to be used for conversion to bedGraph format
 		BigWigToBedgraph inp.bw out.bedGraph
 
-	A default mappability file "wgEncodeCrgMapabilityAlign50mer.bedGraph" is provided in the TestData folder, corresponding to the hg19 reference chromosome.
-
 J) REFragFile:
 	File containing the restriction fragment information, with respect to the reference chromosome, and a restriction site.
 	The file is of the following format:
 				chr     interval_start  	interval_end
+	
 	By default, MboI restriction fragment file "MboI_hg19_RE_Fragments.bed" is provided in the TestData folder (most common used restriction fragment in various HiChIP pipelines).
+	
 	Creation of a restriction fragment file can be found in the HiC-Pro faqs. 
 
 K) GCSize:
