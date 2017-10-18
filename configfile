@@ -1,0 +1,112 @@
+#====================================
+# Sample configuration file
+# for running the FitHiChIP + HiCPro
+# Sample values of these parameters are also specified
+#==================================== 
+
+
+#======================================
+# Paired reads / matrix specification
+# according to the HiC-Pro pipeline specification
+# user can either specify the parameter 1
+# or the parameters 2 and 3 (jointly)
+# if all three parameters are specified, computation begins by using the parameter 1
+#======================================
+
+# Parameter 1 
+# File containing the valid pairs from HiCPro pipeline
+# Can be either a text file, or a gzipped text file
+ValidPairs=./TestData/Sample_ValidPairs.txt.gz
+
+# Parameter 2
+# File containing the bin intervals (according to a specified bin size)
+# which is an output of HiC-pro pipeline
+# If not provided, this is computed from the parameter 1
+Interval=
+
+# Parameter 3
+# File storing the contact matrix (output of HiC-pro pipeline)
+# should be accompanied with the parameter 2
+# if not specified, computed from the parameter 1
+Matrix=
+
+# Parameter 4
+# Peak detection output file
+# mandatory parameter
+PeakFile=./TestData/Sample.Peaks
+
+# Parameter 5
+# Output base directory under which all results will be stored
+OutDir=./TestData/FitHiChIP_HiCPro_Out/
+
+#======================================
+# Parameters related to genomic features
+#======================================
+
+# reference genome 
+RefGenome=hg19
+
+# Absolute path of the file containing the information of reference chromosome size
+ChrSizeFile=./TestData/chrom_hg19.sizes
+
+# fasta file of the reference genome
+# used to compute the GC content information
+RefFasta=./TestData/hg19.fa
+
+# Absolute path of the Reference mappability file (according to the reference genome)
+# (may be downloaded from the site  http://hgdownload.cse.ucsc.edu/goldenPath/)
+# should be provided in the bedgraph format
+# If user has bigWig file, the following UCSC utility 
+# is to be used for conversion to bedGraph format
+# BigWigToBedgraph inp.bw out.bedGraph 
+MappabilityFile=./TestData/wgEncodeCrgMapabilityAlign50mer.bedGraph
+
+# restriction fragment file
+# of the format:        chr     interval_start  interval_end
+REFragFile=./TestData/MboI_hg19_RE_Fragments.bed
+
+# size of the window upstream and downstream the restriction site used 
+# to calculate the GC content(default 200)
+GCSize=200
+
+# size of the window upstream and downstream the restriction site 
+# used to calculate the mappability
+MappSize=500
+
+#======================================
+# Numerical parameters regarding the execution of FitHiChIP
+# and for the contact estimation
+#======================================
+
+# Size of the bins [default = 5000], in bases, for detecting the interactions.
+BINSIZE=5000
+
+# Lower distance threshold of interaction between two segments 
+# (default = 20000 or 20 Kb)
+LowDistThr=20000
+
+# Upper distance threshold of interaction between two segments 
+# (default = 2000000 or 2 Mb)
+UppDistThr=2000000
+
+# Minimum FDR (q-value) cutoff for significant interaction detection
+QVALUE=0.01
+
+# In the FitHiC model, this is the max no of equal occupancy bins (Default 200) 
+NBins=200
+
+#==============================
+# Few other parameters related to its execution
+#==============================
+
+# Base directory of HiC-pro package. 
+# Required to run the utility functions of HiC-pro
+HiCProBasedir=/mnt/BioApps/HiC-Pro/HiC-Pro_2.7.8/
+
+# prefix string of the output files (Default = 'FitHiChIP').
+PREFIX=FitHiChIP
+
+# Specified as 1 or 0. If 1, draws the figures of various 
+# statistics / analysis. Default 0.
+Draw=0
+
