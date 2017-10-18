@@ -42,24 +42,28 @@ Extracting the archieve
 
 A) Download source code and data archieve from GitHub.
 
-B) Unpack the 'TestData.tar.gz', by using the following command:
-	tar -zxvf TestData.tar.gz
-
-	The extracted folder named "TestData" contains the following files:
+B) The folder "TestData" contains the following files:
 		
 		1) Sample_ValidPairs.txt.gz: Sample valid pairs file, an output from HiC-Pro pipeline.
 		
-		2) Sample.Peaks: Reference peak information
+		2) Sample.Peaks.gz: Reference peak information
+
+			Extract the contents of this peak file, by applying the command:
+
+				gunzip Sample.Peaks.gz
 		
-		3) MboI_hg19_RE_Fragments.bed: Restriction fragments generated using MboI RE on the reference genome 'hg19'
+		3) MboI_hg19_RE_Fragments.bed.gz: Restriction fragments generated using MboI RE on the reference genome 'hg19'
+
+			Extract the contents of this peak file, by applying the command:
+
+				gunzip MboI_hg19_RE_Fragments.bed.gz
 	
--------------
-*************
+
 Download data (mandatory step)
-************
---------------
+------------------------------
 
 	The user needs to download the following files and place them within the "TestData" folder:
+		
 		1) Download chromosome size file of the reference chromosome hg19, by using the following link:
 			
 			http://hgdownload.soe.ucsc.edu/goldenPath/hg19/bigZips/hg19.chrom.sizes
