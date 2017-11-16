@@ -23,11 +23,6 @@ cat << EOF
 
 Options:
    	-C  ConfigFile		Name of the configuration file storing the parameters of FitHiChIP.
-   	-l 	biaslowthr 		Lower threshold of bias correction (fraction) - default 0.2
-   	-h  biashighthr 	Higher threshold of bias correction (fraction) - default 5
-   	-b  BeginBiasFilter 0/1: If 1, filters the interactions at the beginning according to the bias settings
-   	-e  EndBiasFilter 	0/1: If 1, computes the probabilities with respect to the bias (multiply)
-
 EOF
 }
 
@@ -37,14 +32,10 @@ biashighthr=5
 BeginBiasFilter=0
 EndBiasFilter=0
 
-while getopts "C:l:h:b:e:" opt;
+while getopts "C:" opt;
 do
 	case "$opt" in
 		C) ConfigFile=$OPTARG;;
-		l) biaslowthr=$OPTARG;;
-		h) biashighthr=$OPTARG;;
-		b) BeginBiasFilter=$OPTARG;;
-		e) EndBiasFilter=$OPTARG;;
 		\?) usage
 			echo "error: unrecognized option -$OPTARG";
 			exit 1
@@ -110,6 +101,28 @@ DrawFig=0
 # 1 for equal occupancy bin (default)
 FitHiCBinMethod=1
 
+# option to note down the timing information
+TimeProf=0
+
+#=========================
+# bias correction related parameters
+#=========================
+
+# default lower cutoff of bias value
+biaslowthr=0.2
+
+# default higher cutoff of bias value
+biashighthr=5
+
+# boolean variable for pre-filtering the interactions according to the bias value
+BeginBiasFilter=0
+
+# boolean variable for probability adjustment of the interactions according to the bias value
+EndBiasFilter=0
+
+# Merging interactions which are near to each other
+MergeInteraction=1
+
 #==============================
 # read the configuration file and store various parameters
 #==============================
@@ -174,12 +187,12 @@ do
 			fi
 			if [ $param == "LowDistThr" ]; then
 				if [[ ! -z $paramval ]]; then
-					LowDistThr=$paramval
+					LowDistThres=$paramval
 				fi
 			fi
 			if [ $param == "UppDistThr" ]; then
 				if [[ ! -z $paramval ]]; then
-					UppDistThr=$paramval
+					UppDistThres=$paramval
 				fi
 			fi
 			if [ $param == "QVALUE" ]; then
@@ -203,6 +216,36 @@ do
 			if [ $param == "Draw" ]; then
 				if [[ ! -z $paramval ]]; then
 					DrawFig=$paramval
+				fi
+			fi
+			if [ $param == "TimeProf" ]; then
+				if [[ ! -z $paramval ]]; then
+					TimeProf=$paramval
+				fi
+			fi
+			if [ $param == "BeginBiasFilter" ]; then
+				if [[ ! -z $paramval ]]; then
+					BeginBiasFilter=$paramval
+				fi
+			fi
+			if [ $param == "EndBiasFilter" ]; then
+				if [[ ! -z $paramval ]]; then
+					EndBiasFilter=$paramval
+				fi
+			fi
+			if [ $param == "biaslowthr" ]; then
+				if [[ ! -z $paramval ]]; then
+					biaslowthr=$paramval
+				fi
+			fi			
+			if [ $param == "biashighthr" ]; then
+				if [[ ! -z $paramval ]]; then
+					biashighthr=$paramval
+				fi
+			fi
+			if [ $param == "MergeInt" ]; then
+				if [[ ! -z $paramval ]]; then
+					MergeInteraction=$paramval
 				fi
 			fi
 		fi
@@ -369,14 +412,27 @@ echo "REFragFile: $REFragFile " >> $ConfFile
 echo "GCContentWindowSize: $GCContentWindowSize " >> $ConfFile
 echo "MappabilityWindowSize: $MappabilityWindowSize " >> $ConfFile
 echo "BIN_SIZE: $BIN_SIZE " >> $ConfFile
-echo "LowDistThr: $LowDistThr " >> $ConfFile
-echo "UppDistThr: $UppDistThr " >> $ConfFile
+echo "LowDistThr: $LowDistThres " >> $ConfFile
+echo "UppDistThr: $UppDistThres " >> $ConfFile
 echo "QVALUE: $QVALUE " >> $ConfFile
 echo "NBins: $NBins " >> $ConfFile
 echo "HiCProBasedir: $HiCProBasedir " >> $ConfFile
 echo "PREFIX: $PREFIX " >> $ConfFile
 echo "DrawFig: $DrawFig " >> $ConfFile
+echo "Timeprof: $TimeProf " >> $ConfFile
+echo "Bias pre-filtering: $BeginBiasFilter " >> $ConfFile
+echo "Prob Adjust due to bias: $EndBiasFilter " >> $ConfFile
+echo "Bias lower cutoff: $biaslowthr " >> $ConfFile
+echo "Bias higher cutoff: $biashighthr " >> $ConfFile
+echo "Merging nearby interactions: $MergeInteraction " >> $ConfFile
 
+#=======================================
+# generate a file which will contain the timing profile
+if [ $TimeProf == 1 ]; then
+	OutTimeFile=$OutDir'/TimingProfile.txt'
+	echo " ================ Time profiling =========== " > $OutTimeFile
+	start=$(date +%s.%N)
+fi
 
 #==============================
 # important - sourya
@@ -427,6 +483,13 @@ if [[ -z $InpBinIntervalFile || -z $InpMatrixFile ]]; then
 	# now assign the matrix names to the designated variables
 	InpBinIntervalFile=$OutPrefix'_abs.bed'
 	InpMatrixFile=$OutPrefix'.matrix'
+
+	if [ $TimeProf == 1 ]; then
+		duration=$(echo "$(date +%s.%N) - $start" | bc)
+		echo " ++++ Time (in seconds) for computing the interaction matrix using HiC-Pro build_matrix utility: $duration" >> $OutTimeFile
+		start=$(date +%s.%N)
+	fi
+
 fi
 
 #=======================
@@ -440,6 +503,12 @@ fi
 Interaction_Initial_File=$HiCProMatrixDir/$PREFIX.interactions.initial.bed
 if [ ! -f $Interaction_Initial_File ]; then
 	Rscript ./src/InteractionHicPro.r $InpBinIntervalFile $InpMatrixFile $Interaction_Initial_File
+	
+	if [ $TimeProf == 1 ]; then
+		duration=$(echo "$(date +%s.%N) - $start" | bc)
+		echo " ++++ Time (in seconds) for getting CIS interactions: $duration" >> $OutTimeFile
+		start=$(date +%s.%N)
+	fi
 fi
 
 #=======================
@@ -447,9 +516,19 @@ fi
 # with respect to distance thresholds
 # ALL to ALL interactions
 #=======================
-Interaction_File=$HiCProMatrixDir/$PREFIX.cis.interactions.DistThr.bed
+# create a directory for individual distance thresholds
+InteractionThrDir=$HiCProMatrixDir'/L_'$LowDistThres'_U'$UppDistThres
+mkdir -p $InteractionThrDir
+Interaction_File=$InteractionThrDir/$PREFIX.cis.interactions.DistThr.bed
+
 if [ ! -f $Interaction_File ]; then
-	awk -v l="$LowDistThr" -v u="$UppDistThr" 'function abs(v) {return v < 0 ? -v : v} {if ((NR==1) || ($1==$4 && abs($2-$5)>=l && abs($2-$5)<=u)) {print $0}}' $Interaction_Initial_File > $Interaction_File
+	awk -v l="$LowDistThres" -v u="$UppDistThres" 'function abs(v) {return v < 0 ? -v : v} {if ((NR==1) || ($1==$4 && abs($2-$5)>=l && abs($2-$5)<=u)) {print $0}}' $Interaction_Initial_File > $Interaction_File
+
+	if [ $TimeProf == 1 ]; then
+		duration=$(echo "$(date +%s.%N) - $start" | bc)
+		echo " ++++ Time (in seconds) for getting CIS interactions within distance thresholds: $duration" >> $OutTimeFile
+		start=$(date +%s.%N)
+	fi
 fi
 
 #============================
@@ -475,6 +554,12 @@ if [ ! -f $REFragMappGCFile ]; then
 	MappOffsetCutBedFile=$FeatureDir'/Temp_Fragment_Mapp_'$MappabilityWindowSize'bp.bed'
 	if [ ! -f $MappOffsetCutBedFile ]; then
 		awk -v s=$MappabilityWindowSize 'function max(x,y) {return x>y?x:y}; function min(x,y) {return x<y?x:y}; {printf "%s\t%d\t%d\n%s\t%d\t%d\n", $1, $2, min($2+s,$3), $1, max($3-s, $2), $3}' $REFragFile > $MappOffsetCutBedFile
+
+		if [ $TimeProf == 1 ]; then
+			duration=$(echo "$(date +%s.%N) - $start" | bc)
+			echo " ++++ Time (in seconds) for computing the fragment file to compute the mappability: $duration" >> $OutTimeFile
+			start=$(date +%s.%N)
+		fi		
 	fi
 
 	#============================
@@ -489,6 +574,12 @@ if [ ! -f $REFragMappGCFile ]; then
 	MappabilityOutFile=$FeatureDir'/Mappability_RE_Fragments.bed'
 	if [ ! -f $MappabilityOutFile ]; then
 		bedtools map -a $MappOffsetCutBedFile -b $MappabilityFile -c 4 -o mean | awk '{if ($4=="." || $4=="NA" || $4=="NaN") {$4=0}; print $0}' - > $MappabilityOutFile
+
+		if [ $TimeProf == 1 ]; then
+			duration=$(echo "$(date +%s.%N) - $start" | bc)
+			echo " ++++ Time (in seconds) for computing the mappability: $duration" >> $OutTimeFile
+			start=$(date +%s.%N)
+		fi		
 	fi
 
 	#============================
@@ -503,6 +594,12 @@ if [ ! -f $REFragMappGCFile ]; then
 	GCOffsetCutBedFile=$FeatureDir'/Temp_Fragment_GC_'$GCContentWindowSize'bp.bed'
 	if [ ! -f $GCOffsetCutBedFile ]; then
 		awk -v s=$GCContentWindowSize 'function max(x,y) {return x>y?x:y}; function min(x,y) {return x<y?x:y}; {printf "%s\t%d\t%d\n%s\t%d\t%d\n", $1, $2, min($2+s,$3), $1, max($3-s, $2), $3}' $REFragFile > $GCOffsetCutBedFile
+
+		if [ $TimeProf == 1 ]; then
+			duration=$(echo "$(date +%s.%N) - $start" | bc)
+			echo " ++++ Time (in seconds) for computing the fragment file to compute the GC content: $duration" >> $OutTimeFile
+			start=$(date +%s.%N)
+		fi		
 	fi
 
 	#============================
@@ -514,6 +611,12 @@ if [ ! -f $REFragMappGCFile ]; then
 	GCOutFile=$FeatureDir'/GC_Content_RE_Fragments.bed'
 	if [ ! -f $GCOutFile ]; then
 		nucBed -fi $RefFastaFile -bed $GCOffsetCutBedFile | awk '{if ($4=="." || $4=="NA" || $4=="NaN") {$4=0}; print $0}' - > $GCOutFile
+
+		if [ $TimeProf == 1 ]; then
+			duration=$(echo "$(date +%s.%N) - $start" | bc)
+			echo " ++++ Time (in seconds) for computing the GC content: $duration" >> $OutTimeFile
+			start=$(date +%s.%N)
+		fi		
 	fi
 
 	#============================
@@ -537,6 +640,12 @@ if [ ! -f $REFragMappGCFile ]; then
 	#============================
 	Rscript ./src/CombineREFragMappGC.r $REFragFile $Temp_Mapp_File $Temp_GC_File $REFragMappGCFile
 
+	if [ $TimeProf == 1 ]; then
+		duration=$(echo "$(date +%s.%N) - $start" | bc)
+		echo " ++++ Time (in seconds) for generating the final mappability and GC content of intervals: $duration" >> $OutTimeFile
+		start=$(date +%s.%N)
+	fi
+
 	# remove the temporary files
 	rm $MappOffsetCutBedFile
 	rm $MappabilityOutFile
@@ -556,6 +665,12 @@ CoverageFile=$FeatureDir'/'$PREFIX'.coverage.bed'
 if [ ! -f $CoverageFile ]; then
 	python ./src/CoverageBin.py -i $InpValidPairsFile -p $PeakFILE -b $BIN_SIZE -o $CoverageFile -c $ChrSizeFile
 	echo 'Computed initial coverage information for individual genomic bins'
+	
+	if [ $TimeProf == 1 ]; then
+		duration=$(echo "$(date +%s.%N) - $start" | bc)
+		echo " ++++ Time (in seconds) for getting coverage of individual bins: $duration" >> $OutTimeFile
+		start=$(date +%s.%N)
+	fi
 fi
 
 # =======================================
@@ -568,6 +683,12 @@ CoverageBiasFile=$FeatureDir'/'$PREFIX'.coverage_Bias.bed'
 if [ ! -f $CoverageBiasFile ]; then
 	Rscript ./src/BiasCalc.r --CoverageFile $CoverageFile --OutFile $CoverageBiasFile
 	echo 'Appended bias information for individual genomic bins'
+
+	if [ $TimeProf == 1 ]; then
+		duration=$(echo "$(date +%s.%N) - $start" | bc)
+		echo " ++++ Time (in seconds) for computing bias of individual bins: $duration" >> $OutTimeFile
+		start=$(date +%s.%N)
+	fi	
 fi
 
 #=================
@@ -598,6 +719,12 @@ if [ ! -f $AllFeatFile ]; then
 	bedtools map -a $AllFeatFile_temp2 -b $REFragMappGCFile -c 4 -o count -null '0' > $AllFeatFile
 	rm $AllFeatFile_temp1
 	rm $AllFeatFile_temp2
+
+	if [ $TimeProf == 1 ]; then
+		duration=$(echo "$(date +%s.%N) - $start" | bc)
+		echo " ++++ Time (in seconds) for computing bin specific features: $duration" >> $OutTimeFile
+		start=$(date +%s.%N)
+	fi		
 fi
 
 #=================
@@ -606,6 +733,12 @@ fi
 if [ $DrawFig == 1 ]; then
 	Rscript ./Analysis/PlotGenomeBins.r --GenomeBinFile $AllFeatFile --OutDir $FeatureDir'/Plots'
 	echo 'Plotted the distribution of coverage values among peak and non peak segments'
+
+	if [ $TimeProf == 1 ]; then
+		duration=$(echo "$(date +%s.%N) - $start" | bc)
+		echo " ++++ Time (in seconds) for plotting bin specific features: $duration" >> $OutTimeFile
+		start=$(date +%s.%N)
+	fi			
 fi
 
 #============================
@@ -630,6 +763,12 @@ echo 'Contact count col: '$cccol
 totcol=`cat $IntFileALLtoALL | tail -n 1 | awk '{print NF}' -`
 echo 'Total number of columns for the complete feature interactions: '$totcol
 
+if [ $TimeProf == 1 ]; then
+	duration=$(echo "$(date +%s.%N) - $start" | bc)
+	echo " ++++ Time (in seconds) for computing pairwise interactions among all segments: $duration" >> $OutTimeFile
+	start=$(date +%s.%N)
+fi		
+
 #===================
 # using the interaction file among all binned intervals
 # associated with the normalization features
@@ -638,6 +777,12 @@ echo 'Total number of columns for the complete feature interactions: '$totcol
 if [ $DrawFig == 1 ]; then
 	Rscript ./Analysis/InteractionPlots.r --IntFile $IntFileALLtoALL --OutDir $OutDir'/Plots_Norm' --MappThr 0.5 --GCThr 0.2 --cccol $cccol
 	echo 'Plotted the distribution of normalization features among peak and non peak segments'
+
+	if [ $TimeProf == 1 ]; then
+		duration=$(echo "$(date +%s.%N) - $start" | bc)
+		echo " ++++ Time (in seconds) for plotting normalization related features for different types of interactions: $duration" >> $OutTimeFile
+		start=$(date +%s.%N)
+	fi
 fi
 
 #===================
@@ -673,14 +818,18 @@ if [ ! -f $IntFilePeaktoALL ]; then
 	awk '(NR==1) || ($9==1)' $IntFileALLtoALL > $IntFilePeaktoALL
 fi
 
+if [ $TimeProf == 1 ]; then
+	duration=$(echo "$(date +%s.%N) - $start" | bc)
+	echo " ++++ Time (in seconds) for assigning different types of interactions: $duration" >> $OutTimeFile
+	start=$(date +%s.%N)
+fi
+
 #==============================
 # navigate through individual types of interactions (corresponding folders)
 # and apply FitHiC for individual interaction types
 #==============================
 # $DirALLtoALL is commented for the moment - sourya
 for dirname in $DirPeaktoPeak $DirPeaktoNonPeak $DirPeaktoALL $DirALLtoALL; do
-# for dirname in $DirPeaktoPeak $DirPeaktoNonPeak $DirPeaktoALL; do
-# for dirname in $DirALLtoALL; do
 	
 	echo 'Processing the directory: '$dirname
 
@@ -696,6 +845,12 @@ for dirname in $DirPeaktoPeak $DirPeaktoNonPeak $DirPeaktoALL $DirALLtoALL; do
 	fi
 
 	echo 'Created sorted genomic distance based interaction file'
+
+	if [ $TimeProf == 1 ]; then
+		duration=$(echo "$(date +%s.%N) - $start" | bc)
+		echo " ++++ Time (in seconds) for sorting the interactions (according to genomic distance): $duration" >> $OutTimeFile
+		start=$(date +%s.%N)
+	fi
 
 	#==============
 	# now apply FitHiC on the sorted gene distance based interaction matrix
@@ -714,6 +869,8 @@ for dirname in $DirPeaktoPeak $DirPeaktoNonPeak $DirPeaktoALL $DirALLtoALL; do
 	FitHiC_Pass1_Filt_PeakCountfile=$GenFitHiCDir/$PREFIX.interactions_FitHiCPass1_FILTER.Peakcount.bed
 	FitHiC_Pass1_LogQ_file=$GenFitHiCDir/$PREFIX.interactions_FitHiCPass1_FILTER_WashU.bed
 	FitHiC_Pass1_PeakCCDistr_Text=$GenFitHiCDir/$PREFIX.anchorPeakCCDistr.bed
+	FitHiC_Pass1_Filt_MergedIntfile=$GenFitHiCDir/$PREFIX.interactions_FitHiCPass1_FILTER_MERGED.bed
+	FitHiC_Pass1_Filt_MergedInt_LogQ_file=$GenFitHiCDir/$PREFIX.interactions_FitHiCPass1_FILTER_MERGED_WashU.bed
 
 	# Modeling the statistical significance by FitHiC - main function
 	if [ ! -f $FitHiC_Pass1_outfile ]; then
@@ -729,6 +886,12 @@ for dirname in $DirPeaktoPeak $DirPeaktoNonPeak $DirPeaktoALL $DirALLtoALL; do
 	fi
 
 	echo 'Extracted significant interactions from FitHiC'
+
+	if [ $TimeProf == 1 ]; then
+		duration=$(echo "$(date +%s.%N) - $start" | bc)
+		echo " ++++ Time (in seconds) for applying FitHiC (significant interactions): $duration" >> $OutTimeFile
+		start=$(date +%s.%N)
+	fi		
 
 	# no of significant interactions (FitHiC)
 	nsigFitHiC=`cat $FitHiC_Pass1_Filtfile | wc -l`
@@ -782,6 +945,31 @@ for dirname in $DirPeaktoPeak $DirPeaktoNonPeak $DirPeaktoALL $DirALLtoALL; do
 	# 		fi
 	# 	fi
 	# fi
+
+	if [ $TimeProf == 1 ]; then
+		duration=$(echo "$(date +%s.%N) - $start" | bc)
+		echo " ++++ Time (in seconds) for post processing FitHiC results: $duration" >> $OutTimeFile
+		start=$(date +%s.%N)
+	fi
+
+	# if merging nearby interactions are enabled
+	# then we merge the nearby interactions from the earlier generated significant interactions
+	# and also create a washu browser generated compatible file
+	if [ $MergeInteraction == 1 ]; then
+		if [ ! -f $FitHiC_Pass1_Filt_MergedIntfile ]; then
+			python ./src/CombineNearbyInteraction.py --InpFile $FitHiC_Pass1_Filtfile --OutFile $FitHiC_Pass1_Filt_MergedIntfile --headerInp 1 --binsize $BIN_SIZE
+		fi
+		if [ ! -s $FitHiC_Pass1_Filt_MergedInt_LogQ_file ]; then
+			nint=`cat $FitHiC_Pass1_Filt_MergedIntfile | wc -l`
+			if [[ $nint -gt 2 ]]; then
+				# 9th field stores the Q value
+				awk '{if (NR > 1) {print $1","$2","$3"\t"$4","$5","$6"\t"(-log($9)/log(10))}}' $FitHiC_Pass1_Filt_MergedIntfile > $FitHiC_Pass1_Filt_MergedInt_LogQ_file
+			else
+				echo 'There is no significant interaction - so no WashU specific session file is created !!'
+			fi
+		fi
+		echo 'Merged nearby significant interactions - created washu browser compatible file for these merged interactions!!!'
+	fi
 
 done 	# end of directory traversal loop
 
