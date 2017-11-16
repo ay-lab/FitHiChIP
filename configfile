@@ -16,28 +16,28 @@
 # Parameter 1 
 # File containing the valid pairs from HiCPro pipeline
 # Can be either a text file, or a gzipped text file
-ValidPairs=./TestData/Sample_ValidPairs.txt.gz
+ValidPairs=/mnt/BioAdHoc/Groups/vd-vijay/sourya/DATA/HiChIP/Mumbach_2017_paper/HiCPro_Out_SAMPLE/GSM2705041_GM_HiChIP_H3K27ac_B1_allValidPairs.txt.gz
 
 # Parameter 2
 # File containing the bin intervals (according to a specified bin size)
 # which is an output of HiC-pro pipeline
 # If not provided, this is computed from the parameter 1
-Interval=
+Interval=/mnt/BioAdHoc/Groups/vd-vijay/sourya/DATA/HiChIP/Mumbach_2017_paper/HiCPro_Out_SAMPLE/GSM2705041_HiCPro_Matrix/BinSize_5000/MatrixHiCPro_abs.bed
 
 # Parameter 3
 # File storing the contact matrix (output of HiC-pro pipeline)
 # should be accompanied with the parameter 2
 # if not specified, computed from the parameter 1
-Matrix=
+Matrix=/mnt/BioAdHoc/Groups/vd-vijay/sourya/DATA/HiChIP/Mumbach_2017_paper/HiCPro_Out_SAMPLE/GSM2705041_HiCPro_Matrix/BinSize_5000/MatrixHiCPro.matrix
 
 # Parameter 4
 # Peak detection output file
 # mandatory parameter
-PeakFile=./TestData/Sample.Peaks
+PeakFile=/mnt/BioAdHoc/Groups/vd-vijay/sourya/DATA/HiChIP/Mumbach_2017_paper/REF_ChIP_Seq_Peaks/GM12878/ENCFF465WTH.bed
 
 # Parameter 5
 # Output base directory under which all results will be stored
-OutDir=./TestData/FitHiChIP_HiCPro_Out/
+OutDir=/mnt/BioAdHoc/Groups/vd-vijay/sourya/DATA/HiChIP/Mumbach_2017_paper/GSM2705041_GM_H3K27ac_B1/FitHiChIP_HiCPro_Norm_NEW/
 
 #======================================
 # Parameters related to genomic features
@@ -47,11 +47,11 @@ OutDir=./TestData/FitHiChIP_HiCPro_Out/
 RefGenome=hg19
 
 # Absolute path of the file containing the information of reference chromosome size
-ChrSizeFile=./TestData/chrom_hg19.sizes
+ChrSizeFile=/mnt/BioAdHoc/Groups/vd-vijay/sourya/genomes/chrsize/chrom_hg19.sizes
 
 # fasta file of the reference genome
 # used to compute the GC content information
-RefFasta=./TestData/hg19.fa
+RefFasta=/mnt/BioAdHoc/Groups/vd-vijay/sourya/genomes/Complete_Genome/hg19/hg19.fa
 
 # Absolute path of the Reference mappability file (according to the reference genome)
 # (may be downloaded from the site  http://hgdownload.cse.ucsc.edu/goldenPath/)
@@ -59,11 +59,11 @@ RefFasta=./TestData/hg19.fa
 # If user has bigWig file, the following UCSC utility 
 # is to be used for conversion to bedGraph format
 # BigWigToBedgraph inp.bw out.bedGraph 
-MappabilityFile=./TestData/wgEncodeCrgMapabilityAlign50mer.bedGraph
+MappabilityFile=/mnt/BioAdHoc/Groups/vd-vijay/sourya/genomes/mappability/hg19/wgEncodeCrgMapabilityAlign50mer.bedGraph
 
 # restriction fragment file
 # of the format:        chr     interval_start  interval_end
-REFragFile=./TestData/MboI_hg19_RE_Fragments.bed
+REFragFile=/home/sourya/genome_ref_data/cutter_sites/MboI_hg19_RE_Fragments.bed
 
 # size of the window upstream and downstream the restriction site used 
 # to calculate the GC content(default 200)
@@ -109,4 +109,8 @@ PREFIX=FitHiChIP
 # Specified as 1 or 0. If 1, draws the figures of various 
 # statistics / analysis. Default 0.
 Draw=0
+
+# Specified as 1 or 0. If 1, generates a timing profile (time taken to run individual steps). 
+# Default 0.
+TimeProf=0
 
