@@ -495,7 +495,7 @@ colnames(FinalData) <- c(colnames(interaction.data), "p", "dbinom", "P-Value", "
 
 # append the Spline distribution probability and corresponding P value as separate columns
 # and write in a separate text file
-temp_outfile <- paste0(inpdir, '/', 'temp_out.bed')
+temp_outfile <- paste0(OutIntDir, '/', 'temp_out.bed')
 write.table(FinalData, temp_outfile, row.names = FALSE, col.names = TRUE, sep = "\t", quote=FALSE, append=FALSE) 
 
 # now sort the file contents and write that in the final specified output file
