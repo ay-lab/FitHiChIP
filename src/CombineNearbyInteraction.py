@@ -196,23 +196,32 @@ def main():
         for i in range(len(list_conn_comp)):
             # a connected component - a particular list of connected nodes
             curr_comp_list = list(list_conn_comp[i])
-            # print '\n Processing the connected component no: ', i, '  list: ', str(curr_comp_list)
+            if 0:
+                print '\n Processing the connected component no: ', i, '  list: ', str(curr_comp_list)
 
             # from the first interacting bin set, get the lower and higher bin index
             min_idx_bin1 = min([x[0] for x in curr_comp_list])
             max_idx_bin1 = max([x[0] for x in curr_comp_list])
+            if 0:
+                print 'min_idx_bin1: ', min_idx_bin1, ' max_idx_bin1: ', max_idx_bin1
 
             # get the span of coordinates for the first interacting bin (set)
             span_low_bin1 = (min_idx_bin1 - 1) * bin_size
             span_high_bin1 = max_idx_bin1 * bin_size
+            if 0:
+                print 'span_low_bin1: ', span_low_bin1, ' span_high_bin1: ', span_high_bin1
 
             # from the second interacting bin set, get the lower and higher bin index
             min_idx_bin2 = min([x[1] for x in curr_comp_list])
             max_idx_bin2 = max([x[1] for x in curr_comp_list])
+            if 0:
+                print 'min_idx_bin2: ', min_idx_bin2, ' max_idx_bin2: ', max_idx_bin2
 
             # get the span of coordinates for the first interacting bin (set)
             span_low_bin2 = (min_idx_bin2 - 1) * bin_size
             span_high_bin2 = max_idx_bin2 * bin_size
+            if 0:
+                print 'span_low_bin2: ', span_low_bin2, ' span_high_bin2: ', span_high_bin2
 
             # sum of contact counts for all the interacting bins within this set of connected nodes
             sum_cc = sum([CurrChrDict[x]._GetCC() for x in curr_comp_list])
@@ -232,12 +241,17 @@ def main():
             # the higher the %, the better this component is strongly connected
             Percent_Significant_BinPair = (possible_bin_pairs * 1.0) / total_possible_bin_pairs
 
+            if 0:
+                print 'total_possible_bin_pairs: ', total_possible_bin_pairs, ' possible_bin_pairs: ', possible_bin_pairs, ' % clique: ', Percent_Significant_BinPair
+
             # get the min P and Q values and corresponding bin pairs
             for j in range(len(curr_comp_list)):
+                curr_key = curr_comp_list[j]
+                if 0:
+                    print ' Connected component index: ', j, ' curr_key: ', curr_key, ' CC: ', CurrChrDict[curr_key]._GetCC(), ' Pval: ', CurrChrDict[curr_key]._GetPVal(), ' Qval: ', CurrChrDict[curr_key]._GetQVal()
                 if (j == 0):
-                    rep_bin_key = curr_comp_list[j]
+                    rep_bin_key = curr_key
                 else:
-                    curr_key = curr_comp_list[j]
                     if (CurrChrDict[curr_key]._GetPVal() < CurrChrDict[rep_bin_key]._GetPVal()) and (CurrChrDict[curr_key]._GetQVal() < CurrChrDict[rep_bin_key]._GetQVal()):
                         rep_bin_key = curr_key
 
@@ -249,6 +263,9 @@ def main():
             cc = CurrChrDict[rep_bin_key]._GetCC()
             pval = CurrChrDict[rep_bin_key]._GetPVal()
             qval = CurrChrDict[rep_bin_key]._GetQVal()
+
+            if 0:
+                print 'Selected bin key: ', rep_bin_key,  ' cc: ', cc, ' pval: ', pval, ' qval: ', qval
                        
             # write the interaction in the specified output file
             fp_outInt.write('\n' + str(curr_chr) + '\t' + str(rep_bin1_low) + '\t' + str(rep_bin1_high) + '\t' + str(curr_chr) + '\t' + str(rep_bin2_low) + '\t' + str(rep_bin2_high) + '\t' + str(cc) + '\t' + str(pval) + '\t' + str(qval) + '\t' + str(span_low_bin1) + '\t' + str(span_high_bin1) + '\t' + str(span_low_bin2) + '\t' + str(span_high_bin2) + '\t' + str(sum_cc) + '\t' + str(Percent_Significant_BinPair))
