@@ -10,7 +10,7 @@
 # according to the HiC-Pro pipeline specification
 # user can either specify the parameter 1
 # or the parameters 2 and 3 (jointly)
-# if all three parameters are specified, computation begins by using the parameter 1
+# if all three parameters are specified, computation begins by using the parameters 2 and 3
 #======================================
 
 # Parameter 1 
@@ -94,6 +94,34 @@ QVALUE=0.01
 
 # In the FitHiC model, this is the max no of equal occupancy bins (Default 200) 
 NBins=200
+
+# The following parameter (1 or 0), if 1, means that interactions need to be filtered according to the bias values
+# otherwise, no pre-filtering of the interactions take place
+# Default value of this parameter is 1
+# recommended: 1
+BeginBiasFilter=1
+
+# The following parameter (1 or 0), if 1, means that P value of any interaction is computed by accounting the bias values
+# here the bias correction is enabled
+# otherwise, default P value (estimated from spline fit probability) is estimated
+# Default value of this parameter is 1
+# recommended: 1
+EndBiasFilter=1
+
+# if "BeginBiasFilter" parameter is set as 1, following two parameters denote the interval of bias values within which the interactions would be retained
+# default lower bias cutoff is set as 0.2
+# recommended to use this value
+biaslowthr=0.2
+
+# default higher cutoff of bias values is set as 5
+# requires "BeginBiasFilter" parameter to be 1
+# recommended to use this value
+biashighthr=5
+
+# the following parameter (1 or 0), if 1, means that interactions close to each other (due to their originating bins are closer) are merged 
+# to represent a single interaction
+# default: 1
+MergeInt=1
 
 #==============================
 # Few other parameters related to its execution
