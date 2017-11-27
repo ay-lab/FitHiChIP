@@ -461,6 +461,10 @@ if [[ -z $InpBinIntervalFile || -z $InpMatrixFile ]]; then
 	# provided as the input
 	# MatrixBuildExec=$HiCProBasedir'/scripts/build_matrix'
 	MatrixBuildExecSet=( $(find $HiCProBasedir -type f -name 'build_matrix') )
+	if [[ ${#MatrixBuildExecSet[@]} == 0 ]]; then
+		echo 'Did not find HiC-pro package installation and the utility for matrix generation - quit !!'
+		exit 1
+	fi
 	MatrixBuildExec=${MatrixBuildExecSet[0]}
 	echo -e '\n *** MatrixBuildExec: '$MatrixBuildExec
 
