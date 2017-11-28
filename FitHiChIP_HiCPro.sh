@@ -461,11 +461,15 @@ if [[ -z $InpBinIntervalFile || -z $InpMatrixFile ]]; then
 	# provided as the input
 	# MatrixBuildExec=$HiCProBasedir'/scripts/build_matrix'
 	MatrixBuildExecSet=( $(find $HiCProBasedir -type f -name 'build_matrix') )
-	if [[ ${#MatrixBuildExecSet[@]} == 0 ]]; then
+	len=${#MatrixBuildExecSet[@]}
+	echo 'len: '$len
+	if [[ $len == 0 ]]; then
 		echo 'Did not find HiC-pro package installation and the utility for matrix generation - quit !!'
 		exit 1
 	fi
-	MatrixBuildExec=${MatrixBuildExecSet[0]}
+	idx=`expr $len - 1`
+	echo 'idx: '$idx
+	MatrixBuildExec=${MatrixBuildExecSet[idx]}
 	echo -e '\n *** MatrixBuildExec: '$MatrixBuildExec
 
 	echo '*** Computing HiC-pro matrices from the input valid pairs file'
@@ -478,7 +482,7 @@ if [[ -z $InpBinIntervalFile || -z $InpMatrixFile ]]; then
 		# check the extension of input valid pairs file
 		# and extract accordingly
 		if [[ $InpValidPairsFile == *.gz ]]; then
-			zcat $InpValidPairsFile | $MatrixBuildExec --binsize $BIN_SIZE --chrsizes $ChrSizeFile --ifile /dev/stdin --oprefix $OutPrefix --matrix-format 'upper' 
+			zcat $InpValidPairsFile | $MatrixBuildExec --binsize $BIN_SIZE --chrsizes $ChrSizeFile --ifile /dev/stdin --oprefix $OutPrefix --matrix-format 'upper'  
 		else
 			cat $InpValidPairsFile | $MatrixBuildExec --binsize $BIN_SIZE --chrsizes $ChrSizeFile --ifile /dev/stdin --oprefix $OutPrefix --matrix-format 'upper' 
 		fi
@@ -553,11 +557,14 @@ if [ ! -f $REFragMappGCFile ]; then
 	# the offset size = $MappabilityWindowSize
 	# upstream and downstream 
 	# we do not cross the RE fragment boundary - safe for length overflow
+	# Important - sourya
+	# the final generated file is applied on bedtools map function
+	# do, it should be sorted by genome coordinate, using the function sort -k1,1 -k2,2n
 	#============================
 	echo 'Creating the fragment end (w.r.t window size) file -- to compute the mappability information!!'
 	MappOffsetCutBedFile=$FeatureDir'/Temp_Fragment_Mapp_'$MappabilityWindowSize'bp.bed'
 	if [ ! -f $MappOffsetCutBedFile ]; then
-		awk -v s=$MappabilityWindowSize 'function max(x,y) {return x>y?x:y}; function min(x,y) {return x<y?x:y}; {printf "%s\t%d\t%d\n%s\t%d\t%d\n", $1, $2, min($2+s,$3), $1, max($3-s, $2), $3}' $REFragFile > $MappOffsetCutBedFile
+		awk -v s=$MappabilityWindowSize 'function max(x,y) {return x>y?x:y}; function min(x,y) {return x<y?x:y}; {printf "%s\t%d\t%d\n%s\t%d\t%d\n", $1, $2, min($2+s,$3), $1, max($3-s, $2), $3}' $REFragFile | sort -k1,1 -k2,2n > $MappOffsetCutBedFile
 
 		if [ $TimeProf == 1 ]; then
 			duration=$(echo "$(date +%s.%N) - $start" | bc)
@@ -593,11 +600,14 @@ if [ ! -f $REFragMappGCFile ]; then
 	# the offset size = $GCContentWindowSize
 	# upstream and downstream 
 	# we do not cross the RE fragment boundary - safe for length overflow
+	# Important - sourya
+	# the final generated file is applied on bedtools map function
+	# do, it should be sorted by genome coordinate, using the function sort -k1,1 -k2,2n
 	#============================
 	echo 'Creating the fragment end (w.r.t window size) file -- to compute the GC content information!!'
 	GCOffsetCutBedFile=$FeatureDir'/Temp_Fragment_GC_'$GCContentWindowSize'bp.bed'
 	if [ ! -f $GCOffsetCutBedFile ]; then
-		awk -v s=$GCContentWindowSize 'function max(x,y) {return x>y?x:y}; function min(x,y) {return x<y?x:y}; {printf "%s\t%d\t%d\n%s\t%d\t%d\n", $1, $2, min($2+s,$3), $1, max($3-s, $2), $3}' $REFragFile > $GCOffsetCutBedFile
+		awk -v s=$GCContentWindowSize 'function max(x,y) {return x>y?x:y}; function min(x,y) {return x<y?x:y}; {printf "%s\t%d\t%d\n%s\t%d\t%d\n", $1, $2, min($2+s,$3), $1, max($3-s, $2), $3}' $REFragFile | sort -k1,1 -k2,2n > $GCOffsetCutBedFile
 
 		if [ $TimeProf == 1 ]; then
 			duration=$(echo "$(date +%s.%N) - $start" | bc)
