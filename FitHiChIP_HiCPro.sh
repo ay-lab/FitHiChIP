@@ -723,16 +723,35 @@ InteractionSortedDistFileName='Interactions.sortedGenDist.bed'
 # the coverage file has header information, which needs to be discarded before this function
 # after the operation, a file with 8 columns is produced
 # chr start end coverage ispeak mappability GCcontent NoCutSites
+
+# important - sourya
+# before applying bedtools map, check whether the input is sorted by position
 #=================
 AllFeatFile=$FeatureDir'/'$PREFIX'.AllBin_CompleteFeat.bed'
 if [ ! -f $AllFeatFile ]; then
+	# first ensure that inputs to bed operation are sorted by chromosome name and coordinate
+	temp_CoverageBiasFile=$FeatureDir'/'$PREFIX'.coverage_Bias1.bed'
+	awk 'NR>1' $CoverageBiasFile | sort -k1,1 -k2,2n > $temp_CoverageBiasFile
+	temp_REFragMappGCFile=$FeatureDir'/REFrag_Mapp_GC_Merged1.bed'
+	sort -k1,1 -k2,2n $REFragMappGCFile > $temp_REFragMappGCFile
+	# then apply the map function
+	# first merge the mappability and GC content information
 	AllFeatFile_temp1=$FeatureDir'/'$PREFIX'.AllBin_CompleteFeat_temp1.bed'
-	AllFeatFile_temp2=$FeatureDir'/'$PREFIX'.AllBin_CompleteFeat_temp2.bed'
-	awk 'NR>1' $CoverageBiasFile | bedtools map -a /dev/stdin -b $REFragMappGCFile -c 4 -o mean -null '0' > $AllFeatFile_temp1
-	bedtools map -a $AllFeatFile_temp1 -b $REFragMappGCFile -c 5 -o mean -null '0' > $AllFeatFile_temp2
-	bedtools map -a $AllFeatFile_temp2 -b $REFragMappGCFile -c 4 -o count -null '0' > $AllFeatFile
+	bedtools map -c 4,5 -o mean -null '0' -a $temp_CoverageBiasFile -b $temp_REFragMappGCFile > $AllFeatFile_temp1
+	# then merge the number of RE sites
+	bedtools map -a $AllFeatFile_temp1 -b $REFragMappGCFile -c 4 -o count -null '0' > $AllFeatFile
+	# finally rename the temporary files
+	rm $temp_CoverageBiasFile
+	rm $temp_REFragMappGCFile
 	rm $AllFeatFile_temp1
-	rm $AllFeatFile_temp2
+
+	# AllFeatFile_temp1=$FeatureDir'/'$PREFIX'.AllBin_CompleteFeat_temp1.bed'
+	# AllFeatFile_temp2=$FeatureDir'/'$PREFIX'.AllBin_CompleteFeat_temp2.bed'
+	# awk 'NR>1' $CoverageBiasFile | sort -k1,1 -k2,2n | bedtools map -a /dev/stdin -b $REFragMappGCFile -c 4 -o mean -null '0' > $AllFeatFile_temp1
+	# bedtools map -a $AllFeatFile_temp1 -b $REFragMappGCFile -c 5 -o mean -null '0' > $AllFeatFile_temp2
+	# bedtools map -a $AllFeatFile_temp2 -b $REFragMappGCFile -c 4 -o count -null '0' > $AllFeatFile
+	# rm $AllFeatFile_temp1
+	# rm $AllFeatFile_temp2
 
 	if [ $TimeProf == 1 ]; then
 		duration=$(echo "$(date +%s.%N) - $start" | bc)
