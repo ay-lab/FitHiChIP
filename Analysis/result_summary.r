@@ -34,7 +34,7 @@ system(paste('mkdir -p', outdir))
 boxplotCCQvalfile <- paste0(outdir,'/','CC_Qval.png')
 plotfile <- paste0(outdir,'/','CC_IntDist.png')
 
-if ((file.exists(boxplotCCQvalfile) == FALSE) | (file.exists(plotfile) == FALSE)) {
+if (1) { #((file.exists(boxplotCCQvalfile) == FALSE) | (file.exists(plotfile) == FALSE)) {
 
 	# load the interaction matrix of the unfiltered file
 	# Note: this unfiltered interaction file has header information
