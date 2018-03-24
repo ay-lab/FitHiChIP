@@ -42,7 +42,7 @@ def main():
     parser.add_option("--OutFile", dest="OutFile", help="Output merged interaction file")
     parser.add_option("--binsize", dest="binsize", type="int", help="Size of bins employed. DEFAULT 5 Kb.")
     parser.add_option("--conn", dest="connectivity_rule", type="int", help="Rule of connectivity ( 8 or 4). DEFAULT 8.")
-    parser.set_defaults(InpFile=None, OutFile=None, binsize=5000, connectivity_rule=8)
+    parser.set_defaults(InpFile=None, OutFile=None, binsize=5000, connectivity_rule=8, headerInp=0)
     (options, args) = parser.parse_args()
 
     #===========================
@@ -91,7 +91,7 @@ def main():
     #=========================================
     # loop to process individual chromosomes and corresponding data
     #=========================================
-    for chridx in range(len(TargetChrList)):    #range(20, 21):
+    for chridx in range(len(TargetChrList)):
         curr_chr = TargetChrList[chridx]
         if 0:
             print 'Processing the chromosome: ', str(curr_chr)
@@ -157,8 +157,8 @@ def main():
                 CurrChrDict.setdefault(curr_key, Interaction(int(linecontents[6]), float(linecontents[len(linecontents) - 2]), float(linecontents[len(linecontents) - 1])))
                 # add the node to the given graph as well
                 G.add_node(curr_key)
-                # debug
-                # print 'Current interaction: ', str(line), '  ------ curr_key: ', curr_key
+                if 0:
+                    print 'Current interaction: ', str(line), '  ------ curr_key: ', curr_key
 
         # now check the nodes of G
         # assign edges of G according to the 8 / 4 connectivity rule (according to the input parameter)
@@ -168,17 +168,20 @@ def main():
             node1 = nodelist[i]
             for j in range(i+1, len(nodelist)):
                 node2 = nodelist[j]
-                # print 'Checking the edge between node 1: ', node1, '  and node 2: ', node2
+                if 0:
+                    print 'Checking the edge between node 1: ', node1, '  and node 2: ', node2
                 # check if there should be an edge between node1 and node2
                 # according to the desired connectivity rule
                 if (connectivity_rule == 8):
                     if (abs(node1[0] - node2[0]) <= 1) and (abs(node1[1] - node2[1]) <= 1):
                         G.add_edge(node1, node2)
-                        # print '8 connectivity Edge between node 1: ', node1, '  and node 2: ', node2
+                        if 0:
+                            print '8 connectivity Edge between node 1: ', node1, '  and node 2: ', node2
                 if (connectivity_rule == 4):
                     if ((abs(node1[0] - node2[0]) + abs(node1[1] - node2[1])) <= 1):
                         G.add_edge(node1, node2)
-                        # print '4 connectivity Edge between node 1: ', node1, '  and node 2: ', node2
+                        if 0:
+                            print '4 connectivity Edge between node 1: ', node1, '  and node 2: ', node2
 
         # check the edges of G
         edgelist = G.edges()
