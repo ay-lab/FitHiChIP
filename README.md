@@ -2,22 +2,22 @@
 FitHiChIP_HiCPro
 ----------------
 
-FitHiChIP_HiCPro targets for analyzing HiChIP data and deriving the statistical significant interactions, subject to a 
-distance threshold. 
+FitHiChIP_HiCPro analyzes HiChIP data and derives the statistical significant CIS interactions, given a specific distance range 
+(default = 20 Kb to 2 Mb, can be user defined as well).
 
-Generally, mid to long range CIS interactions (20 Kb to 2 Mb) are sought, although this range can be supplied by user. 
-We also experimented with the distance thresholds 10 Kb to 3 Mb.
+The package starts from valid CIS read pairs from the HiC-Pro pipeline (Servant et. al. 2015), the most commonly 
+used HiC data processing pipeline. The valid read pairs are then applied to a custom method (named FitHiChIP) for 
+finding statistical significant interactions. The method uses custom implementation of the package 
+FitHiC (Ay and Noble, 2014) and augments with a bias correction technique to find the statistical 
+significant interactions.
 
-The package uses output of HiC-Pro pipeline (paired end reads) and applies the package FitHiC (custom implemented to 
-process HiChIP data) to derive the significant interactions.
+The output interactions are shown to be highly overlapping with the reference ChIA-PET and HiCCUPS interactions. 
+Plus, significant interactions (reported in the reference studies) missed by either HiCCUPS or ChIA-PET 
+loops, are perfectly captured by FitHiChIP. We also tested our interactions with hichipper, a new method 
+which applies MANGO on top of HiChIP data, and found that FitHiChIP sucessfully discards many 
+false positive interactions reported by hichipper.
 
-User can opt for one of the following two outputs (statistically significant interactions):
-
-1) Basic FitHiC with spline fit based p-value computation and subsequent FDR filtering (with a custom FDR threshold - default 0.01)
-
-2) Or, FitHiC applied with a bias correction method. The bias for a genomic interval is defined as the ratio of its coverage with the mean coverage computed for all the intervals. Interactions are filtered according to the bias values for both of the interacting regions. Probability of a particular interaction also depends on their bias values. These probability values are used to compute the p-values and determine the statistical significance of a particular interaction.
-
-Choice of a particular option can be provided through the configuration parameters (described below).
+User can check the configuration parameters (described below) to run FitHiChIP.
 
 Prerequisites
 -------------
@@ -26,26 +26,30 @@ FitHiChIP_HiCPro requires the following packages / libraries to be installed:
 
 1) The package HiC-pro (obtained from "https://github.com/nservant/HiC-Pro")
 	
-	The package is used to align two input fasta files (read pairs). The output is a list of valid paired end reads. 
-	Details of HiC-pro pipeline are described in the link: https://github.com/nservant/HiC-Pro
+	**** We recommend downloading and installing the latest version (2.9.0 or above) of HiC-pro pipeline.
 
-	If the complete HiC_Pro pipeline is executed, an interaction matrix is generated from the paired end reads. The matrix is computed according to the bin size (resolution) specified.
+	The package is used to align paired end reads (fasta files). 
 
-	Otherwise, user may use HiC-pro pipeline upto the alignment stage. In such a case, generated paired end reads need to be applied to the utility "build_matrix" (placed under the directory "scripts" of the HiC-Pro installation directory) to produce such interaction matrix.
+	*** After installing HiC-pro, user needs to provide the base installation directory of HiC-pro as 
+	an input to the FitHiChIP pipeline (user may check the configuration file of FitHiChIP for details).
+ 
+	Outputs of HiC-pro (to be provided as an input to the FitHiChIP pipeline):
 
-	An interaction matrix is represented by two files: 1) The first file lists the intervals used for the matrix. Size of an interval equals the input bin size. 2) The second file lists the interactions (contacts) among different intervals. Both CIS and TRANS interactions are reported.
+	A) A collection of valid paired end reads (filename: *.validPairs). MUST PROVIDED AS AN INPUT TO FitHiChIP.
+	
+	B) Interaction matrix generated from the input paired end reads, according to the specified bin size. The matrix is 
+	represented by two files: a) Interval file (filename: *_abs.bed) listing the binning intervals, and b) interactions (contacts) 
+	among different intervals (filename: *.matrix). Both CIS and TRANS interactions are reported. 
 
-	**** Note: For convenience of the user, FitHiChIP_HiCPro can be executed with the following two input settings:
-
-	1) Either user provides both the valid pairs and interaction matrix files.
-	2) Or, user only provides the valid pairs file, but does not provide the interaction matrix files. In such a case, FitHiChIP_HiCPro itself computes the interaction matrix. User only needs to provide the installation directory of HiC-pro package in this case.
+	--- Files related to "Interaction matrix" can be optionally provided by the user to the FitHiChIP pipeline. Otherwise, FitHiChIP 
+	itself computes the interaction matrix, by using the installation directory of HiC-pro package.
 
 2) Python (version 2.7 was used for development)
 	
 	Python libraries to be installed:
 		OptionParser (from the library optparse), gzip, networkx
 
-3) R (version 3.3.3 was used for development)
+3) R (version 3.3.3 / 3.4.0 is recommended)
 	
 	R Libraries to be installed:
 		optparse, ggplot2, splines, fdrtool, parallel
@@ -73,7 +77,12 @@ B) The folder "TestData" contains the following files:
 
 				gunzip MboI_hg19_RE_Fragments.bed.gz
 
-Note: For test data involving different reference genome and restriction fragments, user needs to first download or arrange for such reference genome, restriction fragment, and reference peak information. Subsequently, location (path) of these files needs to be mentioned via the configuration file (described below in detail).
+**** Note: For test data involving different reference genome and restriction fragments, 
+user needs to first download or arrange for such reference genome, restriction fragment, 
+and reference peak information (example commands are mentioned below). 
+
+**** Subsequently, location (absolute path) of these files needs to 
+be mentioned in the configuration file (as described below).
 
 Download data (mandatory step)
 ------------------------------
@@ -86,9 +95,16 @@ Download data (mandatory step)
 		
 		2) Reference genome (hg19) fasta sequence and its index:
 
-			2.1) First, user may download the reference genome in 2 bit format, by using the following link: http://hgdownload.soe.ucsc.edu/goldenPath/hg19/bigZips/hg19.2bit
+			2.1) First, user may download the reference genome in 2 bit format, by using the following link: 
 
-			2.2) Subsequently, an utility program "twoBitToFa" (UCSC basic tools) may be used to extract .fa file(s) from this archieve. The program can be downloaded from the link: http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/. For a detailed description, please refer to http://hgdownload.soe.ucsc.edu/goldenPath/hg19/bigZips/.
+			http://hgdownload.soe.ucsc.edu/goldenPath/hg19/bigZips/hg19.2bit
+
+			2.2) Subsequently, an utility program "twoBitToFa" (UCSC basic tools) may be used to extract .fa file(s) 
+			from this archieve. The program can be downloaded from the link: 
+
+			http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/ 
+
+			For a detailed description, please refer to http://hgdownload.soe.ucsc.edu/goldenPath/hg19/bigZips/
 			
 			2.3) Index the converted fasta file (to create .fai file)
 
@@ -96,16 +112,21 @@ Download data (mandatory step)
 
 		3) Download the reference mappability information:
 
-			3.1) In BigWig format: http://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeMapability/wgEncodeCrgMapabilityAlign50mer.bigWig
+			3.1) In BigWig format: 
+
+			http://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeMapability/wgEncodeCrgMapabilityAlign50mer.bigWig
 
 	 		3.2) Convert it to bedgraph format, using the UCSC utilty "BigWigToBedgraph" by using the following command:
 	 		
 	 			BigWigToBedgraph wgEncodeCrgMapabilityAlign50mer.bigWig wgEncodeCrgMapabilityAlign50mer.bedGraph
 
-	 			Place this mappability file within the "TestData" folder (or to any other folder as per choice).
+	 		3.3) Place this mappability file within the "TestData" folder (or to any other folder as per choice).
 
-	****** Note: if user wants to test another dataset (different paired end read file and different peak file), user needs to download 
-	the appropriate genome reference and mappability related files.
+	****** Note: For testing a different dataset (different paired end read file and different peak file), 
+	user needs to download the appropriate genome reference and mappability related files.
+
+	****** There is no restriction of placing all the files in the TestData folder. The only requirement is to 
+	provide the absolute (and correct) paths of different files in the respective configuration options.
 
 
 Execution
@@ -113,13 +134,12 @@ Execution
 
 The shell script "FitHiChIP_HiCPro.sh" is the main executable.
 
-A text file "configfile" lists the configuration parameters (described below in detail). It also lists the locations of input files and reference genome files (assuming all the files are located in the folder "TestData").
+Four configuration files are also provided, indicating a choice of coverage / ICE bias correction, 
+and use of peak to peak background or not.
 
 The tool is executed by typing the following command in a bash terminal:
 
-FitHiChIP_HiCPro.sh -C configfile
-
-Where, configfile denotes the configuration file of the current execution.
+FitHiChIP_HiCPro.sh -C configuration_file_name
 	
 
 Setting the configuration file
@@ -131,29 +151,28 @@ Param=ParamValue
 
 where "Param" indicates one parameter and "ParamValue" is the corresponding value (numeric or string format).
 
-**** Note: File and directory paths in the configuration file need to be mentioned either by absolute paths, or by relative paths (with respect to the directory having the configuration file).
-
-FitHiChIP_HiCPro employs the following parameters (and their default values):
+**** Note: User should mention the file and directory paths in the configuration file in absolute paths.
 
 #===================================
 A) Input File name related parameters:
 #======================================
 
-A.1) ValidPairs: Output of HiC-pro pipeline, as a .txt or .txt.gz file. 
+A.1) ValidPairs: Valid pairs generated by HiC-pro pipeline (either simple text format, or can be in gzipped format). 
 
-	Contains the paired end reads (one line for each read) involving cis or trans interactions. 
+	**** Note: Mandatory parameter.
 
-	Current pipeline extracts the CIS interactions from the given validpairs file.
-	
-	**** Note: If not specified, the parameters (B) and (C) (mentioned below) must be provided.
+A.2) Interval: File depicting the bins of the interaction matrix. Size of an interval depends on the bin size. 
+Individual bins are also assigned a distinct number. By default, this file name ends with a suffix '_abs.bed'.
 
-A.2) Interval: File depicting the bins of the interaction matrix. Size of an interval depends on the bin size. Individual bins are also assigned a distinct number. By default, this file name ends with a suffix '_abs.bed'.
 
 A.3) Matrix: File listing the number of interactions (contacts) among the bins listed in the "Interval" file.
 
 	#=========================
-	
-	The user may issue the following command to create interaction matrix from the given validpairs file:
+	User may leave the fields A.2) and A.3) blank, if wishes to not pre-compute these matrices. In such a case, 
+	FitHiChIP computes the matrix from the parameter A.1.
+
+	Otherwise, user can run the following command to create interaction matrix from the given validpairs file (assumed to be 
+		in gzipped format):
 
 	zcat $InpValidPairsFile | $MatrixBuildExec --binsize $BIN_SIZE --chrsizes $ChrSizeFile --ifile /dev/stdin --oprefix $OutPrefix --matrix-format 'upper' 
 
@@ -169,99 +188,133 @@ A.3) Matrix: File listing the number of interactions (contacts) among the bins l
 		
 		$OutPrefix: output prefix (including the output directory) used in the names of interval and matrix files.
 
-	Note: If the user does not pre-compute these matrices, he can leave the fields (B) and (C) blank. In such a case, the valid pairs file (parameter A) must be provided. FitHiChIP_HiCPro computes the matrix from the given valid pairs file.
-
 	#=========================
 
-A.4) PeakFile: Peak detection output from the reference ChIP seq signal (generally, MACS2 is used to compute the reference ChIP seq peaks).
+A.4) PeakFile: Reference ChIP-seq peak file (recommended to use standard ENCODE peaks. Otherwise, User may 
+separately compute the peaks, using macs2, or even employ the package hichipper to compute the peaks).
 	
-		**** Note: this is a mandatory parameter. The reference peaks are used to compute the interactions involving peak segments. 
+		**** Mandatory parameter.
 		
-		**** User may separately compute the peaks, or download the reference peaks from ENCODE.
+A.5) OutDir: Output directory which would contain all the results. Default: present working directory.
 
-A.5) OutDir: Output directory containing all the results. Default: present working directory.
+A.6) HiCProBasedir: Installation directory of HiC-pro package. (example: /custom_path/HiCPro/HiC-Pro_2.9.0/) 
+
+	*** Mandatory parameter.
 
 #===================================
 B) Reference genome related parameters:
 #======================================
 
-B.1) RefGenome: Reference genome name for the current alignment (valid pairs file). Default: hg19
+B.1) RefGenome: Reference genome name for the current valid pairs. Can be hg19, mm9, etc. Default: hg19
 
-B.2) ChrSizeFile: File containing the reference chromosome size information. 
+B.2) ChrSizeFile: File having the reference chromosome size. 
 
 	Default: chrom_hg19.sizes (already provided within the TestData folder).
 
-B.3) RefFasta: Fasta formatted sequence of the reference chromosome. Default: hg19.fa
+B.3) RefFasta: Fasta formatted sequence of the reference chromosome (such as hg19, mm9). 
+	 Used to compute the mappability and GC content information (downloading instructions are mentioned above).
 
-	User needs to download the reference chromosome fasta file, using the above mentioned description.
+		Default: hg19.fa
 
-	Note: Reference fasta sequence is used to compute the mappability and GC content information
+B.4) MappabilityFile: Reference mappability file (according to the reference genome). 
+		Download from the site: http://hgdownload.cse.ucsc.edu/goldenPath/
 
-B.4) MappabilityFile: Reference mappability file (according to the reference genome).
+	*** Should be provided in the bedgraph format. For bigWig file, user should use the following UCSC utility for converting to bedGraph format: BigWigToBedgraph inp.bw out.bedGraph
 
-	Downloaded from the site  http://hgdownload.cse.ucsc.edu/goldenPath/
+B.5) REFragFile: File containing the restriction fragment information, with respect to the reference 
+	genome and the restriction site. The file format (tab delimited):		chr     interval_start  	interval_end
 	
-	Should be provided in the bedgraph format
+	The MboI restriction fragment file "MboI_hg19_RE_Fragments.bed" 
+	(most commonly used restriction fragment in various HiChIP pipelines) 
+	is provided in the TestData folder. For other restriction fragment files, 
+	please refer to the HiC Pro manual for how to create them.
 	
-	If user has bigWig file, the following UCSC utility is to be used for conversion in bedGraph format
-		
-		BigWigToBedgraph inp.bw out.bedGraph
+B.6) GCSize: Size of the window upstream and downstream the restriction site, for computing the GC content. 
+	Default = 200 (as per the specification in the package HiCNorm [PMID: 23023982])
 
-B.5) REFragFile: File containing the restriction fragment information, with respect to the reference genome and the restriction site.
-	
-		The file is of the following format:
-				
-				chr     interval_start  	interval_end
-	
-	The MboI restriction fragment file "MboI_hg19_RE_Fragments.bed" (most commonly used restriction fragment in various HiChIP pipelines) is provided in the TestData folder. For other restriction fragment files, please refer to the HiC_Pro manual to create them.
-	
-B.6) GCSize: Size of the window upstream and downstream the restriction site. 
-
-	Used to compute the GC content information. Default value is 200 (as per the specification in the package HiCNorm [PMID: 23023982])
-
-B.7) MappSize: Size of the window upstream and downstream the restriction site. 
-
-	Used to calculate the mappability information. Default value is 500 (according to the package HiCNorm)
+B.7) MappSize: Size of the window upstream and downstream the restriction site, to calculate the mappability information. 
+	Default = 500 (as per the specification of HiCNorm [PMID: 23023982])
 
 #===================================
-C) FitHiC related parameters:
+C) Generic parameters for profiling interactions:
 #======================================
 
-C.1) BINSIZE: Size of the bins, depicting the resolution employed. Default= 5000 (means 5 Kb resolution)
+C.1) IntType: Type of interaction to be computed. Options are:
 
-C.2) LowDistThr: Lower distance threshold of interaction between two intervals (CIS). Default: 20000 (indicates 20 Kb). Interactions below this distance threshold will not be considered for statistical significance.
+		(1) peak to peak: contacts between all pairs of peak segments (subject to fixed size binning)
 
-C.3) UppDistThr: Upper distance threshold of interaction between two intervals (CIS). Default: 2000000 (indicates 2 Mb). Interactions above this distance threshold will not be considered for statistical significance.
+		(2) peak to non peak: contacts between pairs of segments such that one is a peak and the other is a non-peak segment
 
-C.4) QVALUE: Minimum FDR (q-value) cutoff for detecting significant interactions. Default: 0.01
+		(3) peak to all (default): here one interacting segment is a peak, while the other can be a peak or a non-peak. Encapsulates 
+		the options 1 and 2. This is the default setting, as HiChIP protocol is targeted to find protein centric interactions.								
+		(4) all to all: Interactions between every possible pairs of segments are computed. This resembles Hi-C mode.
 
-C.5) NBins: Max number of equal occupancy bins employed in the FitHiC. Default: 200
+		(5) Everything from 1 to 4. That is, all of the above mentioned interactions are computed.
 
-	*** Note: FitHiC with equal occupancy bin is used since it is recommended in the FitHiC settings.
+C.2) BINSIZE: Size of the bins, depicting the resolution employed. Default= 5000 (means 5 Kb resolution)
 
-C.6) BeginBiasFilter: A binary option. If 1, indicates that the interactions will be pre-filtered according to their bias values. Default 1.
+C.3) LowDistThr: Lower distance threshold of interaction between two intervals (CIS). Default: 20000 (indicates 20 Kb). Interactions below this distance threshold will not be considered for statistical significance.
 
-C.7) EndBiasFilter: A binary option. If 1, indicates that the bias correction is enabled. Here, probability of interactions (used in FitHiC) will be multiplied with the bias values.
+C.4) UppDistThr: Upper distance threshold of interaction between two intervals (CIS). Default: 2000000 (indicates 2 Mb). Interactions above this distance threshold will not be considered for statistical significance.
 
-C.8) biaslowthr: A number (integer or fraction) depicting the lower cutoff of bias. Default 0.2. Applied when the parameter "BeginBiasFilter" is 1.
-
-C.9) biashighthr: A number (integer or fraction) depicting the higher cutoff of bias. Default 5. Applied when the parameter "BeginBiasFilter" is 1.
-
-**** Note: If "BeginBiasFilter" option is 1, interactions having bias values (both reads) within the thresholds "biaslowthr" and "biashighthr" are only considered for statistical significance test. If "BeginBiasFilter" option is 0, these thresholds do not have any impact.
+C.5) QVALUE: Minimum FDR (q-value) cutoff for detecting significant interactions. Default: 0.01
 
 #===================================
-D) Miscellaneous parameters:
+D) FitHiC related parameters:
 #======================================
 
-D.1) HiCProBasedir: The installation directory of HiC-pro package. Required if the user does not supply the interaction matrix, and the package requires to compute them using the input valid pairs file.
+D.1) NBins: Max number of equal occupancy bins employed in the FitHiC. Default: 200
 
-	*** Note: If the matrices are already computed and provided as the input (using the parameters (B) and (C), this option is not required)
+	*** Note: Equal occupancy binning (recommended in FitHiC) is used for contact probability estimation.
 
-D.2) PREFIX: Prefix string used before any output file name.
+D.2) UseP2PBackgrnd: Can be 0 or 1. Applicable specifically for peak to all interactions.
 
-D.3) Draw: A binary variable (1/0). If 1, draws various statistical and analysis plots. Default 0.
+	A value of 1 means that peak to peak background will be used for contact probability estimation. That is, 
+	contacts between peak segments are only used for background probability estimation. This 
+	ensures highly stringent significance estimation.
 
-D.4) TimeProf: A binary variable (1/0). If 1, logs the time elapsed during individual steps. Default 0.
+	Value of 0 means that all of the interactions (of peak to all category) are used for background estimation. 
+	This indicates lower stringency of significance estimation.
+
+	User may opt for the value 1 (recommended) if very stringent output (only very highly significant interactions would be reported) 
+	is targeted. Otherwise, value of 0 means less stringency (higher number of interactions would be reported).
+
+#===================================
+E) Bias correction related parameters:
+#======================================
+
+E.1) BiasCorrection: Indicates if the bias correction is enabled (1) or not (0). Default 1 (recommended).
+
+	User should enable the bias correction, since without bias correction, many false positive interactions 
+	are reported.
+
+E.2) BiasType: Can be 1 or 2. This parameter signifies the type of bias correction used. 
+
+	A value of 1 means that coverage specific bias is used. Value of 0 means that ICE specific bias is computed. 
+	Experiments show that 1 is recommended (higher performance) (default).
+
+
+#===================================
+F) Merging nearby interactions:
+#======================================
+
+F.1) MergeInt: Has the value 0 or 1. If 1, means that interactions close to each other (both of their source and 
+target bin pairs are very close) are merged and reported as a single interaction. If 0, no merging step is performed. 
+
+ 	**** Note: Currently this feature is under development - so recommended 0 for the moment.
+
+#===================================
+G) Miscellaneous parameters:
+#======================================
+
+G.1) PREFIX: Prefix string used before any output file name.
+
+G.2) Draw: A binary variable (1/0). If 1, draws various statistical and analysis plots. Default 0.
+
+G.3) TimeProf: A binary variable (1/0). If 1, logs the time elapsed during individual steps. Default 0.
+
+G.4) OverWrite: A binary variable (1/0). If 1, overwrites previous FitHiChIP output file in the current execution. Otherwise, if 0, 
+skips computation of already existing files.
 
 
 Describing the Output
@@ -271,50 +324,88 @@ Within the specified output directory "OutDir", following files and folders exis
 
 1) Parameters.txt: a file listing the parameters used for current execution.
 
-2) HiCPro_Matrix_BinSize"BINSIZE": If the parameters (B) and (C) are empty, this folder contains the interaction matrix files generated from the input valid pairs file.
+2) TimingProfile.txt: If the parameter (G.3) is 1, this file lists the time taken for individual steps.
 
-	The interaction matrix files are "MatrixHiCPro_abs.bed" and "MatrixHiCPro.matrix".
+3) HiCPro_Matrix_BinSize"BINSIZE": If the parameters (A.2) and (A.3) are empty, this folder 
+contains the interaction matrix files generated from the input valid pairs file. The interaction matrix 
+files are "MatrixHiCPro_abs.bed" and "MatrixHiCPro.matrix".
 
 	CIS interactions are also dumped separately in the file "*.interactions.initial.bed".
 
-	According to the distance thresholds "l" and "h" specified in the parameters (C.2) and (C.3), a directory L_"l"_U"u" is created within this folder. A file "*.cis.interactions.DistThr.bed" within this directory contains the CIS interactions filtered within the specified distance thresholds.
+	According to the distance thresholds "l" and "h" specified in the parameters (C.3) and (C.4), 
+	a directory L_"l"_U"u" is created within this folder. 
+	A file "*.cis.interactions.DistThr.bed" within this directory contains the 
+	CIS interactions filtered within the specified distance thresholds.
 
-3) The folder "NormFeatures" contains features computed for individual genomic intervals (with respect to the specified bin size). 
+3) "NormFeatures": This folder contains features computed for individual genomic intervals / bins  
+(with respect to the specified bin size).
 
-	Specifically, the file "*.AllBin_CompleteFeat.bed" is of the following format:
-		Columns 1 to 3 denote the chromosome interval.
+	User may look at the file "*.AllBin_CompleteFeat.bed" specifically. The file is of the following format:
 		
-		Column 4 denote its coverage
-		
-		Column 5 denotes whether this interval belongs to a peak segment (1) or non-peak segment (0) where the reference peak information is provided as the parameter (D) of the configuration file.
-		
-		Column 6 denotes the bias of this interval, obtained by coverage normalization technique.
+		Columns 1 to 3: chromosome interval. 		
+
+		Column 4: Coverage of this interval (number of reads mapped onto it)
+
+		Column 5: denotes whether this interval belongs to a peak segment (1) or non-peak segment (0).
+		Here, the peak information is with respect to the parameter (A.4) of the configuration file.
+
+		Column 6: Bias value of this interval. Computed either by coverage specific bias correction, or 
+		the ICE specific bias normalization, according to the value of the parameter (E.2).
 		
 		Columns 7 and 8 denote the mappability and GC contents, respectively, for the current interval.
 
 4) The folders FitHiChIP_"INTTYPE"_b"BINSIZE"_L"LowDistThr"_U"UppDistThr" contain the results for different types of interactions, subject to the specified bin size, and the distance thresholds specified.
 	
-		INTTYPE: interaction type: can be either ALL2ALL (interaction among all segments), Peak2Peak (interactions between two peaks), Peak2NonPeak (interactions between a peak and a non-peak), and Peak2ALL (interactions involving a peak segment - the other end can be a peak or a non-peak).
+		INTTYPE: interaction type: Have one of the following values:
+
+				ALL2ALL (when the parameter (C.1) = 4)
+
+				Peak2Peak (when the parameter (C.1) = 1)
+
+				Peak2NonPeak (when the parameter (C.1) = 2)
+
+				Peak2ALL (when the parameter (C.1) = 3)
+
+		Within this folder, a directory structure of the following naming pattern is created:
+
+			P2PBckgr_[UseP2PBackgrnd]/[BiasType]
+
+			Where: 
+
+				[UseP2PBackgrnd]: Value of the parameter (D.2)
+
+				[BiasType]: String of either "Coverage_Bias" or "ICE_Bias", according to the value of parameter (E.2).
+
+
+			4.1) Within this generic directory structure, following files and folders are created:
+
+				4.1.1) Interactions.bed: All contacts among the selected pairs of segments (depending upon the value of INTTYPE). 
 	
-		Within each directory, following files and folders exist:
-
-			4.1) Interactions.bed: File depicting the interactions among different segments (according to the criteria of peak / non-peak / all employed). 
+				4.1.2) Interactions.sortedGenDist.bed: Above contacts are sorted by increasing genomic distance. Used as an input to 
+			the custom FitHiC implementation.
 	
-			4.2) Interactions.sortedGenDist.bed: The interactions are sorted in increasing order of distance between the interacting segments.
-	
-			4.3) FitHiC_EqOccBin: If the options (C.6) and (C.7) are set 0 (please refer to the section "Execution"), this folder contains the significant interactions generated by FitHiC when no bias correction is used.
+				4.1.3) FitHiC/BinomDistr: If the option (E.1) = 0, this folder contains the significant interactions generated by Naive FitHiC method (without any bias correction technique).
 
-				4.3.1) Bin_Info.log: File listing the bins employed in FitHiC
-				4.3.2) *.interactions_FitHiCPass1.bed: Lists all interactions along with their probabilities, P and Q values.
-				4.3.3) *.interactions_FitHiCPass1_FILTER.bed: Lists the significant interactions by applying an FDR threshold (Q value threshold) of 0.01
-				4.3.4) *.interactions_FitHiCPass1_FILTER_WashU.bed: The significant interactions are converted to this text file, which can be used for display on WashU epigenome browser.
+				4.1.4) FitHiC_BiasCorr_Resid_0_EqOcc_1/BinomDistr: this folder is created when (E.1) = 1.
 
-			4.4) FitHiC_EqOccBin_BiasCorr_"biaslowthr"_"biashighthr"_b"0/1"_e"0/1": This directory is generated when any of the options (C.6) and (C.7) is 1.
 
-					If option (C.6) = 1, the folder name has '-b1' as a substring.
-					If option (C.7) = 1, the folder name has '-e1' as a substring.
+				Directory structure within the folders (4.1.3) and (4.1.4) are similar. Following files and folders reside within this directory:
 
-					Contents of this folder are similar to the folder "FitHiC_EqOccBin"
+						A) Bin_Info.log: File listing the bins employed in FitHiChIP (equal occupancy bins)
+						
+						B) configuration.txt: list of configuration parameters for FitHiChIP
+						
+						C) PREFIX.interactions_FitHiC.bed: Lists all interactions along with their probabilities, p and q values, computed 
+						using the FitHiChIP method.
+
+						D) PREFIX.interactions_FitHiC_Q*.bed: Lists the significant interactions according to the specified q-value significance threshold.
+
+						E) PREFIX.interactions_FitHiC_Q*_WashU.bed: Significant interactions are converted to this text file, for 
+						display on WashU epigenome browser.
+
+						F) Merge_Nearby_Interactions: Directory containing the output of merging nearby interactions (if the parameter 
+							(F.1) = 1).
+ 
 
 
 Contact
