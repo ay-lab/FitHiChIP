@@ -2,20 +2,9 @@
 FitHiChIP_HiCPro
 ----------------
 
-FitHiChIP_HiCPro analyzes HiChIP data and derives the statistical significant CIS interactions, given a specific distance range 
-(default = 20 Kb to 2 Mb, can be user defined as well).
+FitHiChIP_HiCPro analyzes HiChIP/PLAC-seq data and derives the statistical significant interactions, given a specific distance range (default = 20 Kb to 2 Mb for 5kb-binned data, resolution and distance range can be user defined as well).
 
-The package starts from valid CIS read pairs from the HiC-Pro pipeline (Servant et. al. 2015), the most commonly 
-used HiC data processing pipeline. The valid read pairs are then applied to a custom method (named FitHiChIP) for 
-finding statistical significant interactions. The method uses custom implementation of the package 
-FitHiC (Ay and Noble, 2014) and augments with a bias correction technique to find the statistical 
-significant interactions.
-
-The output interactions are shown to be highly overlapping with the reference ChIA-PET and HiCCUPS interactions. 
-Plus, significant interactions (reported in the reference studies) missed by either HiCCUPS or ChIA-PET 
-loops, are perfectly captured by FitHiChIP. We also tested our interactions with hichipper, a new method 
-which applies MANGO on top of HiChIP data, and found that FitHiChIP sucessfully discards many 
-false positive interactions reported by hichipper.
+The package starts from valid read pairs from the HiC-Pro pipeline (Servant et. al. 2015), a commonly used HiC data processing pipeline. The valid read pairs are then processed through different steps of FitHiChIP for finding statistically significant interactions. FitHiChIP implements a HiChIP-specific normalization and peak calling routine followed by a p-value calculation similar to FitHiC (Ay and Noble, 2014) but augments with a bias correction technique to find statistically significant interactions.
 
 User can check the configuration parameters (described below) to run FitHiChIP.
 
@@ -24,8 +13,17 @@ Prerequisites
 
 FitHiChIP_HiCPro requires the following packages / libraries to be installed:
 
-1) The package HiC-pro (obtained from "https://github.com/nservant/HiC-Pro")
+1) Python (version 2.7 was used for development)
 	
+	Python libraries to be installed:
+		OptionParser (from the library optparse), gzip, networkx
+
+2) R (version 3.3.3 / 3.4.0 is recommended)
+	
+	R Libraries to be installed:
+		optparse, ggplot2, splines, fdrtool, parallel
+
+3) The package HiC-pro (obtained from "https://github.com/nservant/HiC-Pro").
 	**** We recommend downloading and installing the latest version (2.9.0 or above) of HiC-pro pipeline.
 
 	The package is used to align paired end reads (fasta files). 
@@ -35,24 +33,14 @@ FitHiChIP_HiCPro requires the following packages / libraries to be installed:
  
 	Outputs of HiC-pro (to be provided as an input to the FitHiChIP pipeline):
 
-	A) A collection of valid paired end reads (filename: *.validPairs). MUST PROVIDED AS AN INPUT TO FitHiChIP.
+	A) A collection of valid paired end reads (filename: *.validPairs). MUST BE PROVIDED AS AN INPUT TO FitHiChIP.
 	
-	B) Interaction matrix generated from the input paired end reads, according to the specified bin size. The matrix is 
+	B) Interaction matrix generated from the input paired-end reads, according to the specified bin size. The matrix is 
 	represented by two files: a) Interval file (filename: *_abs.bed) listing the binning intervals, and b) interactions (contacts) 
 	among different intervals (filename: *.matrix). Both CIS and TRANS interactions are reported. 
 
-	--- Files related to "Interaction matrix" can be optionally provided by the user to the FitHiChIP pipeline. Otherwise, FitHiChIP 
-	itself computes the interaction matrix, by using the installation directory of HiC-pro package.
-
-2) Python (version 2.7 was used for development)
-	
-	Python libraries to be installed:
-		OptionParser (from the library optparse), gzip, networkx
-
-3) R (version 3.3.3 / 3.4.0 is recommended)
-	
-	R Libraries to be installed:
-		optparse, ggplot2, splines, fdrtool, parallel
+	--- Files related to "Interaction matrix" can be optionally provided by the user to the FitHiChIP pipeline. Otherwise,
+	FitHiChIP itself computes the interaction matrix by using the installation directory of the HiC-pro package.
 
 FitHiChIP_HiCPro is tested in linux environment, and requires bash for executing the main script.
 
@@ -67,19 +55,19 @@ B) The folder "TestData" contains the following files:
 		
 		2) Sample.Peaks.gz: Reference peak information
 
-			Unzip the peak file, by applying the following command:
+			Unzip the peak file by applying the following command:
 
 				gunzip Sample.Peaks.gz
 		
-		3) MboI_hg19_RE_Fragments.bed.gz: Restriction fragments generated using MboI restriction enzyme on the reference genome 'hg19'
+		3) MboI_hg19_RE_Fragments.bed.gz: Restriction fragments generated using MboI enzyme on the reference genome 'hg19'
 
-			Extract the contents of this peak file, by applying the command:
+			Extract the contents of this file by applying the command:
 
 				gunzip MboI_hg19_RE_Fragments.bed.gz
 
 **** Note: For test data involving different reference genome and restriction fragments, 
-user needs to first download or arrange for such reference genome, restriction fragment, 
-and reference peak information (example commands are mentioned below). 
+the user needs to first download or generate files for such reference genome, restriction fragment, 
+and reference peak information (example commands are provided below). 
 
 **** Subsequently, location (absolute path) of these files needs to 
 be mentioned in the configuration file (as described below).
@@ -87,7 +75,7 @@ be mentioned in the configuration file (as described below).
 Download data (mandatory step)
 ------------------------------
 
-	Given the above mentioned valid pairs and peak files, user needs to first download / copy a few files and place them within the "TestData" folder:
+	Given the above mentioned files, user needs to first download / copy a few files and place them within the "TestData" folder:
 		
 		1) chromosome size file (of the reference chromosome hg19): Download by using the following link:
 			
@@ -113,8 +101,7 @@ Download data (mandatory step)
 		3) Download the reference mappability information:
 
 			3.1) In BigWig format: 
-
-			http://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeMapability/wgEncodeCrgMapabilityAlign50mer.bigWig
+		http://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeMapability/wgEncodeCrgMapabilityAlign50mer.bigWig
 
 	 		3.2) Convert it to bedgraph format, using the UCSC utilty "BigWigToBedgraph" by using the following command:
 	 		
@@ -163,7 +150,6 @@ A.1) ValidPairs: Valid pairs generated by HiC-pro pipeline (either simple text f
 
 A.2) Interval: File depicting the bins of the interaction matrix. Size of an interval depends on the bin size. 
 Individual bins are also assigned a distinct number. By default, this file name ends with a suffix '_abs.bed'.
-
 
 A.3) Matrix: File listing the number of interactions (contacts) among the bins listed in the "Interval" file.
 
