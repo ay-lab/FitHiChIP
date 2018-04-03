@@ -111,44 +111,51 @@ def main():
     # and compute the coverage information
     # with respect to 'cis' reads
     #=====================================================
-    with gzip.open(inpfile,'r') as fin:    
-        for line in fin:
-            contents = line.split()
-            # check cis interaction
-            if (str(contents[1]) == str(contents[4])):
-                chrname = str(contents[1])
-                read1_pos = int(contents[2])
-                read2_pos = int(contents[5])
-                
-                # check if the chromosome is not in the 
-                # already processed list
-                # in such a case, include this chromosome
-                # and also create the binned intervals
-                if chrname not in ChrNameList_Current:
-                    # this chromosome is not yet processed
-                    ChrNameList_Current.append(chrname)
-                    # create python dictionary 
-                    # and the bin size specific intervals for this chromosome
-                    chrsize = ChrLenList_Ref[ChrNameList_Ref.index(chrname)]
-                    if ((chrsize % bin_size) == 0):
-                        interval_end = chrsize
-                    else:
-                        interval_end = (int(chrsize / bin_size) + 1) * bin_size
-                    for val in range(0, interval_end, bin_size):
-                        curr_key = (chrname, val, (val + bin_size))
-                        SegmentDict.setdefault(curr_key, ChrmSegment())
-                
-                # now process the current paired end read
-                # read position 1
-                bin_start1 = (int(read1_pos / bin_size)) * bin_size
-                # increment the read count in the corresponding dictionary entry of this bin
-                curr_key1 = (chrname, bin_start1, (bin_start1 + bin_size))
-                SegmentDict[curr_key1]._IncrementRead()
-                # read position 2
-                bin_start2 = (int(read2_pos / bin_size)) * bin_size
-                # increment the read count in the corresponding dictionary entry of this bin
-                curr_key2 = (chrname, bin_start2, (bin_start2 + bin_size))
-                SegmentDict[curr_key2]._IncrementRead()
+    if inpfile.endswith(".gz"):
+        fin = gzip.open(inpfile,'r')
+    else:
+        fin = open(inpfile,'r')
+
+    for line in fin:
+        contents = line.split()
+        # check cis interaction
+        if (str(contents[1]) == str(contents[4])):
+            chrname = str(contents[1])
+            read1_pos = int(contents[2])
+            read2_pos = int(contents[5])
+            
+            # check if the chromosome is not in the 
+            # already processed list
+            # in such a case, include this chromosome
+            # and also create the binned intervals
+            if chrname not in ChrNameList_Current:
+                # this chromosome is not yet processed
+                ChrNameList_Current.append(chrname)
+                # create python dictionary 
+                # and the bin size specific intervals for this chromosome
+                chrsize = ChrLenList_Ref[ChrNameList_Ref.index(chrname)]
+                if ((chrsize % bin_size) == 0):
+                    interval_end = chrsize
+                else:
+                    interval_end = (int(chrsize / bin_size) + 1) * bin_size
+                for val in range(0, interval_end, bin_size):
+                    curr_key = (chrname, val, (val + bin_size))
+                    SegmentDict.setdefault(curr_key, ChrmSegment())
+            
+            # now process the current paired end read
+            # read position 1
+            bin_start1 = (int(read1_pos / bin_size)) * bin_size
+            # increment the read count in the corresponding dictionary entry of this bin
+            curr_key1 = (chrname, bin_start1, (bin_start1 + bin_size))
+            SegmentDict[curr_key1]._IncrementRead()
+            # read position 2
+            bin_start2 = (int(read2_pos / bin_size)) * bin_size
+            # increment the read count in the corresponding dictionary entry of this bin
+            curr_key2 = (chrname, bin_start2, (bin_start2 + bin_size))
+            SegmentDict[curr_key2]._IncrementRead()
+
+    # close the input file
+    fin.close()
     
     #=====================================================
     # scan the peak input file (if provided) and mark the corresponding 
