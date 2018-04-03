@@ -50,6 +50,7 @@ PeakFILE=""
 PREFIX='FitHiChIP'
 
 # reference genome
+# sourya - this parameter can be removed
 RefGENOME='hg19'
 
 # size of the chromosome that is to be provided
@@ -200,14 +201,16 @@ do
 					OutDir=$paramval
 				fi
 			fi
+			if [ $param == "ChrSizeFile" ]; then
+				ChrSizeFile=$paramval
+			fi
+
+			# these parameters are optional
 			if [ $param == "RefGenome" ]; then
 				if [[ ! -z $paramval ]]; then
 					RefGENOME=$paramval
 				fi
-			fi
-			if [ $param == "ChrSizeFile" ]; then
-				ChrSizeFile=$paramval
-			fi
+			fi			
 			if [ $param == "MappabilityFile" ]; then
 				MappabilityFile=$paramval
 			fi
@@ -227,6 +230,8 @@ do
 					MappabilityWindowSize=$paramval
 				fi
 			fi
+			# end optional parameters
+
 			if [ $param == "BINSIZE" ]; then
 				if [[ ! -z $paramval ]]; then
 					BIN_SIZE=$paramval
@@ -270,6 +275,8 @@ do
 					TimeProf=$paramval
 				fi
 			fi
+
+			# these parameters are not required for the moment
 			if [ $param == "BeginBiasFilter" ]; then
 				if [[ ! -z $paramval ]]; then
 					BeginBiasFilter=$paramval
@@ -290,6 +297,33 @@ do
 					biashighthr=$paramval
 				fi
 			fi
+			if [ $param == "DistrType" ]; then
+				if [[ ! -z $paramval ]]; then
+					DistrType=$paramval
+				fi
+			fi			
+			if [ $param == "MultBias" ]; then
+				if [[ ! -z $paramval ]]; then
+					MultBias=$paramval
+				fi
+			fi	
+			if [ $param == "BiasCorrResid" ]; then
+				if [[ ! -z $paramval ]]; then
+					resid_biascorr=$paramval
+				fi
+			fi	
+			if [ $param == "BiasCorrEqOcc" ]; then
+				if [[ ! -z $paramval ]]; then
+					eqocc_biascorr=$paramval
+				fi
+			fi	
+			if [ $param == "UseNonzeroContacts" ]; then
+				if [[ ! -z $paramval ]]; then
+					UseNonzeroContacts=$paramval
+				fi
+			fi			
+			# end non-required parameters
+
 			if [ $param == "MergeInt" ]; then
 				if [[ ! -z $paramval ]]; then
 					MergeInteraction=$paramval
@@ -297,11 +331,6 @@ do
 			fi
 
 			# these four variables are added - sourya
-			if [ $param == "DistrType" ]; then
-				if [[ ! -z $paramval ]]; then
-					DistrType=$paramval
-				fi
-			fi
 			if [ $param == "BiasType" ]; then
 				if [[ ! -z $paramval ]]; then
 					BiasType=$paramval
@@ -325,26 +354,6 @@ do
 			if [ $param == "BiasCorrection" ]; then
 				if [[ ! -z $paramval ]]; then
 					BiasCorr=$paramval
-				fi
-			fi			
-			if [ $param == "MultBias" ]; then
-				if [[ ! -z $paramval ]]; then
-					MultBias=$paramval
-				fi
-			fi	
-			if [ $param == "BiasCorrResid" ]; then
-				if [[ ! -z $paramval ]]; then
-					resid_biascorr=$paramval
-				fi
-			fi	
-			if [ $param == "BiasCorrEqOcc" ]; then
-				if [[ ! -z $paramval ]]; then
-					eqocc_biascorr=$paramval
-				fi
-			fi	
-			if [ $param == "UseNonzeroContacts" ]; then
-				if [[ ! -z $paramval ]]; then
-					UseNonzeroContacts=$paramval
 				fi
 			fi
 			# end add - sourya
@@ -371,15 +380,25 @@ if [[ -z $PeakFILE ]]; then
 	exit 1
 fi
 
-if [[ -z $RefFastaFile ]]; then
-	echo 'User should provide reference chromosome fasta file - quit !!'
-	exit 1
-fi
+#======================
+# these parameters are not mandatory 
+# so warning messages are removed
 
-if [[ -z $REFragFile ]]; then
-	echo 'User should provide a restriction fragment file - quit !!'
-	exit 1
-fi
+# if [[ -z $RefFastaFile ]]; then
+# 	echo 'User should provide reference chromosome fasta file - quit !!'
+# 	exit 1
+# fi
+
+# if [[ -z $REFragFile ]]; then
+# 	echo 'User should provide a restriction fragment file - quit !!'
+# 	exit 1
+# fi
+
+# if [[ -z $MappabilityFile ]]; then
+# 	echo 'Reference mappability file is not specified - exit !!'
+# 	exit 1
+# fi
+#======================
 
 if [[ -z $HiCProBasedir ]]; then
 	if [[ -z $InpBinIntervalFile || -z $InpMatrixFile ]]; then
@@ -390,11 +409,6 @@ fi
 
 if [[ -z $ChrSizeFile ]]; then
 	echo 'Chromosome size file is not specified - exit !!'
-	exit 1
-fi
-
-if [[ -z $MappabilityFile ]]; then
-	echo 'Reference mappability file is not specified - exit !!'
 	exit 1
 fi
 
@@ -513,16 +527,30 @@ if [ ! -f $ConfFile ]; then
 	echo "InpMatrixFile: $InpMatrixFile " >> $ConfFile
 	echo "PeakFILE: $PeakFILE " >> $ConfFile
 	echo "ChrSizeFile: $ChrSizeFile " >> $ConfFile
-	echo "MappabilityFile: $MappabilityFile " >> $ConfFile
-	echo "RefFastaFile: $RefFastaFile " >> $ConfFile
-	echo "REFragFile: $REFragFile " >> $ConfFile
+
+	if [[ ! -z $MappabilityFile ]]; then
+		echo "MappabilityFile: $MappabilityFile " >> $ConfFile
+	fi
+
+	if [[ ! -z $RefFastaFile ]]; then
+		echo "RefFastaFile: $RefFastaFile " >> $ConfFile
+	fi
+
+	if [[ ! -z $REFragFile ]]; then
+		echo "REFragFile: $REFragFile " >> $ConfFile
+	fi
+
 	echo "OutDir: $OutDir " >> $ConfFile
 	echo "HiCProBasedir: $HiCProBasedir " >> $ConfFile
 
 	echo "Genome specific parameters: " >> $ConfFile
-	echo "RefGENOME: $RefGENOME " >> $ConfFile
-	echo "GCContentWindowSize: $GCContentWindowSize " >> $ConfFile
-	echo "MappabilityWindowSize: $MappabilityWindowSize " >> $ConfFile
+	# echo "RefGENOME: $RefGENOME " >> $ConfFile
+	
+	if [[ ! -z $MappabilityFile && ! -z $RefFastaFile && ! -z $REFragFile ]]; then
+		echo "GCContentWindowSize: $GCContentWindowSize " >> $ConfFile
+		echo "MappabilityWindowSize: $MappabilityWindowSize " >> $ConfFile
+	fi
+
 	echo "BIN_SIZE: $BIN_SIZE " >> $ConfFile
 	echo "PREFIX: $PREFIX " >> $ConfFile
 	echo "Timeprof: $TimeProf " >> $ConfFile
@@ -592,8 +620,10 @@ if [[ -z $InpBinIntervalFile || -z $InpMatrixFile ]]; then
 		# check the extension of input valid pairs file
 		# and extract accordingly
 		if [[ $InpValidPairsFile == *.gz ]]; then
+			echo "***** HiC-pro input valid pairs file in gzipped format"
 			zcat $InpValidPairsFile | $MatrixBuildExec --binsize $BIN_SIZE --chrsizes $ChrSizeFile --ifile /dev/stdin --oprefix $OutPrefix --matrix-format 'upper'  
 		else
+			echo "***** HiC-pro input valid pairs file in simple text format"
 			cat $InpValidPairsFile | $MatrixBuildExec --binsize $BIN_SIZE --chrsizes $ChrSizeFile --ifile /dev/stdin --oprefix $OutPrefix --matrix-format 'upper' 
 		fi
 		if [ $TimeProf == 1 ]; then
@@ -657,138 +687,145 @@ fi
 #============================
 # this directory stores the features and associated data
 #============================
-echo -e "\n ================ Processing input mappability, GC content files ================="
-
 FeatureDir=$OutDir'/NormFeatures'
 mkdir -p $FeatureDir
 
-# file storing the RE fragments, mappability and GC content together
-REFragMappGCFile=$FeatureDir'/REFrag_Mapp_GC_Merged.bed'
+# if all of these three files exist
+# then we compute the RE fragment, GC content, and mappability information
+# for individual bins
+if [[ ! -z $MappabilityFile && ! -z $RefFastaFile && ! -z $REFragFile ]]; then
 
-if [[ ! -f $REFragMappGCFile || $OverWrite == 1 ]]; then
+	echo -e "\n ================ Processing input mappability, GC content files ================="
 
-	#============================
-	# generating the mappability information
-	# first divide each RE fragment interval
-	# from two ends
-	# the offset size = $MappabilityWindowSize
-	# upstream and downstream 
-	# we do not cross the RE fragment boundary - safe for length overflow
-	# Important - sourya
-	# the final generated file is applied on bedtools map function
-	# do, it should be sorted by genome coordinate, using the function sort -k1,1 -k2,2n
-	#============================
-	echo 'Creating the fragment end (w.r.t window size) file -- to compute the mappability information!!'
-	MappOffsetCutBedFile=$FeatureDir'/Temp_Fragment_Mapp_'$MappabilityWindowSize'bp.bed'
-	
-	if [[ ! -f $MappOffsetCutBedFile || $OverWrite == 1 ]]; then
-		awk -v s=$MappabilityWindowSize 'function max(x,y) {return x>y?x:y}; function min(x,y) {return x<y?x:y}; {printf "%s\t%d\t%d\n%s\t%d\t%d\n", $1, $2, min($2+s,$3), $1, max($3-s, $2), $3}' $REFragFile | sort -k1,1 -k2,2n > $MappOffsetCutBedFile
+	# file storing the RE fragments, mappability and GC content together
+	REFragMappGCFile=$FeatureDir'/REFrag_Mapp_GC_Merged.bed'
+
+	if [[ ! -f $REFragMappGCFile || $OverWrite == 1 ]]; then
+
+		#============================
+		# generating the mappability information
+		# first divide each RE fragment interval
+		# from two ends
+		# the offset size = $MappabilityWindowSize
+		# upstream and downstream 
+		# we do not cross the RE fragment boundary - safe for length overflow
+		# Important - sourya
+		# the final generated file is applied on bedtools map function
+		# do, it should be sorted by genome coordinate, using the function sort -k1,1 -k2,2n
+		#============================
+		echo 'Creating the fragment end (w.r.t window size) file -- to compute the mappability information!!'
+		MappOffsetCutBedFile=$FeatureDir'/Temp_Fragment_Mapp_'$MappabilityWindowSize'bp.bed'
+		
+		if [[ ! -f $MappOffsetCutBedFile || $OverWrite == 1 ]]; then
+			awk -v s=$MappabilityWindowSize 'function max(x,y) {return x>y?x:y}; function min(x,y) {return x<y?x:y}; {printf "%s\t%d\t%d\n%s\t%d\t%d\n", $1, $2, min($2+s,$3), $1, max($3-s, $2), $3}' $REFragFile | sort -k1,1 -k2,2n > $MappOffsetCutBedFile
+
+			if [ $TimeProf == 1 ]; then
+				duration=$(echo "$(date +%s.%N) - $start" | bc)
+				echo " ++++ Time (in seconds) for computing the fragment file to compute the mappability: $duration" >> $OutTimeFile
+				start=$(date +%s.%N)
+			fi		
+		fi
+
+		#============================
+		# computation of the mappability scores
+		# the map utility of bedtools function checks the 
+		# overlap from the 2nd file to the 1st file
+		# the 4th column of the second file is used as the score
+		# mean indicates the average score to be used in the final output
+		# Note: Also replace the non-number entries with 0
+		#============================
+		echo 'Creating the mappability file !!'
+		MappabilityOutFile=$FeatureDir'/Mappability_RE_Fragments.bed'
+		
+		if [[ ! -f $MappabilityOutFile || $OverWrite == 1 ]]; then
+			bedtools map -a $MappOffsetCutBedFile -b $MappabilityFile -c 4 -o mean | awk '{if ($4=="." || $4=="NA" || $4=="NaN") {$4=0}; print $0}' - > $MappabilityOutFile
+
+			if [ $TimeProf == 1 ]; then
+				duration=$(echo "$(date +%s.%N) - $start" | bc)
+				echo " ++++ Time (in seconds) for computing the mappability: $duration" >> $OutTimeFile
+				start=$(date +%s.%N)
+			fi		
+		fi
+
+		#============================
+		# generating the GC content information
+		# first divide each RE fragment interval
+		# from two ends
+		# the offset size = $GCContentWindowSize
+		# upstream and downstream 
+		# we do not cross the RE fragment boundary - safe for length overflow
+		# Important - sourya
+		# the final generated file is applied on bedtools map function
+		# do, it should be sorted by genome coordinate, using the function sort -k1,1 -k2,2n
+		#============================
+		echo 'Creating the fragment end (w.r.t window size) file -- to compute the GC content information!!'
+		GCOffsetCutBedFile=$FeatureDir'/Temp_Fragment_GC_'$GCContentWindowSize'bp.bed'
+		
+		if [[ ! -f $GCOffsetCutBedFile || $OverWrite == 1 ]]; then
+			awk -v s=$GCContentWindowSize 'function max(x,y) {return x>y?x:y}; function min(x,y) {return x<y?x:y}; {printf "%s\t%d\t%d\n%s\t%d\t%d\n", $1, $2, min($2+s,$3), $1, max($3-s, $2), $3}' $REFragFile | sort -k1,1 -k2,2n > $GCOffsetCutBedFile
+
+			if [ $TimeProf == 1 ]; then
+				duration=$(echo "$(date +%s.%N) - $start" | bc)
+				echo " ++++ Time (in seconds) for computing the fragment file to compute the GC content: $duration" >> $OutTimeFile
+				start=$(date +%s.%N)
+			fi		
+		fi
+
+		#============================
+		# generation of %GC from the reference fasta file
+		# bedtools suite is used
+		# Note: Also replace the non-number entries with 0
+		#============================
+		echo 'Creating the GC content file !!'
+		GCOutFile=$FeatureDir'/GC_Content_RE_Fragments.bed'
+		
+		if [[ ! -f $GCOutFile || $OverWrite == 1 ]]; then
+			nucBed -fi $RefFastaFile -bed $GCOffsetCutBedFile | awk '{if ($4=="." || $4=="NA" || $4=="NaN") {$4=0}; print $0}' - > $GCOutFile
+
+			if [ $TimeProf == 1 ]; then
+				duration=$(echo "$(date +%s.%N) - $start" | bc)
+				echo " ++++ Time (in seconds) for computing the GC content: $duration" >> $OutTimeFile
+				start=$(date +%s.%N)
+			fi		
+		fi
+
+		#============================
+		# examine the 4th field of generated mappability file
+		# and 5th field of the generated GC content (%) file
+		# contents of consecutive lines need to be averaged and dumped 
+		#============================
+		# the mappability fragment file does not have any header information
+		# average of the 4th field
+		Temp_Mapp_File=$FeatureDir'/Mappability_Dump.bed'
+		awk '{sum+=$4} NR%2==0 {print sum/2; sum=0}' $MappabilityOutFile > $Temp_Mapp_File
+
+		# the GC content fragment file has header
+		# average of the 5th field
+		Temp_GC_File=$FeatureDir'/GC_Dump.bed'
+		awk '{if (NR>1) {sum+=$5}}; {if (NR%2!=0 && NR>1) {print sum/2; sum=0}}' $GCOutFile > $Temp_GC_File
+
+		#============================
+		# Now combine the average mappability and GC content values with the 
+		# restriction fragments 
+		#============================
+		Rscript ./src/CombineREFragMappGC.r $REFragFile $Temp_Mapp_File $Temp_GC_File $REFragMappGCFile
 
 		if [ $TimeProf == 1 ]; then
 			duration=$(echo "$(date +%s.%N) - $start" | bc)
-			echo " ++++ Time (in seconds) for computing the fragment file to compute the mappability: $duration" >> $OutTimeFile
+			echo " ++++ Time (in seconds) for generating the final mappability and GC content of intervals: $duration" >> $OutTimeFile
 			start=$(date +%s.%N)
-		fi		
+		fi
+
+		# remove the temporary files
+		rm $MappOffsetCutBedFile
+		rm $MappabilityOutFile
+		rm $GCOffsetCutBedFile
+		rm $GCOutFile
+		rm $Temp_Mapp_File
+		rm $Temp_GC_File
 	fi
 
-	#============================
-	# computation of the mappability scores
-	# the map utility of bedtools function checks the 
-	# overlap from the 2nd file to the 1st file
-	# the 4th column of the second file is used as the score
-	# mean indicates the average score to be used in the final output
-	# Note: Also replace the non-number entries with 0
-	#============================
-	echo 'Creating the mappability file !!'
-	MappabilityOutFile=$FeatureDir'/Mappability_RE_Fragments.bed'
-	
-	if [[ ! -f $MappabilityOutFile || $OverWrite == 1 ]]; then
-		bedtools map -a $MappOffsetCutBedFile -b $MappabilityFile -c 4 -o mean | awk '{if ($4=="." || $4=="NA" || $4=="NaN") {$4=0}; print $0}' - > $MappabilityOutFile
-
-		if [ $TimeProf == 1 ]; then
-			duration=$(echo "$(date +%s.%N) - $start" | bc)
-			echo " ++++ Time (in seconds) for computing the mappability: $duration" >> $OutTimeFile
-			start=$(date +%s.%N)
-		fi		
-	fi
-
-	#============================
-	# generating the GC content information
-	# first divide each RE fragment interval
-	# from two ends
-	# the offset size = $GCContentWindowSize
-	# upstream and downstream 
-	# we do not cross the RE fragment boundary - safe for length overflow
-	# Important - sourya
-	# the final generated file is applied on bedtools map function
-	# do, it should be sorted by genome coordinate, using the function sort -k1,1 -k2,2n
-	#============================
-	echo 'Creating the fragment end (w.r.t window size) file -- to compute the GC content information!!'
-	GCOffsetCutBedFile=$FeatureDir'/Temp_Fragment_GC_'$GCContentWindowSize'bp.bed'
-	
-	if [[ ! -f $GCOffsetCutBedFile || $OverWrite == 1 ]]; then
-		awk -v s=$GCContentWindowSize 'function max(x,y) {return x>y?x:y}; function min(x,y) {return x<y?x:y}; {printf "%s\t%d\t%d\n%s\t%d\t%d\n", $1, $2, min($2+s,$3), $1, max($3-s, $2), $3}' $REFragFile | sort -k1,1 -k2,2n > $GCOffsetCutBedFile
-
-		if [ $TimeProf == 1 ]; then
-			duration=$(echo "$(date +%s.%N) - $start" | bc)
-			echo " ++++ Time (in seconds) for computing the fragment file to compute the GC content: $duration" >> $OutTimeFile
-			start=$(date +%s.%N)
-		fi		
-	fi
-
-	#============================
-	# generation of %GC from the reference fasta file
-	# bedtools suite is used
-	# Note: Also replace the non-number entries with 0
-	#============================
-	echo 'Creating the GC content file !!'
-	GCOutFile=$FeatureDir'/GC_Content_RE_Fragments.bed'
-	
-	if [[ ! -f $GCOutFile || $OverWrite == 1 ]]; then
-		nucBed -fi $RefFastaFile -bed $GCOffsetCutBedFile | awk '{if ($4=="." || $4=="NA" || $4=="NaN") {$4=0}; print $0}' - > $GCOutFile
-
-		if [ $TimeProf == 1 ]; then
-			duration=$(echo "$(date +%s.%N) - $start" | bc)
-			echo " ++++ Time (in seconds) for computing the GC content: $duration" >> $OutTimeFile
-			start=$(date +%s.%N)
-		fi		
-	fi
-
-	#============================
-	# examine the 4th field of generated mappability file
-	# and 5th field of the generated GC content (%) file
-	# contents of consecutive lines need to be averaged and dumped 
-	#============================
-	# the mappability fragment file does not have any header information
-	# average of the 4th field
-	Temp_Mapp_File=$FeatureDir'/Mappability_Dump.bed'
-	awk '{sum+=$4} NR%2==0 {print sum/2; sum=0}' $MappabilityOutFile > $Temp_Mapp_File
-
-	# the GC content fragment file has header
-	# average of the 5th field
-	Temp_GC_File=$FeatureDir'/GC_Dump.bed'
-	awk '{if (NR>1) {sum+=$5}}; {if (NR%2!=0 && NR>1) {print sum/2; sum=0}}' $GCOutFile > $Temp_GC_File
-
-	#============================
-	# Now combine the average mappability and GC content values with the 
-	# restriction fragments 
-	#============================
-	Rscript ./src/CombineREFragMappGC.r $REFragFile $Temp_Mapp_File $Temp_GC_File $REFragMappGCFile
-
-	if [ $TimeProf == 1 ]; then
-		duration=$(echo "$(date +%s.%N) - $start" | bc)
-		echo " ++++ Time (in seconds) for generating the final mappability and GC content of intervals: $duration" >> $OutTimeFile
-		start=$(date +%s.%N)
-	fi
-
-	# remove the temporary files
-	rm $MappOffsetCutBedFile
-	rm $MappabilityOutFile
-	rm $GCOffsetCutBedFile
-	rm $GCOutFile
-	rm $Temp_Mapp_File
-	rm $Temp_GC_File
-fi
+fi 	# end if mappability, GC content and RE frag files exist
 
 #=================
 # From the input valid paired end read file, and the given input bin size parameter
@@ -881,7 +918,10 @@ fi
 
 
 #==================================
-# merge the bin specific coverage, peak, bias values with the mappability and GC content values
+# merge the bin specific coverage, peak, bias values 
+# with the mappability and GC content values
+# Note: provided if these mappability, GC content, and RE sites
+# are computed (and the corresponding input files are provided as the inputs)
 
 # here the RE fragment file (file b) has mappability information in 4th column 
 # and GC content information in 5th column
@@ -914,25 +954,36 @@ if [[ ! -f $AllFeatFile || $OverWrite == 1 ]]; then
 	temp_CoverageBiasFile=$AllFeatureDir'/'$PREFIX'.coverage_Bias1.bed'
 	awk 'NR>1' $CoverageBiasFile | sort -k1,1 -k2,2n > $temp_CoverageBiasFile
 	
-	temp_REFragMappGCFile=$AllFeatureDir'/REFrag_Mapp_GC_Merged1.bed'
-	sort -k1,1 -k2,2n $REFragMappGCFile > $temp_REFragMappGCFile
+	if [[ ! -z $MappabilityFile && ! -z $RefFastaFile && ! -z $REFragFile ]]; then
+
+		# here mappability, GC content, and RE sites information are available
+		# merge with the coverage and bias statistics
+
+		temp_REFragMappGCFile=$AllFeatureDir'/REFrag_Mapp_GC_Merged1.bed'
+		sort -k1,1 -k2,2n $REFragMappGCFile > $temp_REFragMappGCFile
+		
+		#======================
+		# then apply the map function
+		#======================
+		# first merge the mappability and GC content information
+		AllFeatFile_temp1=$AllFeatureDir'/'$PREFIX'.AllBin_CompleteFeat_temp1.bed'
+		bedtools map -c 4,5 -o mean -null '0' -a $temp_CoverageBiasFile -b $temp_REFragMappGCFile > $AllFeatFile_temp1
+		
+		# then merge the number of RE sites
+		bedtools map -a $AllFeatFile_temp1 -b $temp_REFragMappGCFile -c 4 -o count -null '0' > $AllFeatFile
 	
-	#======================
-	# then apply the map function
-	#======================
-	# first merge the mappability and GC content information
-	AllFeatFile_temp1=$AllFeatureDir'/'$PREFIX'.AllBin_CompleteFeat_temp1.bed'
-	bedtools map -c 4,5 -o mean -null '0' -a $temp_CoverageBiasFile -b $temp_REFragMappGCFile > $AllFeatFile_temp1
-	
-	# then merge the number of RE sites
-	bedtools map -a $AllFeatFile_temp1 -b $temp_REFragMappGCFile -c 4 -o count -null '0' > $AllFeatFile
-	
-	#======================
-	# finally remove the temporary files
-	#======================
-	rm $temp_CoverageBiasFile
-	rm $temp_REFragMappGCFile
-	rm $AllFeatFile_temp1
+		#======================
+		# finally remove the temporary files
+		#======================
+		rm $temp_CoverageBiasFile
+		rm $temp_REFragMappGCFile
+		rm $AllFeatFile_temp1
+
+	else
+		# here we do not have any mappability, RE sites or GC content information
+		# so use all 0's in their slots (3 columns to be appended)
+		awk '{if (NR>1) {print $0"\t0\t0\t0"}}' $temp_CoverageBiasFile > $AllFeatFile
+	fi
 
 	if [ $TimeProf == 1 ]; then
 		duration=$(echo "$(date +%s.%N) - $start" | bc)
@@ -949,12 +1000,16 @@ echo -e "\n ================ Plotting bias and non-bias related feature distribu
 
 if [ $DrawFig == 1 ]; then
 
-	# sourya - for the moment, we apply this function only if coverage specific bias is computed
-	# modify this routine to incorporate the output directory
-	# some of the plots are common
 	# only bias specific plots would be placed in different directories, based on 
 	# whether coverage specific bias or ICE specific bias is used
-	Rscript ./Analysis/PlotGenomeBins.r --GenomeBinFile $AllFeatFile --CommonDir $FeatureDir'/Plots_Common' --BiasSpecificDir $AllFeatureDir'/Plots_Bias' --OverWrite $OverWrite
+	
+	# condition based on having mappability, GC content, or RE sites 
+	# information or not
+	if [[ ! -z $MappabilityFile && ! -z $RefFastaFile && ! -z $REFragFile ]]; then
+		Rscript ./Analysis/PlotGenomeBins.r --GenomeBinFile $AllFeatFile --CommonDir $FeatureDir'/Plots_Common' --BiasSpecificDir $AllFeatureDir'/Plots_Bias' --OverWrite $OverWrite
+	else
+		Rscript ./Analysis/PlotGenomeBins.r --GenomeBinFile $AllFeatFile --CommonDir $FeatureDir'/Plots_Common' --BiasSpecificDir $AllFeatureDir'/Plots_Bias' --OverWrite $OverWrite --NoMappGC
+	fi
 
 	if [ $TimeProf == 1 ]; then
 		duration=$(echo "$(date +%s.%N) - $start" | bc)
@@ -1019,8 +1074,11 @@ if [ $DrawFig == 1 ]; then
 	# two different directories are employed for plotting
 	# 1) common dir for plotting non-bias related features
 	# 2) bias specific directory for plotting bias related features
-
-	Rscript ./Analysis/InteractionPlots.r --IntFile $IntFileALLtoALL --CommonDir $DirALLtoALLBase'/Plots_Norm' --BiasSpecificDir $DirALLtoALL'/Plots_Norm' --MappThr 0.5 --GCThr 0.2 --cccol $cccol --OverWrite $OverWrite
+	if [[ ! -z $MappabilityFile && ! -z $RefFastaFile && ! -z $REFragFile ]]; then
+		Rscript ./Analysis/InteractionPlots.r --IntFile $IntFileALLtoALL --CommonDir $DirALLtoALLBase'/Plots_Norm' --BiasSpecificDir $DirALLtoALL'/Plots_Norm' --MappThr 0.5 --GCThr 0.2 --cccol $cccol --OverWrite $OverWrite
+	else
+		Rscript ./Analysis/InteractionPlots.r --IntFile $IntFileALLtoALL --CommonDir $DirALLtoALLBase'/Plots_Norm' --BiasSpecificDir $DirALLtoALL'/Plots_Norm' --MappThr 0.5 --GCThr 0.2 --cccol $cccol --OverWrite $OverWrite --NoMappGC
+	fi
 
 	if [ $TimeProf == 1 ]; then
 		duration=$(echo "$(date +%s.%N) - $start" | bc)
