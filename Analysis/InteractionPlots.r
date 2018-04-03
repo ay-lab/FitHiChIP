@@ -168,7 +168,8 @@ option_list = list(
 	make_option(c("--MappThr"), type="numeric", default=0, help="The threshold of mappability score below which every segment (peak or non peak) is not considered for analysis. Default 0."),
 	make_option(c("--GCThr"), type="numeric", default=0, help="The threshold of GC content below which every segment (peak or non peak) is not considered for analysis. Default 0."),
 	make_option(c("--cccol"), type="integer", action="store", default=7, help="Column number of the file storing the contact count"),
-	make_option(c("--OverWrite"), type="integer", action="store", default=0, help="if 1, overwrites the plots")
+	make_option(c("--OverWrite"), type="integer", action="store", default=0, help="if 1, overwrites the plots"),
+	make_option(c("--NoMappGC"), type="logical", action="store_true", default=FALSE, help="If TRUE, there is no Mappability, GC content, or RE sites information in the feature file. Default FALSE.")
 ); 
  
 opt_parser = OptionParser(option_list=option_list);
@@ -179,7 +180,11 @@ if (is.null(opt$IntFile)) {
 	system('exit 1')
 }
 
-cat(sprintf("\n Input interaction file: %s Output directory: %s  Mappability threshold: %s  GC content threshold: %s ", opt$IntFile, opt$CommonDir, opt$MappThr, opt$GCThr))
+cat(sprintf("\n Input interaction file: %s Output directory: %s  ", opt$IntFile, opt$CommonDir))
+
+if (opt$NoMappGC == FALSE) {
+	cat(sprintf("\n Mappability threshold: %s  GC content threshold: %s ", opt$MappThr, opt$GCThr))	
+}
 
 # create the output directory
 system(paste('mkdir -p', opt$CommonDir))
@@ -262,25 +267,27 @@ for (inttype in IntList) {
 			PlotBinnedDistr(prod.coverage, log10(ContactCol), plotfile, "Prod Coverage (LOG)", "Contact count (LOG)", "Variation between product of read coverages and contact count (in log scale)", 50)
 		}
 
-		plotfile <- paste0(PlotDirCommon, '/ProdMappability_vs_ContactCount.pdf')
-		# product of mappability values 
-		prod.mappability <- Interaction[,11] * Interaction[,17]
-		if ((file.exists(plotfile) == FALSE) | (opt$OverWrite == 1)) {
-			PlotBinnedDistr(prod.mappability, ContactCol, plotfile, "Prod Mappability", "Contact count", "Variation between product of Mappabilities and contact count", 20)
-		}
+		if (opt$NoMappGC == FALSE) {
+			plotfile <- paste0(PlotDirCommon, '/ProdMappability_vs_ContactCount.pdf')
+			# product of mappability values 
+			prod.mappability <- Interaction[,11] * Interaction[,17]
+			if ((file.exists(plotfile) == FALSE) | (opt$OverWrite == 1)) {
+				PlotBinnedDistr(prod.mappability, ContactCol, plotfile, "Prod Mappability", "Contact count", "Variation between product of Mappabilities and contact count", 20)
+			}
 
-		plotfile <- paste0(PlotDirCommon, '/ProdGCContent_vs_ContactCount.pdf')
-		# product of GC content values
-		prod.GC <- Interaction[,12] * Interaction[,18]
-		if ((file.exists(plotfile) == FALSE) | (opt$OverWrite == 1)) {
-			PlotBinnedDistr(prod.GC, ContactCol, plotfile, "Prod GCContent", "Contact count", "Variation between product of GCContent and contact count", 20)
-		}
+			plotfile <- paste0(PlotDirCommon, '/ProdGCContent_vs_ContactCount.pdf')
+			# product of GC content values
+			prod.GC <- Interaction[,12] * Interaction[,18]
+			if ((file.exists(plotfile) == FALSE) | (opt$OverWrite == 1)) {
+				PlotBinnedDistr(prod.GC, ContactCol, plotfile, "Prod GCContent", "Contact count", "Variation between product of GCContent and contact count", 20)
+			}
 
-		plotfile <- paste0(PlotDirCommon, '/ProdNumCutSites_vs_ContactCount.pdf')
-		# product of the number of cut sites
-		prod.cut_sites <- Interaction[,13] * Interaction[,19]
-		if ((file.exists(plotfile) == FALSE) | (opt$OverWrite == 1)) {
-			PlotBinnedDistr(prod.cut_sites, ContactCol, plotfile, "Prod NumCutSites", "Contact count", "Variation between product of NumCutSites and contact count", 20)
+			plotfile <- paste0(PlotDirCommon, '/ProdNumCutSites_vs_ContactCount.pdf')
+			# product of the number of cut sites
+			prod.cut_sites <- Interaction[,13] * Interaction[,19]
+			if ((file.exists(plotfile) == FALSE) | (opt$OverWrite == 1)) {
+				PlotBinnedDistr(prod.cut_sites, ContactCol, plotfile, "Prod NumCutSites", "Contact count", "Variation between product of NumCutSites and contact count", 20)
+			}
 		}
 
 		plotfile <- paste0(PlotDirBias, '/ProdBias_vs_ContactCount.pdf')	
@@ -315,26 +322,29 @@ for (inttype in IntList) {
 		plotfile <- paste0(PlotDirCommon, '/ReadDepth_vs_CoverageEnrichment.pdf')
 		PlotBinnedCC(Interaction[,8], Interaction[,14], CoverageEnrichment, plotfile, "Read depth 1", "Read depth 2", "Coverage Enrichment", "Read depth vs Coverage Enrichment", 1)
 
-		plotfile <- paste0(PlotDirCommon, '/Mappability_vs_AbsContactCount.pdf')
-		PlotBinnedCC(Interaction[,11], Interaction[,17], ContactCol, plotfile, "Mappability 1", "Mappability 2", "Contact count", "Mappability vs contact count")
-		plotfile <- paste0(PlotDirCommon, '/Mappability_vs_LOGContactCount.pdf')
-		PlotBinnedCC(Interaction[,11], Interaction[,17], ContactCol, plotfile, "Mappability 1", "Mappability 2", "Log Contact count", "Mappability vs contact count (LOG)", 1)
-		plotfile <- paste0(PlotDirCommon, '/Mappability_vs_CoverageEnrichment.pdf')
-		PlotBinnedCC(Interaction[,11], Interaction[,17], CoverageEnrichment, plotfile, "Mappability 1", "Mappability 2", "Coverage Enrichment", "Mappability vs Coverage Enrichment", 1)
 
-		plotfile <- paste0(PlotDirCommon, '/GCContent_vs_AbsContactCount.pdf')
-		PlotBinnedCC(Interaction[,12], Interaction[,18], ContactCol, plotfile, "GC content 1", "GC content 2", "Contact count", "GC content vs contact count")
-		plotfile <- paste0(PlotDirCommon, '/GCContent_vs_LOGContactCount.pdf')
-		PlotBinnedCC(Interaction[,12], Interaction[,18], ContactCol, plotfile, "GC content 1", "GC content 2", "Log Contact count", "GC content vs contact count (LOG)", 1)
-		plotfile <- paste0(PlotDirCommon, '/GCContent_vs_CoverageEnrichment.pdf')
-		PlotBinnedCC(Interaction[,12], Interaction[,18], CoverageEnrichment, plotfile, "GC content 1", "GC content 2", "Coverage Enrichment", "GC content vs Coverage Enrichment", 1)
+		if (opt$NoMappGC == FALSE) {
+			plotfile <- paste0(PlotDirCommon, '/Mappability_vs_AbsContactCount.pdf')
+			PlotBinnedCC(Interaction[,11], Interaction[,17], ContactCol, plotfile, "Mappability 1", "Mappability 2", "Contact count", "Mappability vs contact count")
+			plotfile <- paste0(PlotDirCommon, '/Mappability_vs_LOGContactCount.pdf')
+			PlotBinnedCC(Interaction[,11], Interaction[,17], ContactCol, plotfile, "Mappability 1", "Mappability 2", "Log Contact count", "Mappability vs contact count (LOG)", 1)
+			plotfile <- paste0(PlotDirCommon, '/Mappability_vs_CoverageEnrichment.pdf')
+			PlotBinnedCC(Interaction[,11], Interaction[,17], CoverageEnrichment, plotfile, "Mappability 1", "Mappability 2", "Coverage Enrichment", "Mappability vs Coverage Enrichment", 1)
 
-		plotfile <- paste0(PlotDirCommon, '/NumCutSites_vs_AbsContactCount.pdf')
-		PlotBinnedCC(Interaction[,13], Interaction[,19], ContactCol, plotfile, "Num cut site 1", "Num cut site 2", "Contact count", "Cut site vs contact count")
-		plotfile <- paste0(PlotDirCommon, '/NumCutSites_vs_LOGContactCount.pdf')
-		PlotBinnedCC(Interaction[,13], Interaction[,19], ContactCol, plotfile, "Num cut site 1", "Num cut site 2", "Log Contact count", "Cut site vs contact count (LOG)", 1)
-		plotfile <- paste0(PlotDirCommon, '/NumCutSites_vs_CoverageEnrichment.pdf')
-		PlotBinnedCC(Interaction[,13], Interaction[,19], CoverageEnrichment, plotfile, "Num cut site 1", "Num cut site 2", "Coverage Enrichment", "Cut site vs Coverage Enrichment", 1)
+			plotfile <- paste0(PlotDirCommon, '/GCContent_vs_AbsContactCount.pdf')
+			PlotBinnedCC(Interaction[,12], Interaction[,18], ContactCol, plotfile, "GC content 1", "GC content 2", "Contact count", "GC content vs contact count")
+			plotfile <- paste0(PlotDirCommon, '/GCContent_vs_LOGContactCount.pdf')
+			PlotBinnedCC(Interaction[,12], Interaction[,18], ContactCol, plotfile, "GC content 1", "GC content 2", "Log Contact count", "GC content vs contact count (LOG)", 1)
+			plotfile <- paste0(PlotDirCommon, '/GCContent_vs_CoverageEnrichment.pdf')
+			PlotBinnedCC(Interaction[,12], Interaction[,18], CoverageEnrichment, plotfile, "GC content 1", "GC content 2", "Coverage Enrichment", "GC content vs Coverage Enrichment", 1)
+
+			plotfile <- paste0(PlotDirCommon, '/NumCutSites_vs_AbsContactCount.pdf')
+			PlotBinnedCC(Interaction[,13], Interaction[,19], ContactCol, plotfile, "Num cut site 1", "Num cut site 2", "Contact count", "Cut site vs contact count")
+			plotfile <- paste0(PlotDirCommon, '/NumCutSites_vs_LOGContactCount.pdf')
+			PlotBinnedCC(Interaction[,13], Interaction[,19], ContactCol, plotfile, "Num cut site 1", "Num cut site 2", "Log Contact count", "Cut site vs contact count (LOG)", 1)
+			plotfile <- paste0(PlotDirCommon, '/NumCutSites_vs_CoverageEnrichment.pdf')
+			PlotBinnedCC(Interaction[,13], Interaction[,19], CoverageEnrichment, plotfile, "Num cut site 1", "Num cut site 2", "Coverage Enrichment", "Cut site vs Coverage Enrichment", 1)
+		}
 
 		# incorporating the bias specific plots
 		plotfile <- paste0(PlotDirBias, '/Bias_vs_AbsContactCount.pdf')
@@ -350,91 +360,94 @@ for (inttype in IntList) {
 
 	if (inttype == "peaktoall") {
 		if (0) {
-			# peak part
-			plotfile <- paste0(PlotDirCommon, '/ReadDepth1_Mapp1_vs_AbsContactCount.pdf')
-			PlotBinnedCC(Interaction[,8], Interaction[,11], ContactCol, plotfile, "Read depth 1", "Mappability 1", "Contact count", "Read depth + Mappability (1) vs contact count")
-			plotfile <- paste0(PlotDirCommon, '/ReadDepth1_Mapp1_vs_LOGContactCount.pdf')
-			PlotBinnedCC(Interaction[,8], Interaction[,11], ContactCol, plotfile, "Read depth 1", "Mappability 1", "Log Contact count", "Read depth + Mappability (1) vs contact count (LOG)", 1)
-			plotfile <- paste0(PlotDirCommon, '/ReadDepth1_Mapp1_vs_CoverageEnrichment.pdf')
-			PlotBinnedCC(Interaction[,8], Interaction[,11], CoverageEnrichment, plotfile, "Read depth 1", "Mappability 1", "Coverage Enrichment", "Read depth + Mappability (1) vs Coverage Enrichment", 1)
 
-			plotfile <- paste0(PlotDirCommon, '/ReadDepth1_GC1_vs_AbsContactCount.pdf')
-			PlotBinnedCC(Interaction[,8], Interaction[,12], ContactCol, plotfile, "Read depth 1", "GC content 1", "Contact count", "Read depth + GC content (1) vs contact count")
-			plotfile <- paste0(PlotDirCommon, '/ReadDepth1_GC1_vs_LOGContactCount.pdf')
-			PlotBinnedCC(Interaction[,8], Interaction[,12], ContactCol, plotfile, "Read depth 1", "GC content 1", "Log Contact count", "Read depth + GC content (1) vs contact count (LOG)", 1)
-			plotfile <- paste0(PlotDirCommon, '/ReadDepth1_GC1_vs_CoverageEnrichment.pdf')
-			PlotBinnedCC(Interaction[,8], Interaction[,12], CoverageEnrichment, plotfile, "Read depth 1", "GC content 1", "Coverage Enrichment", "Read depth + GC content (1) vs Coverage Enrichment", 1)
+			if (opt$NoMappGC == FALSE) {
+				# peak part
+				plotfile <- paste0(PlotDirCommon, '/ReadDepth1_Mapp1_vs_AbsContactCount.pdf')
+				PlotBinnedCC(Interaction[,8], Interaction[,11], ContactCol, plotfile, "Read depth 1", "Mappability 1", "Contact count", "Read depth + Mappability (1) vs contact count")
+				plotfile <- paste0(PlotDirCommon, '/ReadDepth1_Mapp1_vs_LOGContactCount.pdf')
+				PlotBinnedCC(Interaction[,8], Interaction[,11], ContactCol, plotfile, "Read depth 1", "Mappability 1", "Log Contact count", "Read depth + Mappability (1) vs contact count (LOG)", 1)
+				plotfile <- paste0(PlotDirCommon, '/ReadDepth1_Mapp1_vs_CoverageEnrichment.pdf')
+				PlotBinnedCC(Interaction[,8], Interaction[,11], CoverageEnrichment, plotfile, "Read depth 1", "Mappability 1", "Coverage Enrichment", "Read depth + Mappability (1) vs Coverage Enrichment", 1)
 
-			plotfile <- paste0(PlotDirCommon, '/ReadDepth1_CutSite1_vs_AbsContactCount.pdf')
-			PlotBinnedCC(Interaction[,8], Interaction[,13], ContactCol, plotfile, "Read depth 1", "Cut Site 1", "Contact count", "Read depth + Cut Site (1) vs contact count")
-			plotfile <- paste0(PlotDirCommon, '/ReadDepth1_CutSite1_vs_LOGContactCount.pdf')
-			PlotBinnedCC(Interaction[,8], Interaction[,13], ContactCol, plotfile, "Read depth 1", "Cut Site 1", "Log Contact count", "Read depth + Cut Site (1) vs contact count (LOG)", 1)
-			plotfile <- paste0(PlotDirCommon, '/ReadDepth1_CutSite1_vs_CoverageEnrichment.pdf')
-			PlotBinnedCC(Interaction[,8], Interaction[,13], CoverageEnrichment, plotfile, "Read depth 1", "Cut Site 1", "Coverage Enrichment", "Read depth + Cut Site (1) vs Coverage Enrichment", 1)
+				plotfile <- paste0(PlotDirCommon, '/ReadDepth1_GC1_vs_AbsContactCount.pdf')
+				PlotBinnedCC(Interaction[,8], Interaction[,12], ContactCol, plotfile, "Read depth 1", "GC content 1", "Contact count", "Read depth + GC content (1) vs contact count")
+				plotfile <- paste0(PlotDirCommon, '/ReadDepth1_GC1_vs_LOGContactCount.pdf')
+				PlotBinnedCC(Interaction[,8], Interaction[,12], ContactCol, plotfile, "Read depth 1", "GC content 1", "Log Contact count", "Read depth + GC content (1) vs contact count (LOG)", 1)
+				plotfile <- paste0(PlotDirCommon, '/ReadDepth1_GC1_vs_CoverageEnrichment.pdf')
+				PlotBinnedCC(Interaction[,8], Interaction[,12], CoverageEnrichment, plotfile, "Read depth 1", "GC content 1", "Coverage Enrichment", "Read depth + GC content (1) vs Coverage Enrichment", 1)
 
-			plotfile <- paste0(PlotDirCommon, '/Mapp1_GC1_vs_AbsContactCount.pdf')
-			PlotBinnedCC(Interaction[,11], Interaction[,12], ContactCol, plotfile, "Mappability 1", "GC content 1", "Contact count", "Mappability + GC content (1) vs contact count")
-			plotfile <- paste0(PlotDirCommon, '/Mapp1_GC1_vs_LOGContactCount.pdf')
-			PlotBinnedCC(Interaction[,11], Interaction[,12], ContactCol, plotfile, "Mappability 1", "GC content 1", "Log Contact count", "Mappability + GC content (1) vs contact count (LOG)", 1)
-			plotfile <- paste0(PlotDirCommon, '/Mapp1_GC1_vs_CoverageEnrichment.pdf')
-			PlotBinnedCC(Interaction[,11], Interaction[,12], CoverageEnrichment, plotfile, "Mappability 1", "GC content 1", "Coverage Enrichment", "Mappability + GC content (1) vs Coverage Enrichment", 1)
+				plotfile <- paste0(PlotDirCommon, '/ReadDepth1_CutSite1_vs_AbsContactCount.pdf')
+				PlotBinnedCC(Interaction[,8], Interaction[,13], ContactCol, plotfile, "Read depth 1", "Cut Site 1", "Contact count", "Read depth + Cut Site (1) vs contact count")
+				plotfile <- paste0(PlotDirCommon, '/ReadDepth1_CutSite1_vs_LOGContactCount.pdf')
+				PlotBinnedCC(Interaction[,8], Interaction[,13], ContactCol, plotfile, "Read depth 1", "Cut Site 1", "Log Contact count", "Read depth + Cut Site (1) vs contact count (LOG)", 1)
+				plotfile <- paste0(PlotDirCommon, '/ReadDepth1_CutSite1_vs_CoverageEnrichment.pdf')
+				PlotBinnedCC(Interaction[,8], Interaction[,13], CoverageEnrichment, plotfile, "Read depth 1", "Cut Site 1", "Coverage Enrichment", "Read depth + Cut Site (1) vs Coverage Enrichment", 1)
 
-			plotfile <- paste0(PlotDirCommon, '/Mapp1_CutSite1_vs_AbsContactCount.pdf')
-			PlotBinnedCC(Interaction[,11], Interaction[,13], ContactCol, plotfile, "Mappability 1", "Cut site 1", "Contact count", "Mappability + Cut site (1) vs contact count")
-			plotfile <- paste0(PlotDirCommon, '/Mapp1_CutSite1_vs_LOGContactCount.pdf')
-			PlotBinnedCC(Interaction[,11], Interaction[,13], ContactCol, plotfile, "Mappability 1", "Cut site 1", "Log Contact count", "Mappability + Cut site (1) vs contact count (LOG)", 1)
-			plotfile <- paste0(PlotDirCommon, '/Mapp1_CutSite1_vs_CoverageEnrichment.pdf')
-			PlotBinnedCC(Interaction[,11], Interaction[,13], CoverageEnrichment, plotfile, "Mappability 1", "Cut site 1", "Coverage Enrichment", "Mappability + Cut site (1) vs Coverage Enrichment", 1)
+				plotfile <- paste0(PlotDirCommon, '/Mapp1_GC1_vs_AbsContactCount.pdf')
+				PlotBinnedCC(Interaction[,11], Interaction[,12], ContactCol, plotfile, "Mappability 1", "GC content 1", "Contact count", "Mappability + GC content (1) vs contact count")
+				plotfile <- paste0(PlotDirCommon, '/Mapp1_GC1_vs_LOGContactCount.pdf')
+				PlotBinnedCC(Interaction[,11], Interaction[,12], ContactCol, plotfile, "Mappability 1", "GC content 1", "Log Contact count", "Mappability + GC content (1) vs contact count (LOG)", 1)
+				plotfile <- paste0(PlotDirCommon, '/Mapp1_GC1_vs_CoverageEnrichment.pdf')
+				PlotBinnedCC(Interaction[,11], Interaction[,12], CoverageEnrichment, plotfile, "Mappability 1", "GC content 1", "Coverage Enrichment", "Mappability + GC content (1) vs Coverage Enrichment", 1)
 
-			plotfile <- paste0(PlotDirCommon, '/GC1_CutSite1_vs_AbsContactCount.pdf')
-			PlotBinnedCC(Interaction[,12], Interaction[,13], ContactCol, plotfile, "GC content 1", "Cut site 1", "Contact count", "GC content + Cut site (1) vs contact count")
-			plotfile <- paste0(PlotDirCommon, '/GC1_CutSite1_vs_LOGContactCount.pdf')
-			PlotBinnedCC(Interaction[,12], Interaction[,13], ContactCol, plotfile, "GC content 1", "Cut site 1", "Log Contact count", "GC content + Cut site (1) vs contact count (LOG)", 1)
-			plotfile <- paste0(PlotDirCommon, '/GC1_CutSite1_vs_CoverageEnrichment.pdf')
-			PlotBinnedCC(Interaction[,12], Interaction[,13], CoverageEnrichment, plotfile, "GC content 1", "Cut site 1", "Coverage Enrichment", "GC content + Cut site (1) vs Coverage Enrichment", 1)
+				plotfile <- paste0(PlotDirCommon, '/Mapp1_CutSite1_vs_AbsContactCount.pdf')
+				PlotBinnedCC(Interaction[,11], Interaction[,13], ContactCol, plotfile, "Mappability 1", "Cut site 1", "Contact count", "Mappability + Cut site (1) vs contact count")
+				plotfile <- paste0(PlotDirCommon, '/Mapp1_CutSite1_vs_LOGContactCount.pdf')
+				PlotBinnedCC(Interaction[,11], Interaction[,13], ContactCol, plotfile, "Mappability 1", "Cut site 1", "Log Contact count", "Mappability + Cut site (1) vs contact count (LOG)", 1)
+				plotfile <- paste0(PlotDirCommon, '/Mapp1_CutSite1_vs_CoverageEnrichment.pdf')
+				PlotBinnedCC(Interaction[,11], Interaction[,13], CoverageEnrichment, plotfile, "Mappability 1", "Cut site 1", "Coverage Enrichment", "Mappability + Cut site (1) vs Coverage Enrichment", 1)
 
-			# all part
-			plotfile <- paste0(PlotDirCommon, '/ReadDepth2_Mapp2_vs_AbsContactCount.pdf')
-			PlotBinnedCC(Interaction[,14], Interaction[,17], ContactCol, plotfile, "Read depth 2", "Mappability 2", "Contact count", "Read depth + Mappability (2) vs contact count")
-			plotfile <- paste0(PlotDirCommon, '/ReadDepth2_Mapp2_vs_LOGContactCount.pdf')
-			PlotBinnedCC(Interaction[,14], Interaction[,17], ContactCol, plotfile, "Read depth 2", "Mappability 2", "Log Contact count", "Read depth + Mappability (2) vs contact count (LOG)", 1)
-			plotfile <- paste0(PlotDirCommon, '/ReadDepth2_Mapp2_vs_CoverageEnrichment.pdf')
-			PlotBinnedCC(Interaction[,14], Interaction[,17], CoverageEnrichment, plotfile, "Read depth 2", "Mappability 2", "Coverage Enrichment", "Read depth + Mappability (2) vs Coverage Enrichment", 1)
+				plotfile <- paste0(PlotDirCommon, '/GC1_CutSite1_vs_AbsContactCount.pdf')
+				PlotBinnedCC(Interaction[,12], Interaction[,13], ContactCol, plotfile, "GC content 1", "Cut site 1", "Contact count", "GC content + Cut site (1) vs contact count")
+				plotfile <- paste0(PlotDirCommon, '/GC1_CutSite1_vs_LOGContactCount.pdf')
+				PlotBinnedCC(Interaction[,12], Interaction[,13], ContactCol, plotfile, "GC content 1", "Cut site 1", "Log Contact count", "GC content + Cut site (1) vs contact count (LOG)", 1)
+				plotfile <- paste0(PlotDirCommon, '/GC1_CutSite1_vs_CoverageEnrichment.pdf')
+				PlotBinnedCC(Interaction[,12], Interaction[,13], CoverageEnrichment, plotfile, "GC content 1", "Cut site 1", "Coverage Enrichment", "GC content + Cut site (1) vs Coverage Enrichment", 1)
 
-			plotfile <- paste0(PlotDirCommon, '/ReadDepth2_GC2_vs_AbsContactCount.pdf')
-			PlotBinnedCC(Interaction[,14], Interaction[,18], ContactCol, plotfile, "Read depth 2", "GC content 2", "Contact count", "Read depth + GC content (2) vs contact count")
-			plotfile <- paste0(PlotDirCommon, '/ReadDepth2_GC2_vs_LOGContactCount.pdf')
-			PlotBinnedCC(Interaction[,14], Interaction[,18], ContactCol, plotfile, "Read depth 2", "GC content 2", "Log Contact count", "Read depth + GC content (2) vs contact count (LOG)", 1)
-			plotfile <- paste0(PlotDirCommon, '/ReadDepth2_GC2_vs_CoverageEnrichment.pdf')
-			PlotBinnedCC(Interaction[,14], Interaction[,18], CoverageEnrichment, plotfile, "Read depth 2", "GC content 2", "Coverage Enrichment", "Read depth + GC content (2) vs Coverage Enrichment", 1)
+				# all part
+				plotfile <- paste0(PlotDirCommon, '/ReadDepth2_Mapp2_vs_AbsContactCount.pdf')
+				PlotBinnedCC(Interaction[,14], Interaction[,17], ContactCol, plotfile, "Read depth 2", "Mappability 2", "Contact count", "Read depth + Mappability (2) vs contact count")
+				plotfile <- paste0(PlotDirCommon, '/ReadDepth2_Mapp2_vs_LOGContactCount.pdf')
+				PlotBinnedCC(Interaction[,14], Interaction[,17], ContactCol, plotfile, "Read depth 2", "Mappability 2", "Log Contact count", "Read depth + Mappability (2) vs contact count (LOG)", 1)
+				plotfile <- paste0(PlotDirCommon, '/ReadDepth2_Mapp2_vs_CoverageEnrichment.pdf')
+				PlotBinnedCC(Interaction[,14], Interaction[,17], CoverageEnrichment, plotfile, "Read depth 2", "Mappability 2", "Coverage Enrichment", "Read depth + Mappability (2) vs Coverage Enrichment", 1)
 
-			plotfile <- paste0(PlotDirCommon, '/ReadDepth2_CutSite2_vs_AbsContactCount.pdf')
-			PlotBinnedCC(Interaction[,14], Interaction[,19], ContactCol, plotfile, "Read depth 2", "Cut Site 2", "Contact count", "Read depth + Cut Site (2) vs contact count")
-			plotfile <- paste0(PlotDirCommon, '/ReadDepth2_CutSite2_vs_LOGContactCount.pdf')
-			PlotBinnedCC(Interaction[,14], Interaction[,19], ContactCol, plotfile, "Read depth 2", "Cut Site 2", "Log Contact count", "Read depth + Cut Site (2) vs contact count (LOG)", 1)
-			plotfile <- paste0(PlotDirCommon, '/ReadDepth2_CutSite2_vs_CoverageEnrichment.pdf')
-			PlotBinnedCC(Interaction[,14], Interaction[,19], CoverageEnrichment, plotfile, "Read depth 2", "Cut Site 2", "Coverage Enrichment", "Read depth + Cut Site (2) vs Coverage Enrichment", 1)
+				plotfile <- paste0(PlotDirCommon, '/ReadDepth2_GC2_vs_AbsContactCount.pdf')
+				PlotBinnedCC(Interaction[,14], Interaction[,18], ContactCol, plotfile, "Read depth 2", "GC content 2", "Contact count", "Read depth + GC content (2) vs contact count")
+				plotfile <- paste0(PlotDirCommon, '/ReadDepth2_GC2_vs_LOGContactCount.pdf')
+				PlotBinnedCC(Interaction[,14], Interaction[,18], ContactCol, plotfile, "Read depth 2", "GC content 2", "Log Contact count", "Read depth + GC content (2) vs contact count (LOG)", 1)
+				plotfile <- paste0(PlotDirCommon, '/ReadDepth2_GC2_vs_CoverageEnrichment.pdf')
+				PlotBinnedCC(Interaction[,14], Interaction[,18], CoverageEnrichment, plotfile, "Read depth 2", "GC content 2", "Coverage Enrichment", "Read depth + GC content (2) vs Coverage Enrichment", 1)
 
-			plotfile <- paste0(PlotDirCommon, '/Mapp2_GC2_vs_AbsContactCount.pdf')
-			PlotBinnedCC(Interaction[,17], Interaction[,18], ContactCol, plotfile, "Mappability 2", "GC content 2", "Contact count", "Mappability + GC content (2) vs contact count")
-			plotfile <- paste0(PlotDirCommon, '/Mapp2_GC2_vs_LOGContactCount.pdf')
-			PlotBinnedCC(Interaction[,17], Interaction[,18], ContactCol, plotfile, "Mappability 2", "GC content 2", "Log Contact count", "Mappability + GC content (2) vs contact count (LOG)", 1)
-			plotfile <- paste0(PlotDirCommon, '/Mapp2_GC2_vs_CoverageEnrichment.pdf')
-			PlotBinnedCC(Interaction[,17], Interaction[,18], CoverageEnrichment, plotfile, "Mappability 2", "GC content 2", "Coverage Enrichment", "Mappability + GC content (2) vs Coverage Enrichment", 1)
+				plotfile <- paste0(PlotDirCommon, '/ReadDepth2_CutSite2_vs_AbsContactCount.pdf')
+				PlotBinnedCC(Interaction[,14], Interaction[,19], ContactCol, plotfile, "Read depth 2", "Cut Site 2", "Contact count", "Read depth + Cut Site (2) vs contact count")
+				plotfile <- paste0(PlotDirCommon, '/ReadDepth2_CutSite2_vs_LOGContactCount.pdf')
+				PlotBinnedCC(Interaction[,14], Interaction[,19], ContactCol, plotfile, "Read depth 2", "Cut Site 2", "Log Contact count", "Read depth + Cut Site (2) vs contact count (LOG)", 1)
+				plotfile <- paste0(PlotDirCommon, '/ReadDepth2_CutSite2_vs_CoverageEnrichment.pdf')
+				PlotBinnedCC(Interaction[,14], Interaction[,19], CoverageEnrichment, plotfile, "Read depth 2", "Cut Site 2", "Coverage Enrichment", "Read depth + Cut Site (2) vs Coverage Enrichment", 1)
 
-			plotfile <- paste0(PlotDirCommon, '/Mapp2_CutSite2_vs_AbsContactCount.pdf')
-			PlotBinnedCC(Interaction[,17], Interaction[,19], ContactCol, plotfile, "Mappability 2", "Cut site 2", "Contact count", "Mappability + Cut site (2) vs contact count")
-			plotfile <- paste0(PlotDirCommon, '/Mapp2_CutSite2_vs_LOGContactCount.pdf')
-			PlotBinnedCC(Interaction[,17], Interaction[,19], ContactCol, plotfile, "Mappability 2", "Cut site 2", "Log Contact count", "Mappability + Cut site (2) vs contact count (LOG)", 1)
-			plotfile <- paste0(PlotDirCommon, '/Mapp2_CutSite2_vs_CoverageEnrichment.pdf')
-			PlotBinnedCC(Interaction[,17], Interaction[,19], CoverageEnrichment, plotfile, "Mappability 2", "Cut site 2", "Coverage Enrichment", "Mappability + Cut site (2) vs Coverage Enrichment", 1)
+				plotfile <- paste0(PlotDirCommon, '/Mapp2_GC2_vs_AbsContactCount.pdf')
+				PlotBinnedCC(Interaction[,17], Interaction[,18], ContactCol, plotfile, "Mappability 2", "GC content 2", "Contact count", "Mappability + GC content (2) vs contact count")
+				plotfile <- paste0(PlotDirCommon, '/Mapp2_GC2_vs_LOGContactCount.pdf')
+				PlotBinnedCC(Interaction[,17], Interaction[,18], ContactCol, plotfile, "Mappability 2", "GC content 2", "Log Contact count", "Mappability + GC content (2) vs contact count (LOG)", 1)
+				plotfile <- paste0(PlotDirCommon, '/Mapp2_GC2_vs_CoverageEnrichment.pdf')
+				PlotBinnedCC(Interaction[,17], Interaction[,18], CoverageEnrichment, plotfile, "Mappability 2", "GC content 2", "Coverage Enrichment", "Mappability + GC content (2) vs Coverage Enrichment", 1)
 
-			plotfile <- paste0(PlotDirCommon, '/GC2_CutSite2_vs_AbsContactCount.pdf')
-			PlotBinnedCC(Interaction[,18], Interaction[,19], ContactCol, plotfile, "GC content 2", "Cut site 2", "Contact count", "GC content + Cut site (2) vs contact count")
-			plotfile <- paste0(PlotDirCommon, '/GC2_CutSite2_vs_LOGContactCount.pdf')
-			PlotBinnedCC(Interaction[,18], Interaction[,19], ContactCol, plotfile, "GC content 2", "Cut site 2", "Log Contact count", "GC content + Cut site (2) vs contact count (LOG)", 1)		
-			plotfile <- paste0(PlotDirCommon, '/GC2_CutSite2_vs_CoverageEnrichment.pdf')
-			PlotBinnedCC(Interaction[,18], Interaction[,19], CoverageEnrichment, plotfile, "GC content 2", "Cut site 2", "Coverage Enrichment", "GC content + Cut site (2) vs Coverage Enrichment", 1)		
+				plotfile <- paste0(PlotDirCommon, '/Mapp2_CutSite2_vs_AbsContactCount.pdf')
+				PlotBinnedCC(Interaction[,17], Interaction[,19], ContactCol, plotfile, "Mappability 2", "Cut site 2", "Contact count", "Mappability + Cut site (2) vs contact count")
+				plotfile <- paste0(PlotDirCommon, '/Mapp2_CutSite2_vs_LOGContactCount.pdf')
+				PlotBinnedCC(Interaction[,17], Interaction[,19], ContactCol, plotfile, "Mappability 2", "Cut site 2", "Log Contact count", "Mappability + Cut site (2) vs contact count (LOG)", 1)
+				plotfile <- paste0(PlotDirCommon, '/Mapp2_CutSite2_vs_CoverageEnrichment.pdf')
+				PlotBinnedCC(Interaction[,17], Interaction[,19], CoverageEnrichment, plotfile, "Mappability 2", "Cut site 2", "Coverage Enrichment", "Mappability + Cut site (2) vs Coverage Enrichment", 1)
+
+				plotfile <- paste0(PlotDirCommon, '/GC2_CutSite2_vs_AbsContactCount.pdf')
+				PlotBinnedCC(Interaction[,18], Interaction[,19], ContactCol, plotfile, "GC content 2", "Cut site 2", "Contact count", "GC content + Cut site (2) vs contact count")
+				plotfile <- paste0(PlotDirCommon, '/GC2_CutSite2_vs_LOGContactCount.pdf')
+				PlotBinnedCC(Interaction[,18], Interaction[,19], ContactCol, plotfile, "GC content 2", "Cut site 2", "Log Contact count", "GC content + Cut site (2) vs contact count (LOG)", 1)		
+				plotfile <- paste0(PlotDirCommon, '/GC2_CutSite2_vs_CoverageEnrichment.pdf')
+				PlotBinnedCC(Interaction[,18], Interaction[,19], CoverageEnrichment, plotfile, "GC content 2", "Cut site 2", "Coverage Enrichment", "GC content + Cut site (2) vs Coverage Enrichment", 1)		
+			}
 		}
 	}	# end peak to all interaction type check
 

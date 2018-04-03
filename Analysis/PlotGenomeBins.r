@@ -113,7 +113,8 @@ option_list = list(
   	make_option(c("--GenomeBinFile"), type="character", default=NULL, help="File containing the genome bins and associated features"),
   	make_option(c("--CommonDir"), type="character", default=NULL, help="directory storing the plots for non-bias related features"),
 	make_option(c("--BiasSpecificDir"), type="character", default=NULL, help="directory storing the plots for bias specific features"),
-	make_option(c("--OverWrite"), type="integer", action="store", default=0, help="if 1, overwrites the plots")
+	make_option(c("--OverWrite"), type="integer", action="store", default=0, help="if 1, overwrites the plots"),
+  	make_option(c("--NoMappGC"), type="logical", action="store_true", default=FALSE, help="If TRUE, there is no Mappability, GC content, or RE sites information in the feature file. Default FALSE.")	
 );
 
 opt_parser = OptionParser(option_list=option_list);
@@ -162,36 +163,40 @@ if ((file.exists(OutPlotFile) == FALSE) | (opt$OverWrite == 1)) {
 #=========================
 # Density Plot - GC content vs Coverage - for peaks, non peaks and for all segments
 #=========================
-plotfile <- paste0(opt$CommonDir, '/GCContent_vs_Coverage_ALL.pdf')
-if ((file.exists(plotfile) == FALSE) | (opt$OverWrite == 1)) {
-	PlotBinnedDistr(InpData[,8], InpData[,4], plotfile, "GC content", "Coverage", "Variation between GC content and coverage for all segments", 10)
-}
+if (opt$NoMappGC == FALSE) {
 
-plotfile <- paste0(opt$CommonDir, '/GCContent_vs_Coverage_Peaks.pdf')
-if ((file.exists(plotfile) == FALSE) | (opt$OverWrite == 1)) {
-	PlotBinnedDistr(InpData[PeakIdx,8], InpData[PeakIdx,4], plotfile, "GC content", "Coverage", "Variation between GC content and coverage for Peaks", 10)
-}
+	plotfile <- paste0(opt$CommonDir, '/GCContent_vs_Coverage_ALL.pdf')
+	if ((file.exists(plotfile) == FALSE) | (opt$OverWrite == 1)) {
+		PlotBinnedDistr(InpData[,8], InpData[,4], plotfile, "GC content", "Coverage", "Variation between GC content and coverage for all segments", 10)
+	}
 
-plotfile <- paste0(opt$CommonDir, '/GCContent_vs_Coverage_NonPeaks.pdf')
-if ((file.exists(plotfile) == FALSE) | (opt$OverWrite == 1)) {
-	PlotBinnedDistr(InpData[NonPeakIdx,8], InpData[NonPeakIdx,4], plotfile, "GC content", "Coverage", "Variation between GC content and coverage for Non peaks", 10)
+	plotfile <- paste0(opt$CommonDir, '/GCContent_vs_Coverage_Peaks.pdf')
+	if ((file.exists(plotfile) == FALSE) | (opt$OverWrite == 1)) {
+		PlotBinnedDistr(InpData[PeakIdx,8], InpData[PeakIdx,4], plotfile, "GC content", "Coverage", "Variation between GC content and coverage for Peaks", 10)
+	}
+
+	plotfile <- paste0(opt$CommonDir, '/GCContent_vs_Coverage_NonPeaks.pdf')
+	if ((file.exists(plotfile) == FALSE) | (opt$OverWrite == 1)) {
+		PlotBinnedDistr(InpData[NonPeakIdx,8], InpData[NonPeakIdx,4], plotfile, "GC content", "Coverage", "Variation between GC content and coverage for Non peaks", 10)
+	}
 }
 
 #=========================
 # Density Plot - Mappability vs Coverage - for peaks, non peaks and for all segments
 #=========================
-plotfile <- paste0(opt$CommonDir, '/Mappability_vs_Coverage_ALL.pdf')
-if ((file.exists(plotfile) == FALSE) | (opt$OverWrite == 1)) {
-	PlotBinnedDistr(InpData[,7], InpData[,4], plotfile, "Mappability", "Coverage", "Variation between Mappability and coverage for all segments", 10)
-}
+if (opt$NoMappGC == FALSE) {
+	plotfile <- paste0(opt$CommonDir, '/Mappability_vs_Coverage_ALL.pdf')
+	if ((file.exists(plotfile) == FALSE) | (opt$OverWrite == 1)) {
+		PlotBinnedDistr(InpData[,7], InpData[,4], plotfile, "Mappability", "Coverage", "Variation between Mappability and coverage for all segments", 10)
+	}
 
-plotfile <- paste0(opt$CommonDir, '/Mappability_vs_Coverage_Peaks.pdf')
-if ((file.exists(plotfile) == FALSE) | (opt$OverWrite == 1)) {
-	PlotBinnedDistr(InpData[PeakIdx,7], InpData[PeakIdx,4], plotfile, "Mappability", "Coverage", "Variation between Mappability and coverage for Peaks", 10)
-}
+	plotfile <- paste0(opt$CommonDir, '/Mappability_vs_Coverage_Peaks.pdf')
+	if ((file.exists(plotfile) == FALSE) | (opt$OverWrite == 1)) {
+		PlotBinnedDistr(InpData[PeakIdx,7], InpData[PeakIdx,4], plotfile, "Mappability", "Coverage", "Variation between Mappability and coverage for Peaks", 10)
+	}
 
-plotfile <- paste0(opt$CommonDir, '/Mappability_vs_Coverage_NonPeaks.pdf')
-if ((file.exists(plotfile) == FALSE) | (opt$OverWrite == 1)) {
-	PlotBinnedDistr(InpData[NonPeakIdx,7], InpData[NonPeakIdx,4], plotfile, "Mappability", "Coverage", "Variation between Mappability and coverage for Non peaks", 10)
+	plotfile <- paste0(opt$CommonDir, '/Mappability_vs_Coverage_NonPeaks.pdf')
+	if ((file.exists(plotfile) == FALSE) | (opt$OverWrite == 1)) {
+		PlotBinnedDistr(InpData[NonPeakIdx,7], InpData[NonPeakIdx,4], plotfile, "Mappability", "Coverage", "Variation between Mappability and coverage for Non peaks", 10)
+	}
 }
-
