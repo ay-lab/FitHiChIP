@@ -49,10 +49,6 @@ PeakFILE=""
 
 PREFIX='FitHiChIP'
 
-# reference genome
-# sourya - this parameter can be removed
-RefGENOME='hg19'
-
 # size of the chromosome that is to be provided
 ChrSizeFile=""
 
@@ -92,30 +88,58 @@ NBins=200
 # default value of plotting analysis figures
 DrawFig=0
 
-# # binning method for FitHiC technique
-# # 1 for equal occupancy bin (default)
-# FitHiCBinMethod=1
-
 # option to note down the timing information
 TimeProf=0
-
-# type of distribution for modeling the P value of FitHiC
-# 1: binomial distribution (employed in FitHiC - default)
-# 2: negative binomial distribution
-DistrType=1
 
 # boolean variable indicating that previous existing output files
 # will be overwritten (1) or not (0 - default)
 OverWrite=0
 
 #=========================
-# bias correction related parameters
+# Significant interaction call 
+# and the bias correction related parameters
 #=========================
+# denotes the type of Interaction
+# 1: peak to peak, 2: peak to non peak
+# 3: peak to all (default) 4: all to all
+# 5: accounting for all of 1 to 4
+IntType=3
+
+# variable indicating bias correction (1: On, 0: off)
+# recommended = 1
+BiasCorr=1
 
 # type of bias vector (if bias correction is employed)
 # 1: coverage specific bias
 # 2: ICE specific bias (default)
-BiasType=2 
+BiasType=1
+
+# temporary variable (binary)
+# used to model FitHiChIP peak to all interactions
+# using peak to peak background only
+# applicable for only peak to all interactions
+UseP2PBackgrnd=1
+
+# Merging interactions which are near to each other
+MergeInteraction=1
+#========================
+# following parameters are now obsolete
+# so keeping them in a default state
+# user cannot alter these values
+#========================
+
+# # reference genome
+# # sourya - this parameter can be removed
+# RefGENOME='hg19'
+
+# # binning method for FitHiC technique
+# # 1 for equal occupancy bin (default)
+# FitHiCBinMethod=1
+
+# type of distribution for modeling the P value of FitHiC
+# 1: binomial distribution (employed in FitHiC - default)
+# 2: negative binomial distribution
+DistrType=1
 
 # default lower cutoff of bias value
 biaslowthr=0.2
@@ -129,31 +153,11 @@ BeginBiasFilter=0
 # boolean variable for probability adjustment of the interactions according to the bias value
 EndBiasFilter=0
 
-# Merging interactions which are near to each other
-MergeInteraction=1
-
-#========================
-# variable indicating bias correction (1: On, 0: off)
-# recommended = 1
-BiasCorr=1
-
-# temporary variable (binary)
-# used to model FitHiChIP peak to all interactions
-# using peak to peak background only
-# applicable for only peak to all interactions
-UseP2PBackgrnd=1
-
 # temporary variable (binary)
 # if 1, includes only nonzero contact based locus pairs for
 # FitHiC spline fit implementation
 # default : 0
 UseNonzeroContacts=0
-
-# denotes the type of Interaction
-# 1: peak to peak, 2: peak to non peak
-# 3: peak to all (default) 4: all to all
-# 5: accounting for all of 1 to 4
-IntType=3
 
 # two variables used for bias correction
 # modeling the regression between observed contact count
@@ -165,7 +169,6 @@ eqocc_biascorr=1
 # multiplicative bias value would be used
 # defult 0
 MultBias=0
-
 
 #========================
 
@@ -183,7 +186,7 @@ do
 	paramval=${value//\"/}
 	if [[ -n $param ]]; then
 		if [[ $param != \#* ]]; then
-			#echo "Content of $param is $paramval"
+			echo -e "Content of $param is $paramval"
 			if [ $param == "ValidPairs" ]; then
 				InpValidPairsFile=$paramval
 			fi
@@ -206,11 +209,11 @@ do
 			fi
 
 			# these parameters are optional
-			if [ $param == "RefGenome" ]; then
-				if [[ ! -z $paramval ]]; then
-					RefGENOME=$paramval
-				fi
-			fi			
+			# if [ $param == "RefGenome" ]; then
+			# 	if [[ ! -z $paramval ]]; then
+			# 		RefGENOME=$paramval
+			# 	fi
+			# fi			
 			if [ $param == "MappabilityFile" ]; then
 				MappabilityFile=$paramval
 			fi
@@ -277,51 +280,51 @@ do
 			fi
 
 			# these parameters are not required for the moment
-			if [ $param == "BeginBiasFilter" ]; then
-				if [[ ! -z $paramval ]]; then
-					BeginBiasFilter=$paramval
-				fi
-			fi
-			if [ $param == "EndBiasFilter" ]; then
-				if [[ ! -z $paramval ]]; then
-					EndBiasFilter=$paramval
-				fi
-			fi
-			if [ $param == "biaslowthr" ]; then
-				if [[ ! -z $paramval ]]; then
-					biaslowthr=$paramval
-				fi
-			fi			
-			if [ $param == "biashighthr" ]; then
-				if [[ ! -z $paramval ]]; then
-					biashighthr=$paramval
-				fi
-			fi
-			if [ $param == "DistrType" ]; then
-				if [[ ! -z $paramval ]]; then
-					DistrType=$paramval
-				fi
-			fi			
-			if [ $param == "MultBias" ]; then
-				if [[ ! -z $paramval ]]; then
-					MultBias=$paramval
-				fi
-			fi	
-			if [ $param == "BiasCorrResid" ]; then
-				if [[ ! -z $paramval ]]; then
-					resid_biascorr=$paramval
-				fi
-			fi	
-			if [ $param == "BiasCorrEqOcc" ]; then
-				if [[ ! -z $paramval ]]; then
-					eqocc_biascorr=$paramval
-				fi
-			fi	
-			if [ $param == "UseNonzeroContacts" ]; then
-				if [[ ! -z $paramval ]]; then
-					UseNonzeroContacts=$paramval
-				fi
-			fi			
+			# if [ $param == "BeginBiasFilter" ]; then
+			# 	if [[ ! -z $paramval ]]; then
+			# 		BeginBiasFilter=$paramval
+			# 	fi
+			# fi
+			# if [ $param == "EndBiasFilter" ]; then
+			# 	if [[ ! -z $paramval ]]; then
+			# 		EndBiasFilter=$paramval
+			# 	fi
+			# fi
+			# if [ $param == "biaslowthr" ]; then
+			# 	if [[ ! -z $paramval ]]; then
+			# 		biaslowthr=$paramval
+			# 	fi
+			# fi			
+			# if [ $param == "biashighthr" ]; then
+			# 	if [[ ! -z $paramval ]]; then
+			# 		biashighthr=$paramval
+			# 	fi
+			# fi
+			# if [ $param == "DistrType" ]; then
+			# 	if [[ ! -z $paramval ]]; then
+			# 		DistrType=$paramval
+			# 	fi
+			# fi			
+			# if [ $param == "MultBias" ]; then
+			# 	if [[ ! -z $paramval ]]; then
+			# 		MultBias=$paramval
+			# 	fi
+			# fi	
+			# if [ $param == "BiasCorrResid" ]; then
+			# 	if [[ ! -z $paramval ]]; then
+			# 		resid_biascorr=$paramval
+			# 	fi
+			# fi	
+			# if [ $param == "BiasCorrEqOcc" ]; then
+			# 	if [[ ! -z $paramval ]]; then
+			# 		eqocc_biascorr=$paramval
+			# 	fi
+			# fi	
+			# if [ $param == "UseNonzeroContacts" ]; then
+			# 	if [[ ! -z $paramval ]]; then
+			# 		UseNonzeroContacts=$paramval
+			# 	fi
+			# fi			
 			# end non-required parameters
 
 			if [ $param == "MergeInt" ]; then
@@ -518,30 +521,30 @@ mkdir -p $OutDir
 #============================
 ConfFile=$OutDir/Parameters.txt
 
-if [ ! -f $ConfFile ]; then
+if [[ ! -f $ConfFile || $OverWrite == 1 ]]; then
 	echo "Summarizing the parameters employed in this execution" > $ConfFile
 
 	echo "Listing the input files: " >> $ConfFile
-	echo "InpValidPairsFile: $InpValidPairsFile " >> $ConfFile
-	echo "InpBinIntervalFile: $InpBinIntervalFile " >> $ConfFile
-	echo "InpMatrixFile: $InpMatrixFile " >> $ConfFile
-	echo "PeakFILE: $PeakFILE " >> $ConfFile
-	echo "ChrSizeFile: $ChrSizeFile " >> $ConfFile
+	echo "Input file containing the valid pairs (generated from HIC-PRO pipeline): $InpValidPairsFile " >> $ConfFile
+	echo "Input file containing the fixed size bin intervals (generated from HIC-PRO pipeline): $InpBinIntervalFile " >> $ConfFile
+	echo "Input file storing the contact matrix between the fixed size bins (generated from HIC-PRO pipeline): $InpMatrixFile " >> $ConfFile
+	echo "Input ChIP-seq peak file: $PeakFILE " >> $ConfFile
+	echo "File containing chromosome size information corresponding to the reference chromosome: $ChrSizeFile " >> $ConfFile
 
 	if [[ ! -z $MappabilityFile ]]; then
-		echo "MappabilityFile: $MappabilityFile " >> $ConfFile
+		echo "Mappability File: $MappabilityFile " >> $ConfFile
 	fi
 
 	if [[ ! -z $RefFastaFile ]]; then
-		echo "RefFastaFile: $RefFastaFile " >> $ConfFile
+		echo "Reference Fasta sequence File: $RefFastaFile " >> $ConfFile
 	fi
 
 	if [[ ! -z $REFragFile ]]; then
-		echo "REFragFile: $REFragFile " >> $ConfFile
+		echo "Restriction Fragment File: $REFragFile " >> $ConfFile
 	fi
 
-	echo "OutDir: $OutDir " >> $ConfFile
-	echo "HiCProBasedir: $HiCProBasedir " >> $ConfFile
+	echo "Output directory which will store all the results: $OutDir " >> $ConfFile
+	echo "Base directory containing the HIC-PRO executable: $HiCProBasedir " >> $ConfFile
 
 	echo "Genome specific parameters: " >> $ConfFile
 	# echo "RefGENOME: $RefGENOME " >> $ConfFile
@@ -552,10 +555,10 @@ if [ ! -f $ConfFile ]; then
 	fi
 
 	echo "BIN_SIZE: $BIN_SIZE " >> $ConfFile
-	echo "PREFIX: $PREFIX " >> $ConfFile
-	echo "Timeprof: $TimeProf " >> $ConfFile
-	echo "OverWrite: $OverWrite " >> $ConfFile
-	echo "DrawFig: $DrawFig " >> $ConfFile
+	echo "PREFIX (string of output files): $PREFIX " >> $ConfFile
+	echo "Timeprof (1 means timing will be noted): $TimeProf " >> $ConfFile
+	echo "OverWrite (1 means existing files will be overwritten): $OverWrite " >> $ConfFile
+	echo "DrawFig (1 means various summary statistics will be plotted, depending on the availability of reference fasta sequence file and mappability file): $DrawFig " >> $ConfFile
 fi
 
 #=======================================
@@ -584,6 +587,16 @@ cd $currscriptdir
 HiCProMatrixDir=$OutDir'/HiCPro_Matrix_BinSize'$BIN_SIZE
 mkdir -p $HiCProMatrixDir
 
+#==============================
+# note down the executables of python and Rscript
+PythonExec=`which python`
+echo 'Executable of python (2): '$PythonExec
+
+RScriptExec=`which Rscript`
+echo 'Executable of R : '$RScriptExec
+
+#==============================
+
 #=================
 # if the matrices are not provided and the validpairs text file is provided
 # then compute the interaction matrices using the HiC-pro utility
@@ -593,7 +606,7 @@ echo -e "\n ================ Processing HiC-pro contact matrices ===============
 if [[ -z $InpBinIntervalFile || -z $InpMatrixFile ]]; then
 
 	# this is an executable which builds matrix from the input valid pairs file
-	# that's why we require the HiC pro executable directory as a command line option
+	# thats why we require the HiC pro executable directory as a command line option
 
 	# executable of matrix building is to be obtained from the HiC-pro base directory
 	# provided as the input
@@ -607,7 +620,7 @@ if [[ -z $InpBinIntervalFile || -z $InpMatrixFile ]]; then
 	fi
 	idx=`expr $len - 1`
 	# echo 'idx: '$idx
-	MatrixBuildExec=${MatrixBuildExecSet[idx]}
+	MatrixBuildExec=${MatrixBuildExecSet[$idx]}
 	echo -e '\n *** MatrixBuildExec: '$MatrixBuildExec
 
 	echo '*** Computing HiC-pro matrices from the input valid pairs file'
@@ -652,7 +665,7 @@ echo -e "\n ================ Creating input interactions ================="
 Interaction_Initial_File=$HiCProMatrixDir/$PREFIX.interactions.initial.bed
 
 if [[ ! -f $Interaction_Initial_File || $OverWrite == 1 ]]; then
-	Rscript ./src/InteractionHicPro.r $InpBinIntervalFile $InpMatrixFile $Interaction_Initial_File
+	$RScriptExec ./src/InteractionHicPro.r $InpBinIntervalFile $InpMatrixFile $Interaction_Initial_File
 	
 	if [ $TimeProf == 1 ]; then
 		duration=$(echo "$(date +%s.%N) - $start" | bc)
@@ -675,7 +688,7 @@ mkdir -p $InteractionThrDir
 Interaction_File=$InteractionThrDir/$PREFIX.cis.interactions.DistThr.bed
 
 if [[ ! -f $Interaction_File || $OverWrite == 1 ]]; then
-	awk -v l="$LowDistThres" -v u="$UppDistThres" 'function abs(v) {return v < 0 ? -v : v} {if ((NR==1) || ($1==$4 && abs($2-$5)>=l && abs($2-$5)<=u)) {print $0}}' $Interaction_Initial_File > $Interaction_File
+	awk -v l="$LowDistThres" -v u="$UppDistThres" -F['\t'] 'function abs(v) {return v < 0 ? -v : v} {if ((NR==1) || ($1==$4 && abs($2-$5)>=l && abs($2-$5)<=u)) {print $0}}' $Interaction_Initial_File > $Interaction_File
 
 	if [ $TimeProf == 1 ]; then
 		duration=$(echo "$(date +%s.%N) - $start" | bc)
@@ -717,7 +730,7 @@ if [[ ! -z $MappabilityFile && ! -z $RefFastaFile && ! -z $REFragFile ]]; then
 		MappOffsetCutBedFile=$FeatureDir'/Temp_Fragment_Mapp_'$MappabilityWindowSize'bp.bed'
 		
 		if [[ ! -f $MappOffsetCutBedFile || $OverWrite == 1 ]]; then
-			awk -v s=$MappabilityWindowSize 'function max(x,y) {return x>y?x:y}; function min(x,y) {return x<y?x:y}; {printf "%s\t%d\t%d\n%s\t%d\t%d\n", $1, $2, min($2+s,$3), $1, max($3-s, $2), $3}' $REFragFile | sort -k1,1 -k2,2n > $MappOffsetCutBedFile
+			awk -v s=$MappabilityWindowSize -F['\t'] 'function max(x,y) {return x>y?x:y}; function min(x,y) {return x<y?x:y}; {printf "%s\t%d\t%d\n%s\t%d\t%d\n", $1, $2, min($2+s,$3), $1, max($3-s, $2), $3}' $REFragFile | sort -k1,1 -k2,2n > $MappOffsetCutBedFile
 
 			if [ $TimeProf == 1 ]; then
 				duration=$(echo "$(date +%s.%N) - $start" | bc)
@@ -738,7 +751,7 @@ if [[ ! -z $MappabilityFile && ! -z $RefFastaFile && ! -z $REFragFile ]]; then
 		MappabilityOutFile=$FeatureDir'/Mappability_RE_Fragments.bed'
 		
 		if [[ ! -f $MappabilityOutFile || $OverWrite == 1 ]]; then
-			bedtools map -a $MappOffsetCutBedFile -b $MappabilityFile -c 4 -o mean | awk '{if ($4=="." || $4=="NA" || $4=="NaN") {$4=0}; print $0}' - > $MappabilityOutFile
+			bedtools map -a $MappOffsetCutBedFile -b $MappabilityFile -c 4 -o mean | awk -F['\t'] '{if ($4=="." || $4=="NA" || $4=="NaN") {$4=0}; print $0}' - > $MappabilityOutFile
 
 			if [ $TimeProf == 1 ]; then
 				duration=$(echo "$(date +%s.%N) - $start" | bc)
@@ -762,7 +775,7 @@ if [[ ! -z $MappabilityFile && ! -z $RefFastaFile && ! -z $REFragFile ]]; then
 		GCOffsetCutBedFile=$FeatureDir'/Temp_Fragment_GC_'$GCContentWindowSize'bp.bed'
 		
 		if [[ ! -f $GCOffsetCutBedFile || $OverWrite == 1 ]]; then
-			awk -v s=$GCContentWindowSize 'function max(x,y) {return x>y?x:y}; function min(x,y) {return x<y?x:y}; {printf "%s\t%d\t%d\n%s\t%d\t%d\n", $1, $2, min($2+s,$3), $1, max($3-s, $2), $3}' $REFragFile | sort -k1,1 -k2,2n > $GCOffsetCutBedFile
+			awk -v s=$GCContentWindowSize -F['\t'] 'function max(x,y) {return x>y?x:y}; function min(x,y) {return x<y?x:y}; {printf "%s\t%d\t%d\n%s\t%d\t%d\n", $1, $2, min($2+s,$3), $1, max($3-s, $2), $3}' $REFragFile | sort -k1,1 -k2,2n > $GCOffsetCutBedFile
 
 			if [ $TimeProf == 1 ]; then
 				duration=$(echo "$(date +%s.%N) - $start" | bc)
@@ -780,7 +793,7 @@ if [[ ! -z $MappabilityFile && ! -z $RefFastaFile && ! -z $REFragFile ]]; then
 		GCOutFile=$FeatureDir'/GC_Content_RE_Fragments.bed'
 		
 		if [[ ! -f $GCOutFile || $OverWrite == 1 ]]; then
-			nucBed -fi $RefFastaFile -bed $GCOffsetCutBedFile | awk '{if ($4=="." || $4=="NA" || $4=="NaN") {$4=0}; print $0}' - > $GCOutFile
+			nucBed -fi $RefFastaFile -bed $GCOffsetCutBedFile | awk -F['\t'] '{if ($4=="." || $4=="NA" || $4=="NaN") {$4=0}; print $0}' - > $GCOutFile
 
 			if [ $TimeProf == 1 ]; then
 				duration=$(echo "$(date +%s.%N) - $start" | bc)
@@ -797,18 +810,18 @@ if [[ ! -z $MappabilityFile && ! -z $RefFastaFile && ! -z $REFragFile ]]; then
 		# the mappability fragment file does not have any header information
 		# average of the 4th field
 		Temp_Mapp_File=$FeatureDir'/Mappability_Dump.bed'
-		awk '{sum+=$4} NR%2==0 {print sum/2; sum=0}' $MappabilityOutFile > $Temp_Mapp_File
+		awk -F['\t'] '{sum+=$4} NR%2==0 {print sum/2; sum=0}' $MappabilityOutFile > $Temp_Mapp_File
 
 		# the GC content fragment file has header
 		# average of the 5th field
 		Temp_GC_File=$FeatureDir'/GC_Dump.bed'
-		awk '{if (NR>1) {sum+=$5}}; {if (NR%2!=0 && NR>1) {print sum/2; sum=0}}' $GCOutFile > $Temp_GC_File
+		awk -F['\t'] '{if (NR>1) {sum+=$5}}; {if (NR%2!=0 && NR>1) {print sum/2; sum=0}}' $GCOutFile > $Temp_GC_File
 
 		#============================
 		# Now combine the average mappability and GC content values with the 
 		# restriction fragments 
 		#============================
-		Rscript ./src/CombineREFragMappGC.r $REFragFile $Temp_Mapp_File $Temp_GC_File $REFragMappGCFile
+		$RScriptExec ./src/CombineREFragMappGC.r $REFragFile $Temp_Mapp_File $Temp_GC_File $REFragMappGCFile
 
 		if [ $TimeProf == 1 ]; then
 			duration=$(echo "$(date +%s.%N) - $start" | bc)
@@ -838,7 +851,7 @@ echo -e "\n ================ Generating coverage statistics for individual bins 
 CoverageFile=$FeatureDir'/'$PREFIX'.coverage.bed'
 
 if [[ ! -f $CoverageFile || $OverWrite == 1 ]]; then
-	python ./src/CoverageBin.py -i $InpValidPairsFile -p $PeakFILE -b $BIN_SIZE -o $CoverageFile -c $ChrSizeFile
+	$PythonExec ./src/CoverageBin.py -i $InpValidPairsFile -p $PeakFILE -b $BIN_SIZE -o $CoverageFile -c $ChrSizeFile
 	echo 'Computed initial coverage information for individual genomic bins'
 	
 	if [ $TimeProf == 1 ]; then
@@ -874,7 +887,7 @@ if [[ ! -f $CoverageBiasFile || $OverWrite == 1 ]]; then
 	if [ $BiasType == 1 ]; then
 		# compute the bias from the coverage of individual bins
 		# use peaks and non-peaks separately for bias computation
-		Rscript ./src/BiasCalc.r --CoverageFile $CoverageFile --OutFile $CoverageBiasFile
+		$RScriptExec ./src/BiasCalc.r --CoverageFile $CoverageFile --OutFile $CoverageBiasFile
 		echo 'Appended bias information for individual genomic bins'
 	else
 		# here ICE specific bias is used
@@ -889,7 +902,7 @@ if [[ ! -f $CoverageBiasFile || $OverWrite == 1 ]]; then
 		BiasVecFile=$NormContactMatrixFile'.biases'
 		if [[ ! -f $BiasVecFile || $OverWrite == 1 ]]; then
 			$ICEExec $InpMatrixFile --results_filename $NormContactMatrixFile --output-bias $BiasVecFile
-			# replace the NAN's of the derived bias vector with zero
+			# replace the NANs of the derived bias vector with zero
 			sed -i 's/nan/0/g' $BiasVecFile
 		fi
 
@@ -905,7 +918,7 @@ if [[ ! -f $CoverageBiasFile || $OverWrite == 1 ]]; then
 		# and the generated bias containing files
 		# Note: these two files may have different ordering of chromosomes
 		# so we do not use the "paste" function
-		Rscript ./src/BiasCalc.r --CoverageFile $CoverageFile --BiasFile $temp_ICEBias_binfile --OutFile $CoverageBiasFile
+		$RScriptExec ./src/BiasCalc.r --CoverageFile $CoverageFile --BiasFile $temp_ICEBias_binfile --OutFile $CoverageBiasFile
 
 	fi
 
@@ -952,7 +965,7 @@ if [[ ! -f $AllFeatFile || $OverWrite == 1 ]]; then
 	#======================
 	# the coverage / bias file has header information - discard the header before processing
 	temp_CoverageBiasFile=$AllFeatureDir'/'$PREFIX'.coverage_Bias1.bed'
-	awk 'NR>1' $CoverageBiasFile | sort -k1,1 -k2,2n > $temp_CoverageBiasFile
+	awk -F['\t'] 'NR>1' $CoverageBiasFile | sort -k1,1 -k2,2n > $temp_CoverageBiasFile
 	
 	if [[ ! -z $MappabilityFile && ! -z $RefFastaFile && ! -z $REFragFile ]]; then
 
@@ -981,8 +994,8 @@ if [[ ! -f $AllFeatFile || $OverWrite == 1 ]]; then
 
 	else
 		# here we do not have any mappability, RE sites or GC content information
-		# so use all 0's in their slots (3 columns to be appended)
-		awk '{if (NR>1) {print $0"\t0\t0\t0"}}' $temp_CoverageBiasFile > $AllFeatFile
+		# so use all 0s in their slots (3 columns to be appended)
+		awk -F['\t'] '{if (NR>1) {print $0"\t0\t0\t0"}}' $temp_CoverageBiasFile > $AllFeatFile
 	fi
 
 	if [ $TimeProf == 1 ]; then
@@ -1006,9 +1019,9 @@ if [ $DrawFig == 1 ]; then
 	# condition based on having mappability, GC content, or RE sites 
 	# information or not
 	if [[ ! -z $MappabilityFile && ! -z $RefFastaFile && ! -z $REFragFile ]]; then
-		Rscript ./Analysis/PlotGenomeBins.r --GenomeBinFile $AllFeatFile --CommonDir $FeatureDir'/Plots_Common' --BiasSpecificDir $AllFeatureDir'/Plots_Bias' --OverWrite $OverWrite
+		$RScriptExec ./Analysis/PlotGenomeBins.r --GenomeBinFile $AllFeatFile --CommonDir $FeatureDir'/Plots_Common' --BiasSpecificDir $AllFeatureDir'/Plots_Bias' --OverWrite $OverWrite
 	else
-		Rscript ./Analysis/PlotGenomeBins.r --GenomeBinFile $AllFeatFile --CommonDir $FeatureDir'/Plots_Common' --BiasSpecificDir $AllFeatureDir'/Plots_Bias' --OverWrite $OverWrite --NoMappGC
+		$RScriptExec ./Analysis/PlotGenomeBins.r --GenomeBinFile $AllFeatFile --CommonDir $FeatureDir'/Plots_Common' --BiasSpecificDir $AllFeatureDir'/Plots_Bias' --OverWrite $OverWrite --NoMappGC
 	fi
 
 	if [ $TimeProf == 1 ]; then
@@ -1045,7 +1058,7 @@ IntFileALLtoALL=$DirALLtoALL'/'$InteractionFileName
 if [[ ! -f $IntFileALLtoALL || $OverWrite == 1 ]]; then
 	# merge the input interactions (chromosome interval + contact count)
 	# with the feature file	
-	Rscript ./src/Significance_Features.r -I $Interaction_File -E $AllFeatFile -O $IntFileALLtoALL
+	$RScriptExec ./src/Significance_Features.r -I $Interaction_File -E $AllFeatFile -O $IntFileALLtoALL
 	
 	if [ $TimeProf == 1 ]; then
 		duration=$(echo "$(date +%s.%N) - $start" | bc)
@@ -1055,12 +1068,12 @@ if [[ ! -f $IntFileALLtoALL || $OverWrite == 1 ]]; then
 fi
 
 # derive the contact count column
-cccol=`cat $Interaction_File | tail -n 1 | awk '{print NF}' -`
+cccol=`cat $Interaction_File | tail -n 1 | awk -F['\t'] '{print NF}' -`
 echo 'Contact count col: '$cccol
 
 # derive the number of columns in the interaction file with normalization 
 # related features
-totcol=`cat $IntFileALLtoALL | tail -n 1 | awk '{print NF}' -`
+totcol=`cat $IntFileALLtoALL | tail -n 1 | awk -F['\t'] '{print NF}' -`
 echo 'Total number of columns for the complete feature interactions: '$totcol
 
 #===================
@@ -1075,9 +1088,9 @@ if [ $DrawFig == 1 ]; then
 	# 1) common dir for plotting non-bias related features
 	# 2) bias specific directory for plotting bias related features
 	if [[ ! -z $MappabilityFile && ! -z $RefFastaFile && ! -z $REFragFile ]]; then
-		Rscript ./Analysis/InteractionPlots.r --IntFile $IntFileALLtoALL --CommonDir $DirALLtoALLBase'/Plots_Norm' --BiasSpecificDir $DirALLtoALL'/Plots_Norm' --MappThr 0.5 --GCThr 0.2 --cccol $cccol --OverWrite $OverWrite
+		$RScriptExec ./Analysis/InteractionPlots.r --IntFile $IntFileALLtoALL --CommonDir $DirALLtoALLBase'/Plots_Norm' --BiasSpecificDir $DirALLtoALL'/Plots_Norm' --MappThr 0.5 --GCThr 0.2 --cccol $cccol --OverWrite $OverWrite
 	else
-		Rscript ./Analysis/InteractionPlots.r --IntFile $IntFileALLtoALL --CommonDir $DirALLtoALLBase'/Plots_Norm' --BiasSpecificDir $DirALLtoALL'/Plots_Norm' --MappThr 0.5 --GCThr 0.2 --cccol $cccol --OverWrite $OverWrite --NoMappGC
+		$RScriptExec ./Analysis/InteractionPlots.r --IntFile $IntFileALLtoALL --CommonDir $DirALLtoALLBase'/Plots_Norm' --BiasSpecificDir $DirALLtoALL'/Plots_Norm' --MappThr 0.5 --GCThr 0.2 --cccol $cccol --OverWrite $OverWrite --NoMappGC
 	fi
 
 	if [ $TimeProf == 1 ]; then
@@ -1125,7 +1138,7 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 		if [[ ! -f $IntFilePeaktoPeak || $OverWrite == 1 ]]; then
 			# peak to peak interactions 
 			# 9th and 15th fields are 1
-			awk '(NR==1) || ($9==1 && $15==1)' $IntFileALLtoALL > $IntFilePeaktoPeak
+			awk -F['\t'] '((NR==1) || ($9==1 && $15==1))' $IntFileALLtoALL > $IntFilePeaktoPeak
 		fi
 		currdirname=$DirPeaktoPeak
 
@@ -1142,7 +1155,7 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 			# peak to non peak interactions
 			# 9th field is 1, but 15th field is 0
 			# or 15th field is 1 and 9th field is 0
-			awk '(NR==1) || ($9==1 && $15==0) || ($9==0 && $15==1)' $IntFileALLtoALL > $IntFilePeaktoNonPeak
+			awk -F['\t'] '((NR==1) || ($9==1 && $15==0) || ($9==0 && $15==1))' $IntFileALLtoALL > $IntFilePeaktoNonPeak
 		fi
 		currdirname=$DirPeaktoNonPeak
 
@@ -1160,7 +1173,7 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 		if [[ ! -f $IntFilePeaktoALL || $OverWrite == 1 ]]; then
 			# peak to all interactions
 			# just check if 9th field is 1 or 15th field is 1
-			awk '(NR==1) || ($9==1) || ($15==1)' $IntFileALLtoALL > $IntFilePeaktoALL
+			awk -F['\t'] '((NR==1) || ($9==1) || ($15==1))' $IntFileALLtoALL > $IntFilePeaktoALL
 		fi
 		currdirname=$DirPeaktoALL
 	else
@@ -1181,7 +1194,7 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 
 	coln=`expr $totcol + 1`
 	if [[ ! -f $CurrIntFileSortDist || $OverWrite == 1 ]]; then
-		awk -v OFS='\t' 'function abs(v) {return v < 0 ? -v : v} {print $0"\t"abs($5-$2)}' $CurrIntFile | sort -k${coln},${coln}n -k${cccol},${cccol}nr | cut -f1-${totcol} - > $CurrIntFileSortDist	
+		awk -F['\t'] -v OFS='\t' 'function abs(v) {return v < 0 ? -v : v} {print $0"\t"abs($5-$2)}' $CurrIntFile | sort -k${coln},${coln}n -k${cccol},${cccol}nr | cut -f1-${totcol} - > $CurrIntFileSortDist	
 
 		if [[ $TimeProf == 1 ]]; then
 			duration=$(echo "$(date +%s.%N) - $start" | bc)
@@ -1201,28 +1214,28 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 	# different output directories are created to contain the results
 	#==============
 	GenFitHiCDir=$currdirname'/FitHiC'
-	if [[ $UseNonzeroContacts == 1 ]]; then
-		GenFitHiCDir=$GenFitHiCDir'_NonZeroCnt'
-	fi
+	# if [[ $UseNonzeroContacts == 1 ]]; then
+	# 	GenFitHiCDir=$GenFitHiCDir'_NonZeroCnt'
+	# fi
 
 	if [ $BiasCorr == 1 ]; then
 		GenFitHiCDir=$GenFitHiCDir'_BiasCorr'
-		if [[ $BeginBiasFilter == 1 ]]; then
-			GenFitHiCDir=$GenFitHiCDir'_'$biaslowthr'_'$biashighthr'_b'$BeginBiasFilter
-		fi
-		if [[ $MultBias == 1 ]]; then
-			GenFitHiCDir=$GenFitHiCDir'_Mult_'$MultBias
-		else 
-			# name is appended with the bias correction regression parameters
-			GenFitHiCDir=$GenFitHiCDir'_Resid_'$resid_biascorr'_EqOcc_'$eqocc_biascorr
-		fi
+		# if [[ $BeginBiasFilter == 1 ]]; then
+		# 	GenFitHiCDir=$GenFitHiCDir'_'$biaslowthr'_'$biashighthr'_b'$BeginBiasFilter
+		# fi
+		# if [[ $MultBias == 1 ]]; then
+		# 	GenFitHiCDir=$GenFitHiCDir'_Mult_'$MultBias
+		# else 
+		# 	# name is appended with the bias correction regression parameters
+		# 	GenFitHiCDir=$GenFitHiCDir'_Resid_'$resid_biascorr'_EqOcc_'$eqocc_biascorr
+		# fi
 	fi
 
-	if [[ $DistrType == 2 ]]; then
-		GenFitHiCDir=$GenFitHiCDir'/NegBinomDistr'
-	else
-		GenFitHiCDir=$GenFitHiCDir'/BinomDistr'
-	fi
+	# if [[ $DistrType == 2 ]]; then
+	# 	GenFitHiCDir=$GenFitHiCDir'/NegBinomDistr'
+	# else
+	# 	GenFitHiCDir=$GenFitHiCDir'/BinomDistr'
+	# fi
 	echo '============== ************* Current directory for FitHiC execution: '$GenFitHiCDir
 	mkdir -p $GenFitHiCDir
 
@@ -1230,37 +1243,37 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 	# write the configuration in a text file
 	outtext=$GenFitHiCDir'/configuration.txt'
 
-	echo "Configurations used for FitHiC execution: " > $outtext
-	echo "FitHiC with equal occupancy binning" >> $outtext
+	echo "Configurations used for FitHiC execution: " > $outtext	
 	echo "Interaction type (1: peak to peak, 2: peak to non peak, 3: peak to all, 4: all to all, 5: all of 1 to 4): $IntType " >> $outtext
 	echo "Current interaction type: $CurrIntType " >> $outtext
-	if [[ $DistrType == 1 ]]; then
-		echo "Binomial distribution is employed" >> $outtext
-	else
-		echo "Negative Binomial distribution is employed" >> $outtext
-	fi
-	echo "Using non zero contacts only: $UseNonzeroContacts " >> $outtext
-	echo "LowDistThr: $LowDistThres " >> $outtext
-	echo "UppDistThr: $UppDistThres " >> $outtext
-	echo "QVALUE: $QVALUE " >> $outtext
-	echo "NBins: $NBins " >> $outtext
-	echo "Bias vector type employed (1: coverage specific, 2: ICE bias): $BiasType " >> $outtext
+	# if [[ $DistrType == 1 ]]; then
+	# 	echo "Binomial distribution is employed" >> $outtext
+	# else
+	# 	echo "Negative Binomial distribution is employed" >> $outtext
+	# fi
+	echo "FitHiC with equal occupancy binning" >> $outtext
+	# echo "Using non zero contacts only: $UseNonzeroContacts " >> $outtext
+	echo "Lower distance threshold (for significant interaction calling): $LowDistThres " >> $outtext
+	echo "Upper distance threshold (for significant interaction calling): $UppDistThres " >> $outtext
+	echo "FDR threshold: $QVALUE " >> $outtext
+	echo "Number of bins for FitHiC spline modeling: $NBins " >> $outtext
 	echo "Bias correction ? (1: yes, 0: no) : $BiasCorr " >> $outtext
-
+	echo "Bias type employed (1: coverage specific, 2: ICE bias): $BiasType " >> $outtext
+	
 	if [ $BiasCorr == 1 ]; then
-		if [ $BeginBiasFilter == 1 ]; then
-			echo "Filtering interactions at beginning based on bias values: bias low threshold: "$biaslowthr"  bias high threshold: "$biashighthr >> $outtext
-		fi
-		if [ $MultBias == 1 ]; then
-			echo "Bias correction - Multiplying the probabilities with the bias values " >> $outtext
-		else
-			echo "Bias correction - Regression model using the observed contact count and the bias values " >> $outtext
-			echo "Modeling residual contacts for regression: $resid_biascorr" >> $outtext
-			echo "Modeling equal occupancy bins for regression: $eqocc_biascorr" >> $outtext
-		fi
+		# if [ $BeginBiasFilter == 1 ]; then
+		# 	echo "Filtering interactions at beginning based on bias values: bias low threshold: "$biaslowthr"  bias high threshold: "$biashighthr >> $outtext
+		# fi
+		# if [ $MultBias == 1 ]; then
+		# 	echo "Bias correction - Multiplying the probabilities with the bias values " >> $outtext
+		# else
+		echo "Bias correction - Regression model using the observed contact count and the bias values " >> $outtext
+		# echo "Modeling residual contacts for regression: $resid_biascorr" >> $outtext
+		# echo "Modeling equal occupancy bins for regression: $eqocc_biascorr" >> $outtext
+		# fi
 	fi
 	if [ $UseP2PBackgrnd == 1 ]; then
-		if [ $currdirname == $DirPeaktoALL ]; then
+		if [[ $currdirname == $DirPeaktoALL ]]; then
 			echo "Peak to all interactions - and the background is peak to peak for spline fitting and finding contact significance" >> $outtext
 		fi
 	fi
@@ -1273,7 +1286,7 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 	FitHiC_Pass1_outfile=$GenFitHiCDir'/'$PREFIX'.interactions_FitHiC.bed'
 	FitHiC_Pass1_Filtfile=$GenFitHiCDir'/'$PREFIX'.interactions_FitHiC_Q'${QVALUE}'.bed'	
 	FitHiC_Pass1_LogQ_file=$GenFitHiCDir'/'$PREFIX'.interactions_FitHiC_Q'${QVALUE}'_WashU.bed'
-	FitHiC_Pass1_Filt_PeakCountfile=$GenFitHiCDir'/'$PREFIX'.interactions_FitHiC_Q'${QVALUE}'.PeakSpecificContact.bed'
+	# FitHiC_Pass1_Filt_PeakCountfile=$GenFitHiCDir'/'$PREFIX'.interactions_FitHiC_Q'${QVALUE}'.PeakSpecificContact.bed'
 	# FitHiC_Pass1_PeakCCDistr_Text=$GenFitHiCDir/$PREFIX.anchorPeakCCDistr.bed
 
 	# directory containing the interactions created by merging close contacts
@@ -1292,23 +1305,23 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 		# comment - sourya
 		#===========================
 		# if [ $UseZeroCount == 0 ]; then
-		# 	Rscript ./src/Interaction.r --InpFile $CurrIntFileSortDist --headerInp --OutFile $FitHiC_Pass1_outfile --BiasCorr $BiasCorr --Draw --cccol $cccol --BiasLowThr $biaslowthr --BiasHighThr $biashighthr --BiasFilt $BeginBiasFilter --ProbBias $EndBiasFilter --P2P $UseP2PBackgrnd
+		# 	$RScriptExec ./src/Interaction.r --InpFile $CurrIntFileSortDist --headerInp --OutFile $FitHiC_Pass1_outfile --BiasCorr $BiasCorr --Draw --cccol $cccol --BiasLowThr $biaslowthr --BiasHighThr $biashighthr --BiasFilt $BeginBiasFilter --ProbBias $EndBiasFilter --P2P $UseP2PBackgrnd
 		# else
 		# 	# only for peak to all interactions
 		# 	# consider peak to peak background option
 		# 	# for all other interaction type, use 0 for this option
 		# 	if [ $currdirname == $DirPeaktoALL ]; then
 		# 		# comment - sourya
-		# 		# Rscript ./src/FitHiC_new.r --InpFile $CurrIntFileSortDist --headerInp --OutFile $FitHiC_Pass1_outfile --CoverageFile $CoverageBiasFile --BinSize $BIN_SIZE --P2P $UseP2PBackgrnd --BiasCorr $BiasCorr --Draw --cccol $cccol --BiasLowThr $biaslowthr --BiasHighThr $biashighthr --BiasFilt $BeginBiasFilter --ProbBias $EndBiasFilter --IntType $CurrIntType
+		# 		# $RScriptExec ./src/FitHiC_new.r --InpFile $CurrIntFileSortDist --headerInp --OutFile $FitHiC_Pass1_outfile --CoverageFile $CoverageBiasFile --BinSize $BIN_SIZE --P2P $UseP2PBackgrnd --BiasCorr $BiasCorr --Draw --cccol $cccol --BiasLowThr $biaslowthr --BiasHighThr $biashighthr --BiasFilt $BeginBiasFilter --ProbBias $EndBiasFilter --IntType $CurrIntType
 
 		# 		# add - sourya
-		# 		Rscript ./src/FitHiC_new2.r --InpFile $CurrIntFileSortDist --headerInp --OutFile $FitHiC_Pass1_outfile --CoverageFile $CoverageBiasFile --BinSize $BIN_SIZE --P2P $UseP2PBackgrnd --BiasCorr $BiasCorr --Draw --cccol $cccol --BiasLowThr $biaslowthr --BiasHighThr $biashighthr --BiasFilt $BeginBiasFilter --ProbBias $EndBiasFilter --IntType $CurrIntType --Resid $resid_biascorr --EqOcc $eqocc_biascorr
+		# 		$RScriptExec ./src/FitHiC_new2.r --InpFile $CurrIntFileSortDist --headerInp --OutFile $FitHiC_Pass1_outfile --CoverageFile $CoverageBiasFile --BinSize $BIN_SIZE --P2P $UseP2PBackgrnd --BiasCorr $BiasCorr --Draw --cccol $cccol --BiasLowThr $biaslowthr --BiasHighThr $biashighthr --BiasFilt $BeginBiasFilter --ProbBias $EndBiasFilter --IntType $CurrIntType --Resid $resid_biascorr --EqOcc $eqocc_biascorr
 		# 	else
 		# 		# comment - sourya
-		# 		# Rscript ./src/FitHiC_new.r --InpFile $CurrIntFileSortDist --headerInp --OutFile $FitHiC_Pass1_outfile --CoverageFile $CoverageBiasFile --BinSize $BIN_SIZE --P2P 0 --BiasCorr $BiasCorr --Draw --cccol $cccol --BiasLowThr $biaslowthr --BiasHighThr $biashighthr --BiasFilt $BeginBiasFilter --ProbBias $EndBiasFilter --IntType $CurrIntType
+		# 		# $RScriptExec ./src/FitHiC_new.r --InpFile $CurrIntFileSortDist --headerInp --OutFile $FitHiC_Pass1_outfile --CoverageFile $CoverageBiasFile --BinSize $BIN_SIZE --P2P 0 --BiasCorr $BiasCorr --Draw --cccol $cccol --BiasLowThr $biaslowthr --BiasHighThr $biashighthr --BiasFilt $BeginBiasFilter --ProbBias $EndBiasFilter --IntType $CurrIntType
 
 		# 		# add - sourya
-		# 		Rscript ./src/FitHiC_new2.r --InpFile $CurrIntFileSortDist --headerInp --OutFile $FitHiC_Pass1_outfile --CoverageFile $CoverageBiasFile --BinSize $BIN_SIZE --P2P 0 --BiasCorr $BiasCorr --Draw --cccol $cccol --BiasLowThr $biaslowthr --BiasHighThr $biashighthr --BiasFilt $BeginBiasFilter --ProbBias $EndBiasFilter --IntType $CurrIntType --Resid $resid_biascorr --EqOcc $eqocc_biascorr
+		# 		$RScriptExec ./src/FitHiC_new2.r --InpFile $CurrIntFileSortDist --headerInp --OutFile $FitHiC_Pass1_outfile --CoverageFile $CoverageBiasFile --BinSize $BIN_SIZE --P2P 0 --BiasCorr $BiasCorr --Draw --cccol $cccol --BiasLowThr $biaslowthr --BiasHighThr $biashighthr --BiasFilt $BeginBiasFilter --ProbBias $EndBiasFilter --IntType $CurrIntType --Resid $resid_biascorr --EqOcc $eqocc_biascorr
 		# 	fi
 		# fi
 		#===========================
@@ -1318,9 +1331,9 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 		#===========================
 		# add - sourya
 		if [[ $currdirname == $DirPeaktoALL ]]; then			
-			Rscript ./src/FitHiC_SigInt.r --InpFile $CurrIntFileSortDist --headerInp --OutFile $FitHiC_Pass1_outfile --CoverageFile $CoverageBiasFile --BinSize $BIN_SIZE --P2P $UseP2PBackgrnd --IntType $CurrIntType --UseNonzeroContacts $UseNonzeroContacts --BiasCorr $BiasCorr --BiasLowThr $biaslowthr --BiasHighThr $biashighthr --Draw --cccol $cccol --BiasFilt $BeginBiasFilter --MultBias $MultBias --Resid $resid_biascorr --EqOcc $eqocc_biascorr
+			$RScriptExec ./src/FitHiC_SigInt.r --InpFile $CurrIntFileSortDist --headerInp --OutFile $FitHiC_Pass1_outfile --CoverageFile $CoverageBiasFile --BinSize $BIN_SIZE --P2P $UseP2PBackgrnd --IntType $CurrIntType --UseNonzeroContacts $UseNonzeroContacts --BiasCorr $BiasCorr --BiasLowThr $biaslowthr --BiasHighThr $biashighthr --Draw --cccol $cccol --BiasFilt $BeginBiasFilter --MultBias $MultBias --Resid $resid_biascorr --EqOcc $eqocc_biascorr
 		else
-			Rscript ./src/FitHiC_SigInt.r --InpFile $CurrIntFileSortDist --headerInp --OutFile $FitHiC_Pass1_outfile --CoverageFile $CoverageBiasFile --BinSize $BIN_SIZE --P2P 0 --IntType $CurrIntType --UseNonzeroContacts $UseNonzeroContacts --BiasCorr $BiasCorr --BiasLowThr $biaslowthr --BiasHighThr $biashighthr --Draw --cccol $cccol --BiasFilt $BeginBiasFilter --MultBias $MultBias --Resid $resid_biascorr --EqOcc $eqocc_biascorr
+			$RScriptExec ./src/FitHiC_SigInt.r --InpFile $CurrIntFileSortDist --headerInp --OutFile $FitHiC_Pass1_outfile --CoverageFile $CoverageBiasFile --BinSize $BIN_SIZE --P2P 0 --IntType $CurrIntType --UseNonzeroContacts $UseNonzeroContacts --BiasCorr $BiasCorr --BiasLowThr $biaslowthr --BiasHighThr $biashighthr --Draw --cccol $cccol --BiasFilt $BeginBiasFilter --MultBias $MultBias --Resid $resid_biascorr --EqOcc $eqocc_biascorr
 		fi
 		# end add - sourya
 		#===========================
@@ -1335,7 +1348,7 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 		# add - sourya
 		# due to strange awk error - possibly due to format conversion error between awk and R
 		# also we check whether the field is not NA
-		awk -v q="$QVALUE" '{if ((NR==1) || (($NF != "NA") && (sprintf("%0.400f",$NF) < q))) {print $0}}' $FitHiC_Pass1_outfile > $FitHiC_Pass1_Filtfile
+		awk -F['\t'] -v q="$QVALUE" '{if ((NR==1) || (($NF != "NA") && (sprintf("%0.400f",$NF) < q))) {print $0}}' $FitHiC_Pass1_outfile > $FitHiC_Pass1_Filtfile
 		echo '----- Extracted significant interactions from FitHiC'
 	fi
 
@@ -1345,25 +1358,28 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 		start=$(date +%s.%N)
 	fi		
 
+	# generate distance vs CC plots
+	DistPlotfile=$GenFitHiCDir'/'$PREFIX'.interactions_FitHiC_Q'${QVALUE}'_Dist_CC.pdf'	
+	$RScriptExec ./Analysis/Distance_vs_CC.r --IntFile $FitHiC_Pass1_Filtfile --OutFile $DistPlotfile
+
 	# no of significant interactions (FitHiC)
 	nsigFitHiC=`cat $FitHiC_Pass1_Filtfile | wc -l`
 
-	# Check the no of significant contacts associated with each peak segment
-	# except all to all interactions
-	if [ $currdirname != $DirALLtoALL ]; then
-		
-		if [[ ! -f $FitHiC_Pass1_Filt_PeakCountfile || $OverWrite == 1 ]]; then
-			# At least 10 significant interactions are required (empirical threshold)
-			# considering the 1st line as header
-			if [[ $nsigFitHiC -gt 11 ]]; then
-				# skip the 1st header line
-				awk 'NR>1' $FitHiC_Pass1_Filtfile | cut -f1-3,${cccol} | sort -k1,1 -k2,2n -k3,3n | awk -v OFS='\t' '{a[$1" "$2" "$3]+=$4}END{for (i in a){print i,a[i]}}' - > $FitHiC_Pass1_Filt_PeakCountfile
-				echo 'Extracted significant interactions associated with each peak segment'
-			else
-				echo 'number of significant interactions for spline distribution < 10 - skip the peak count distribution function'
-			fi
-		fi
-	fi
+	# # Check the no of significant contacts associated with each peak segment
+	# # except all to all interactions
+	# if [ $currdirname != $DirALLtoALL ]; then		
+	# 	if [[ ! -f $FitHiC_Pass1_Filt_PeakCountfile || $OverWrite == 1 ]]; then
+	# 		# At least 10 significant interactions are required (empirical threshold)
+	# 		# considering the 1st line as header
+	# 		if [[ $nsigFitHiC -gt 11 ]]; then
+	# 			# skip the 1st header line
+	# 			awk -F['\t'] 'NR>1' $FitHiC_Pass1_Filtfile | cut -f1-3,${cccol} | sort -k1,1 -k2,2n -k3,3n | awk -F['\t'] -v OFS='\t' '{a[$1" "$2" "$3]+=$4}END{for (i in a){print i,a[i]}}' - > $FitHiC_Pass1_Filt_PeakCountfile
+	# 			echo 'Extracted significant interactions associated with each peak segment'
+	# 		else
+	# 			echo 'number of significant interactions for spline distribution < 10 - skip the peak count distribution function'
+	# 		fi
+	# 	fi
+	# fi
 
 	if [ $DrawFig == 1 ]; then
 		# the R file takes the spline fitted interaction file (without q-value based filtering)
@@ -1371,7 +1387,7 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 		# separated by the Q value threshold of 0.01
 		# check for non empty interactions file
 		if [[ $nsigFitHiC -gt 1 ]]; then
-			Rscript ./Analysis/result_summary.r $FitHiC_Pass1_outfile $cccol $QVALUE
+			$RScriptExec ./Analysis/result_summary.r $FitHiC_Pass1_outfile $cccol $QVALUE
 			echo 'derived contact count distribution for significant and non-significant interactions'
 		else
 			echo 'Number of significant spline interaction <= 1 - no result summary'
@@ -1382,10 +1398,14 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 	# for applying in WashU epigenome browser
 	# for that, a special file containing only the interacting chromosome intervals 
 	# and the log of Q value is created
+
 	if [[ ! -f $FitHiC_Pass1_LogQ_file || $OverWrite == 1 ]]; then
 		# check for non empty interactions file
 		if [[ $nsigFitHiC -gt 2 ]]; then
-			awk '{if (NR > 1) {print $1","$2","$3"\t"$4","$5","$6"\t"(-log($NF)/log(10))}}' $FitHiC_Pass1_Filtfile > $FitHiC_Pass1_LogQ_file
+			# print the midpoints of the interactions
+		    # for better display in the WashU genome browser
+		    # check: if Q score is 0, we replace the log of Q score by a default value of 100
+		    awk -F['\t'] '{if (NR > 1) {if ($NF > 0) {print $1","(($2+$3)/2-1)","(($2+$3)/2+1)"\t"$4","(($5+$6)/2-1)","(($5+$6)/2+1)"\t"(-log($NF)/log(10))} else {print $1","(($2+$3)/2-1)","(($2+$3)/2+1)"\t"$4","(($5+$6)/2-1)","(($5+$6)/2+1)"\t500"}}}' $FitHiC_Pass1_Filtfile > $FitHiC_Pass1_LogQ_file			
 			echo 'generated WashU epigenome browser compatible significant interactions'
 		else
 			echo 'There is no significant interaction - so no WashU specific session file is created !!'
@@ -1398,7 +1418,7 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 	# 	if [ -f $FitHiC_Pass1_Filt_PeakCountfile ]; then
 	# 		# Distribution of significant contact counts (FitHiC) for individual peaks
 	# 		if [ ! -f $res_outdir/$PREFIX.PeakCCDistr_FiltSpline.pdf ] || [ ! -f $FitHiC_Pass1_PeakCCDistr_Text ]; then
-	# 			Rscript ./Analysis/ContactCountDistr.r $PeakFILE $FitHiC_Pass1_Filt_PeakCountfile $res_outdir/$PREFIX.PeakCCDistr_FiltSpline.pdf $FitHiC_Pass1_PeakCCDistr_Text
+	# 			$RScriptExec ./Analysis/ContactCountDistr.r $PeakFILE $FitHiC_Pass1_Filt_PeakCountfile $res_outdir/$PREFIX.PeakCCDistr_FiltSpline.pdf $FitHiC_Pass1_PeakCCDistr_Text
 	# 		fi
 	# 	fi
 	# fi
@@ -1412,17 +1432,21 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 	# if merging nearby interactions are enabled
 	# then we merge the nearby interactions from the earlier generated significant interactions
 	# and also create a washu browser generated compatible file
+
 	if [ $MergeInteraction == 1 ]; then
 		if [[ ! -f $FitHiC_Pass1_Filt_MergedIntfile || $OverWrite == 1 ]]; then
 			# create merged interactions - connected component based analysis
-			python ./src/CombineNearbyInteraction.py --InpFile $FitHiC_Pass1_Filtfile --OutFile $FitHiC_Pass1_Filt_MergedIntfile --headerInp 1 --binsize $BIN_SIZE
+			$PythonExec ./src/CombineNearbyInteraction.py --InpFile $FitHiC_Pass1_Filtfile --OutFile $FitHiC_Pass1_Filt_MergedIntfile --headerInp 1 --binsize $BIN_SIZE --percent 100 --Neigh 2
 			echo 'merged nearby interactions'
 		fi
 		if [[ ! -f $FitHiC_Pass1_Filt_MergedInt_LogQ_file || $OverWrite == 1 ]]; then
 			nint=`cat $FitHiC_Pass1_Filt_MergedIntfile | wc -l`
 			if [[ $nint -gt 2 ]]; then
 				# 9th field stores the Q value
-				awk '{if (NR > 1) {print $1","$2","$3"\t"$4","$5","$6"\t"(-log($9)/log(10))}}' $FitHiC_Pass1_Filt_MergedIntfile > $FitHiC_Pass1_Filt_MergedInt_LogQ_file
+				# print the midpoints of the interactions
+			    # for better display in the WashU genome browser
+			    # check: if Q score is 0, we replace the log of Q score by a default value of 100
+			    awk -F['\t'] '{if (NR > 1) {if ($9 > 0) {print $1","(($2+$3)/2-1)","(($2+$3)/2+1)"\t"$4","(($5+$6)/2-1)","(($5+$6)/2+1)"\t"(-log($9)/log(10))} else {print $1","(($2+$3)/2-1)","(($2+$3)/2+1)"\t"$4","(($5+$6)/2-1)","(($5+$6)/2+1)"\t500"}}}' $FitHiC_Pass1_Filt_MergedIntfile > $FitHiC_Pass1_Filt_MergedInt_LogQ_file
 			else
 				echo 'There is no significant interaction - so no WashU specific session file is created !!'
 			fi
@@ -1430,6 +1454,9 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 		fi
 	fi
 
+	# generate distance vs CC plots
+	DistPlotfile=$MergeIntDir'/'$PREFIX'.interactions_FitHiC_Q'${QVALUE}'_MergeNearContacts_Dist_CC.pdf'
+	$RScriptExec ./Analysis/Distance_vs_CC.r --IntFile $FitHiC_Pass1_Filt_MergedIntfile --OutFile $DistPlotfile	
 
 	# increment the counter
 	CurrIntType=`expr $CurrIntType + 1`
