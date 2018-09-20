@@ -4,18 +4,38 @@
 RscriptExec=`which Rscript`
 echo 'Rscript version installed in the system : '$RscriptExec
 
+# current working directory
+currworkdir=`pwd`
+
 # directory of this script
 currscriptdir=`dirname $0`
 echo 'current directory containing this script: '$currscriptdir
+
+# go to the current script containing directory
+cd $currscriptdir
 
 # source code (R) of the differential analysis
 DiffAnalysisCodeExec=$currscriptdir'/DiffAnalysisHiChIP.r'
 echo 'R Code of differential analysis: '$DiffAnalysisCodeExec
 
-# main output directory containing all the data and results of this differential analysis
-DiffAnalysisMainDir='/home/sourya/proj/GitHub_Codes/FitHiChIP_HiCPro/TestData/DiffAnalysis/'
+# directory containing reference dataset
+DataDir='../../data/'
+
+# directory containing data specific to the differential analysis module
+DiffAnalysisMainDir=$DataDir'DiffAnalysis/'
+
+# directory containing all the results
+ResultMainDir='../../results/'
 
 #======================
+# this script is required if user has to create a .gtf file containing promoters (TSS sites) 
+# corresponding to the reference chromosome
+# as we are providing the TSS sites (.gtf file) corresponding to the reference genome hg19
+# we are disabling the script
+# for other reference genomes, user should follow the subsequent instructions 
+# and enable this script
+#======================
+
 # first download the reference genome annotation in .gtf format
 # from GENCODE site:
 # hg19: https://www.gencodegenes.org/releases/19.html
@@ -31,7 +51,7 @@ DiffAnalysisMainDir='/home/sourya/proj/GitHub_Codes/FitHiChIP_HiCPro/TestData/Di
 # using the following scripts (awk + sed)
 # suppose the output filename is "out.gtf"
 
-#===========
+
 # start of script
 
 if [ 1 == 0 ]; then
@@ -43,13 +63,21 @@ sed -i 1i"Chr\\tStart\\tEnd\\tTSSIdx\\tStrand\\tGeneID\\tGeneType\\tGeneName" ou
 fi
 
 # end of script
-#===========
+
 
 
 
 
 
 #======================
+# this script is required if user has to merge the ChIP-seq alignments from individual replicates
+# of a particular category
+# as we are providing a sample merged alignment with the peaks as well
+# we are disabling this script
+# for any other dataset, user should enable this script
+# and fill with the custom input and output file names
+#=======================
+
 # with respect to individual categories, first generate the peak file from the merged ChIP-seq alignments
 # (of individual replicates)
 
@@ -64,9 +92,9 @@ fi
 # will be placed in the folder $DiffAnalysisMainDir'Category1_Peaks'
 # in the files ChIPCoverage1.bed to ChIPCoverage3.bed
 
-if [ 1 == 1 ]; then
+if [ 1 == 0 ]; then
 
-sh $currscriptdir'/MergeBAMInferPeak.sh' -I $DiffAnalysisMainDir'Category1_R1.bam' -I $DiffAnalysisMainDir'Category1_R2.bam' -I $DiffAnalysisMainDir'Category1_R3.bam' -D $DiffAnalysisMainDir'Category1_Peaks' -R 'hs' -M '--nomodel --extsize 147 -q 0.01' -C $DiffAnalysisMainDir'chrom_hg19.sizes' -b 5000
+sh $currscriptdir'/MergeBAMInferPeak.sh' -I $DiffAnalysisMainDir'Category1_R1.bam' -I $DiffAnalysisMainDir'Category1_R2.bam' -I $DiffAnalysisMainDir'Category1_R3.bam' -D $DiffAnalysisMainDir'Category1_Peaks' -R 'hs' -M '--nomodel --extsize 147 -q 0.01' -C $DataDir'chrom_hg19.sizes' -b 5000
 
 fi
 
@@ -81,38 +109,35 @@ fi
 # will be placed in the folder $DiffAnalysisMainDir'Category2_Peaks'
 # in the files ChIPCoverage1.bed to ChIPCoverage3.bed
 
-if [ 1 == 1 ]; then
+if [ 1 == 0 ]; then
 
-sh $currscriptdir'/MergeBAMInferPeak.sh' -I $DiffAnalysisMainDir'Category2_R1.bam' -I $DiffAnalysisMainDir'Category2_R2.bam' -I $DiffAnalysisMainDir'Category2_R3.bam' -D $DiffAnalysisMainDir'Category2_Peaks' -R 'hs' -M '--nomodel --extsize 147 -q 0.01' -C $DiffAnalysisMainDir'chrom_hg19.sizes' -b 5000
+sh $currscriptdir'/MergeBAMInferPeak.sh' -I $DiffAnalysisMainDir'Category2_R1.bam' -I $DiffAnalysisMainDir'Category2_R2.bam' -I $DiffAnalysisMainDir'Category2_R3.bam' -D $DiffAnalysisMainDir'Category2_Peaks' -R 'hs' -M '--nomodel --extsize 147 -q 0.01' -C $DataDir'chrom_hg19.sizes' -b 5000
 
 fi
 
-# now invoke the differential analysis code
-# if multiple arguments are provided for a single parameter (such as --AllLoopList), those arguments are 
+
+
+
+
+#==============================
+# this is the main invoking of the differential analysis code
+# all the parameters are with respect to the sample test data provided
+# if user has to run this module with any other dataset
+# then modify the corresponding file names accordingly
+
+# Note: if multiple arguments are provided for a single parameter (such as --AllLoopList), those arguments are 
 # separated by a colon (:) operator
-$RscriptExec $DiffAnalysisCodeExec --AllLoopList $DiffAnalysisMainDir'Category1_R1_FitHiC_All.bed':$DiffAnalysisMainDir'Category1_R2_FitHiC_All.bed':$DiffAnalysisMainDir'Category1_R3_FitHiC_All.bed':$DiffAnalysisMainDir'Category2_R1_FitHiC_All.bed':$DiffAnalysisMainDir'Category2_R2_FitHiC_All.bed':$DiffAnalysisMainDir'Category2_R3_FitHiC_All.bed' --FDRThrLoop 0.01 --UseRawCC 0 --OutDir $DiffAnalysisMainDir'/DiffAnalysis_HiChIP_Output' --CategoryList 'CellType1':'CellType2' --ReplicaCount 3:3 --ReplicaLabels1 'Cat1_R1':'Cat1_R2':'Cat1_R3' --ReplicaLabels2 'Cat2_R1':'Cat2_R2':'Cat2_R3' --PeakFileCat1 $DiffAnalysisMainDir'Category1_Peaks/MACS2_Out/out.macs2_peaks.narrowPeak' --PeakFileCat2 $DiffAnalysisMainDir'Category2_Peaks/MACS2_Out/out.macs2_peaks.narrowPeak' --BinCoverageList $DiffAnalysisMainDir'Category1_Peaks/ChIPCoverage1.bed':$DiffAnalysisMainDir'Category1_Peaks/ChIPCoverage2.bed':$DiffAnalysisMainDir'Category1_Peaks/ChIPCoverage3.bed':$DiffAnalysisMainDir'Category2_Peaks/ChIPCoverage1.bed':$DiffAnalysisMainDir'Category2_Peaks/ChIPCoverage2.bed':$DiffAnalysisMainDir'Category2_Peaks/ChIPCoverage3.bed' --InpTSSFile '/mnt/BioAdHoc/Groups/vd-vijay/sourya/DATA/HiChIP/Merged_Vivek_Feb_March_2018/Reference_GTF_Imp/gEncode_Genes_Only_Protein_Coding_TSS.gtf' 
+#==============================
 
-#======================
-
-
+$RscriptExec $DiffAnalysisCodeExec --AllLoopList $DiffAnalysisMainDir'Category1_R1_FitHiC_All.bed':$DiffAnalysisMainDir'Category1_R2_FitHiC_All.bed':$DiffAnalysisMainDir'Category1_R3_FitHiC_All.bed':$DiffAnalysisMainDir'Category2_R1_FitHiC_All.bed':$DiffAnalysisMainDir'Category2_R2_FitHiC_All.bed':$DiffAnalysisMainDir'Category2_R3_FitHiC_All.bed' --FDRThrLoop 0.01 --UseRawCC 0 --OutDir $ResultMainDir'/DiffAnalysis_HiChIP_Output' --CategoryList 'CellType1':'CellType2' --ReplicaCount 3:3 --ReplicaLabels1 'Cat1_R1':'Cat1_R2':'Cat1_R3' --ReplicaLabels2 'Cat2_R1':'Cat2_R2':'Cat2_R3' --PeakFileCat1 $DiffAnalysisMainDir'Category1_Peaks/MACS2_Out/out.macs2_peaks.narrowPeak' --PeakFileCat2 $DiffAnalysisMainDir'Category2_Peaks/MACS2_Out/out.macs2_peaks.narrowPeak' --BinCoverageList $DiffAnalysisMainDir'Category1_Peaks/ChIPCoverage1.bed':$DiffAnalysisMainDir'Category1_Peaks/ChIPCoverage2.bed':$DiffAnalysisMainDir'Category1_Peaks/ChIPCoverage3.bed':$DiffAnalysisMainDir'Category2_Peaks/ChIPCoverage1.bed':$DiffAnalysisMainDir'Category2_Peaks/ChIPCoverage2.bed':$DiffAnalysisMainDir'Category2_Peaks/ChIPCoverage3.bed' --InpTSSFile $DiffAnalysisMainDir'hg19_Genes_Only_Protein_Coding_TSS.gtf' 
 
 
 
 
+# now go back to the original working directory
+cd $currworkdir
 
-# CovBiasFileNameFmt='FitHiChIP_HiCPro_April2018/NormFeatures/Coverage_Bias/FitHiChIP.coverage_Bias.bed'
 
-
-# --BiasFileList ${BASEDIR}'/VC102/'${CovBiasFileNameFmt}:${BASEDIR}'/VC111/'${CovBiasFileNameFmt}:${BASEDIR}'/VC212/'${CovBiasFileNameFmt}:${BASEDIR}'/VC112/'${CovBiasFileNameFmt}:${BASEDIR}'/VC12/'${CovBiasFileNameFmt}:${BASEDIR}'/VC211/'${CovBiasFileNameFmt} 
-
-# --ChIPCovFileCat1 ${LJIPeakDir}'CD4_Naive/Merge_Three_Donors_DiffAnalysisHiCHIP/merged_input_coverage_5Kb.bed' 
-# --ChIPCovFileCat2 ${LJIPeakDir}'Monocyte_Cell/Merge_Three_Donors_DiffAnalysisHiCHIP/merged_input_coverage_5Kb.bed' 
-
-# --GeneExprFileList ${BASEDIR}'/Reference_GTF_Imp/Gene_Expression_All/Mean_TPM_5celltypes_Summary.txt':${BASEDIR}'/Reference_GTF_Imp/Gene_Expression_All/Mean_TPM_5celltypes_Summary.txt' 
-
-# --GeneNameColList 2:2 
-
-# --ExprValColList 9:11 
 
 
 
