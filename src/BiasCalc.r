@@ -22,7 +22,7 @@ opt = parse_args(opt_parser);
 # read the genome coverage features
 # Note: the coverage file has header information
 # columns: chromosome interval, read coverage, is_peak
-CoverageFeat <- read.table(opt$CoverageFile, header=T)	
+CoverageFeat <- read.table(opt$CoverageFile, header=T, sep="\t", stringsAsFactors=F)	
 # colnames(CoverageFeat) <- c("chr1","s1","e1","coverage","isPeak")
 
 # if bias file is not provided (no external ICE bias)
@@ -83,7 +83,7 @@ if (is.null(opt$BiasFile)) {
 } else {
 
 	# first read the external bias information (without any header)
-	BiasFeat <- read.table(opt$BiasFile, header=F)	
+	BiasFeat <- read.table(opt$BiasFile, header=F, sep="\t", stringsAsFactors=F)	
 	colnames(BiasFeat) <- c("Chr","Start","End","Bias")
 
 	# merge with respect to the 1st three fields of either data (chromosome interval)

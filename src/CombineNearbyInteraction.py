@@ -11,8 +11,52 @@ Vijay-Ay lab, LJI
 
 import os
 import sys
+import math
 from optparse import OptionParser
 import networkx as nx
+from Queue import heapq
+
+# few define variables
+
+# defined when q-value is 0
+Log10_QVAL_THR = 500
+
+# # neighborhood of a bin
+# # to not include any interactions
+# # we are using 25 Kb (5 bins in 5 Kb resolution)
+# BIN_NEIGHBOR_DISTTHR = 25000
+
+#==========================================================
+# this function returns the element below which top K % of 
+# all the elements reside
+# lst: input list, K: top K percent
+# order: 1 means increasing order sort, 2 means reverse order sort
+def custom_percent(lst, K, order=1):
+    if (order == 1):
+        sortedLst = sorted(lst)
+    else:
+        sortedLst = sorted(lst, reverse=True)
+    lstLen = len(lst)
+    index = int(((len(lst) * K) / 100))
+    # for very small list, return the minimum 
+    if (index <= 1):
+        # return ((sum(sortedLst) * 1.0) / len(sortedLst))
+        if (order == 1):
+            return max(sortedLst)
+        else:
+            return min(sortedLst)
+
+    return sortedLst[index]
+
+# #==========================================================
+# def custom_median(lst):
+#     sortedLst = sorted(lst)
+#     lstLen = len(lst)
+#     index = (lstLen - 1) // 2
+#     if (lstLen % 2):
+#         return sortedLst[index]
+#     else:
+#         return (sortedLst[index] + sortedLst[index + 1])/2.0
 
 #==========================================================
 """ 
@@ -38,11 +82,13 @@ class Interaction(object):
 def main():
     parser = OptionParser() #(usage=usage)
     parser.add_option("--InpFile", dest="InpFile", help="Input interaction file")
-    parser.add_option("--headerInp", dest="headerInp", type="int", help="If 1, indicates that input interaction file has the header information. Default 0.")
+    parser.add_option("--headerInp", dest="headerInp", type="int", help="If 1, indicates that input interaction file has a header line (such as field names). Default 1.")
     parser.add_option("--OutFile", dest="OutFile", help="Output merged interaction file")
     parser.add_option("--binsize", dest="binsize", type="int", help="Size of bins employed. DEFAULT 5 Kb.")
     parser.add_option("--conn", dest="connectivity_rule", type="int", help="Rule of connectivity ( 8 or 4). DEFAULT 8.")
-    parser.set_defaults(InpFile=None, OutFile=None, binsize=5000, connectivity_rule=8, headerInp=0)
+    parser.add_option("--percent", dest="TopPctElem", type="int", help="Percentage of elements to be selected from each connected component. Currently we recommend three values: a) 0: if specified 0, only the topmost representative of each of the connected component will be selected. This is the default value. b) 50: If specified as 50, top 50% of the elements in both statistical significance and contact count will be considered for inclusion, subject to the bin and neighborhood contraints, and c) 25: If specified as 25, top 25% of the elements in both statistical significance and contact count will be considered for inclusion, subject to the bin and neighborhood contraints. Default value is 100, means that all interactions will be considered.")
+    parser.add_option("--Neigh", dest="NeighborHoodBin", type="int", help="Positive integer (default: 2 with 5 Kb bin size) means that within 2x2 neighborhood of 5 Kb bins, there will be only one interaction. Applicable only if the percent parameter is non-zero. User may vary this value if bin size is different.")
+    parser.set_defaults(InpFile=None, OutFile=None, binsize=5000, connectivity_rule=8, headerInp=1, TopPctElem=100, NeighborHoodBin=2)
     (options, args) = parser.parse_args()
 
     #===========================
@@ -62,9 +108,20 @@ def main():
     bin_size = int(options.binsize)
     headerInp = int(options.headerInp)
     connectivity_rule = int(options.connectivity_rule)
+    TopPctElem = int(options.TopPctElem)
+    NeighborHoodBinThr = (int(options.NeighborHoodBin)) * bin_size
+
+    # print the parameters
+    if 0:
+        print '\n *** bin_size: ', bin_size
+        print '\n *** headerInp: ', headerInp
+        print '\n *** connectivity_rule: ', connectivity_rule
+        print '\n *** TopPctElem: ', TopPctElem
+        print '\n *** NeighborHoodBinThr: ', NeighborHoodBinThr
 
     # open the output file
-    # if input interaction file has header information, then dump the header in the output file as well
+    # if input interaction file has header information, 
+    # then dump the header in the output file as well
     fp_outInt = open(OutFile, 'w')
 
     if (headerInp == 1):
@@ -196,11 +253,17 @@ def main():
         # we find a representative interaction and print it in the final output file
         list_conn_comp = sorted(nx.connected_components(G), key = len, reverse=True)
 
+        if 0:
+            print '\n\n**** Number of connected components: ', len(list_conn_comp), '  ****\n\n'
+
+        #====================
+        # process individual connected components
+        #====================
         for i in range(len(list_conn_comp)):
             # a connected component - a particular list of connected nodes
             curr_comp_list = list(list_conn_comp[i])
             if 0:
-                print '\n Processing the connected component no: ', i, '  list: ', str(curr_comp_list)
+                print '\n\n\n  ===>>>>> Processing the connected component no: ', i, '  list: ', str(curr_comp_list), '  number of elements: ', len(curr_comp_list)
 
             # from the first interacting bin set, get the lower and higher bin index
             min_idx_bin1 = min([x[0] for x in curr_comp_list])
@@ -226,7 +289,8 @@ def main():
             if 0:
                 print 'span_low_bin2: ', span_low_bin2, ' span_high_bin2: ', span_high_bin2
 
-            # sum of contact counts for all the interacting bins within this set of connected nodes
+            # sum of contact counts for all the interacting bins 
+            # within this set of connected nodes
             sum_cc = sum([CurrChrDict[x]._GetCC() for x in curr_comp_list])
 
             # now get the percentage of bin pairs within this set of connected component
@@ -245,34 +309,307 @@ def main():
             Percent_Significant_BinPair = (possible_bin_pairs * 1.0) / total_possible_bin_pairs
 
             if 0:
-                print 'total_possible_bin_pairs: ', total_possible_bin_pairs, ' possible_bin_pairs: ', possible_bin_pairs, ' % clique: ', Percent_Significant_BinPair
+                print ' ==>>> total_possible_bin_pairs: ', total_possible_bin_pairs, ' possible_bin_pairs: ', possible_bin_pairs, ' % clique: ', Percent_Significant_BinPair
 
-            # get the min P and Q values and corresponding bin pairs
-            for j in range(len(curr_comp_list)):
-                curr_key = curr_comp_list[j]
-                if 0:
-                    print ' Connected component index: ', j, ' curr_key: ', curr_key, ' CC: ', CurrChrDict[curr_key]._GetCC(), ' Pval: ', CurrChrDict[curr_key]._GetPVal(), ' Qval: ', CurrChrDict[curr_key]._GetQVal()
-                if (j == 0):
-                    rep_bin_key = curr_key
-                else:
-                    if (CurrChrDict[curr_key]._GetPVal() < CurrChrDict[rep_bin_key]._GetPVal()) and (CurrChrDict[curr_key]._GetQVal() < CurrChrDict[rep_bin_key]._GetQVal()):
+
+            #==================================================
+            # approach 1 : 
+            # if TopPctElem = 0 then 
+            # get the bin having min P and Q values and corresponding bin pairs
+            # ties are resolved by maximum contact count
+            #==================================================
+            if (TopPctElem == 0):
+
+                for j in range(len(curr_comp_list)):
+                    curr_key = curr_comp_list[j]
+                    curr_cc = CurrChrDict[curr_key]._GetCC()
+                    curr_pval = CurrChrDict[curr_key]._GetPVal()
+                    curr_qval = CurrChrDict[curr_key]._GetQVal()
+                    if (curr_qval > 0):
+                        curr_logqval = (-1) * math.log(curr_qval, 10)
+                    else:
+                        curr_logqval = Log10_QVAL_THR  # a default constant
+
+                    # curr_conn_comp_CCList.append(curr_cc)
+                    # curr_conn_comp_QValList.append(curr_qval)
+                    # curr_conn_comp_LogQValList.append(curr_logqval)
+                    
+                    curr_key_bin1_mid = (((curr_key[0] - 1) * bin_size) + (curr_key[0] * bin_size)) / 2
+                    curr_key_bin2_mid = (((curr_key[1] - 1) * bin_size) + (curr_key[1] * bin_size)) / 2
+                    if 0:
+                        print ' Connected component index: ', j, ' curr_key: ', curr_key, ' bin 1 mid: ', curr_key_bin1_mid, ' bin 2 mid: ', curr_key_bin2_mid, ' CC: ', curr_cc, ' Pval: ', curr_pval, ' Qval: ', curr_qval, '  -Log10 Qval: ', curr_logqval
+                    if (j == 0):
+                        # first index
+                        rep_bin_key = curr_key
+                    elif (curr_pval < CurrChrDict[rep_bin_key]._GetPVal()) and (curr_qval < CurrChrDict[rep_bin_key]._GetQVal()):
+                        # current element has lower P or Q value
+                        rep_bin_key = curr_key
+                    elif (curr_pval == CurrChrDict[rep_bin_key]._GetPVal()) and (curr_qval == CurrChrDict[rep_bin_key]._GetQVal()) and (curr_cc > CurrChrDict[rep_bin_key]._GetCC()):
+                        # current element has equal P and Q values
+                        # but higher contact count
                         rep_bin_key = curr_key
 
-            # fix the representative interaction
-            rep_bin1_low = (rep_bin_key[0] - 1) * bin_size
-            rep_bin1_high = rep_bin_key[0] * bin_size
-            rep_bin2_low = (rep_bin_key[1] - 1) * bin_size
-            rep_bin2_high = rep_bin_key[1] * bin_size
-            cc = CurrChrDict[rep_bin_key]._GetCC()
-            pval = CurrChrDict[rep_bin_key]._GetPVal()
-            qval = CurrChrDict[rep_bin_key]._GetQVal()
+                # fix the representative interaction
+                rep_bin1_low = (rep_bin_key[0] - 1) * bin_size
+                rep_bin1_high = rep_bin_key[0] * bin_size
+                rep_bin2_low = (rep_bin_key[1] - 1) * bin_size
+                rep_bin2_high = rep_bin_key[1] * bin_size
+                cc = CurrChrDict[rep_bin_key]._GetCC()
+                pval = CurrChrDict[rep_bin_key]._GetPVal()
+                qval = CurrChrDict[rep_bin_key]._GetQVal()
 
-            if 0:
-                print 'Selected bin key: ', rep_bin_key,  ' cc: ', cc, ' pval: ', pval, ' qval: ', qval
-                       
-            # write the interaction in the specified output file
-            fp_outInt.write('\n' + str(curr_chr) + '\t' + str(rep_bin1_low) + '\t' + str(rep_bin1_high) + '\t' + str(curr_chr) + '\t' + str(rep_bin2_low) + '\t' + str(rep_bin2_high) + '\t' + str(cc) + '\t' + str(pval) + '\t' + str(qval) + '\t' + str(span_low_bin1) + '\t' + str(span_high_bin1) + '\t' + str(span_low_bin2) + '\t' + str(span_high_bin2) + '\t' + str(sum_cc) + '\t' + str(Percent_Significant_BinPair))
+                if 0:
+                    print '**** Selected bin key: ', rep_bin_key, ' start bin mid: ', (rep_bin1_low + rep_bin1_high)/2,  ' end bin mid: ', (rep_bin2_low + rep_bin2_high) / 2, ' cc: ', cc, ' pval: ', pval, ' qval: ', qval
 
+                # write the interaction in the specified output file
+                fp_outInt.write('\n' + str(curr_chr) + '\t' + str(rep_bin1_low) + '\t' + str(rep_bin1_high) + '\t' + str(curr_chr) + '\t' + str(rep_bin2_low) + '\t' + str(rep_bin2_high) + '\t' + str(cc) + '\t' + str(pval) + '\t' + str(qval) + '\t' + str(span_low_bin1) + '\t' + str(span_high_bin1) + '\t' + str(span_low_bin2) + '\t' + str(span_high_bin2) + '\t' + str(sum_cc) + '\t' + str(Percent_Significant_BinPair))
+            
+            #==================================================
+            # approach 2: 
+            # if TopPctElem > 0, and TopPctElem < 100
+            # then get the top (TopPctElem %) elements from 
+            # each connected component, (P and Q values, contact counts)
+            # use these elements if they satisfy the bin neighborhood threshold
+            #==================================================
+            if (TopPctElem > 0) and (TopPctElem < 100):
+
+                # this is a list which would act as a max-priority queue
+                # used to process one connected component at a time
+                Curr_Comp_Tuple_List = []
+
+                # lists storing different attributes
+                curr_conn_comp_CCList = []
+                curr_conn_comp_QValList = []
+                curr_conn_comp_LogQValList = []
+
+                # process individual elements within this connected component
+                for j in range(len(curr_comp_list)):
+                    curr_key = curr_comp_list[j]
+                    curr_cc = CurrChrDict[curr_key]._GetCC()
+                    curr_pval = CurrChrDict[curr_key]._GetPVal()
+                    curr_qval = CurrChrDict[curr_key]._GetQVal()
+                    if (curr_qval > 0):
+                        curr_logqval = (-1) * math.log(curr_qval, 10)
+                    else:
+                        curr_logqval = Log10_QVAL_THR  # a default constant
+
+                    curr_conn_comp_CCList.append(curr_cc)
+                    curr_conn_comp_QValList.append(curr_qval)
+                    curr_conn_comp_LogQValList.append(curr_logqval)
+
+                    # create a sublist
+                    # Note: ordering is very important
+                    # first element: log 10 q value
+                    # if this is equal, second element would be used
+                    # important: as the heap is min heap by default, we use negative signs for both of the keys
+                    subl = [((-1) * curr_logqval), ((-1) * curr_cc), curr_key[0], curr_key[1]]
+
+                    # insert the element in the designated queue
+                    heapq.heappush(Curr_Comp_Tuple_List, subl)
+
+                # first get the maximum / minimum values from these lists
+                max_cc = max(curr_conn_comp_CCList)
+                min_qval = min(curr_conn_comp_QValList)
+                max_logqval = max(curr_conn_comp_LogQValList)
+                
+                # now obtain the values of top K % elements
+                # from these lists
+                # where K = 50 means it is median
+                custom_cc = custom_percent(curr_conn_comp_CCList, TopPctElem, 2)
+                custom_qval = custom_percent(curr_conn_comp_QValList, TopPctElem, 1)
+                custom_logqval = custom_percent(curr_conn_comp_LogQValList, TopPctElem, 2)
+
+                if 0:
+                    print ' --> current connected component: max CC: ', max_cc, '  min Q val: ', min_qval, '  max log-Q val: ', max_logqval, '  top K (TopPctElem): ', TopPctElem, '  custom_cc threshold: ', custom_cc, '  custom_qval threshold: ', custom_qval, '  custom_logqval threshold: ', custom_logqval
+
+                # this list stores the candidate interactions
+                # from this particular connected component
+                # that will be used in the final set of interactions
+                Final_Rep_Key_List = []
+
+                # now extract elements from the constructed queue
+                while (len(Curr_Comp_Tuple_List) > 0):
+                    curr_elem = heapq.heappop(Curr_Comp_Tuple_List)
+                    if 0:
+                        print 'extracted element from heap: ', curr_elem
+
+                    #===================================
+                    # earlier condition - 1 - sourya
+                    # consider only those interactions
+                    # which have sufficient values of both contact count
+                    # and q-values
+                    
+                    # # terminating condition - do not consider elements 
+                    # # with lower log 10 Q values than the custom_logqval
+                    # if ((curr_elem[0] * (-1)) < custom_logqval):
+                    #     break
+
+                    # # coninue if the contact count falls below the designated threshold
+                    # if ((curr_elem[1] * (-1)) < custom_cc):
+                    #     continue
+                    #===================================
+                    # modified condition - sourya
+                    # consider those interactions having 
+                    # significance value > K percentile
+                    if ((curr_elem[0] * (-1)) < custom_logqval):
+                        break
+                    #===================================
+
+                    # if this is the first element 
+                    # then insert they key in the candidate set of interactions
+                    if (len(Final_Rep_Key_List) == 0):
+                        subl = [curr_elem[2], curr_elem[3]]
+                        Final_Rep_Key_List.append(subl)
+                        if 0:
+                            print '\t\t *** inserted element in the final list: ', str(subl), '  generated Final_Rep_Key_List: ', str(Final_Rep_Key_List)
+                        continue
+
+                    # otherwise, check with the existing interactions
+                    # and do not include if the bin falls within a certain 
+                    # neighborhood of earlier included interactions
+                    # the neighborhood is already mentioned via command line parameters
+                    flag = False
+                    for i in range(len(Final_Rep_Key_List)):
+                        # both ends of the bins should be within neighborhood thresholds
+                        # of existing contacts
+                        if (((abs(Final_Rep_Key_List[i][0] - curr_elem[2])) * bin_size) <= NeighborHoodBinThr) and (((abs(Final_Rep_Key_List[i][1] - curr_elem[3])) * bin_size) <= NeighborHoodBinThr):
+                            flag = True
+                            if 0:
+                                print ' --- current element is within neighborhood of the bins indexed by ', i, '  of Final_Rep_Key_List'
+                            break
+                    
+                    if (flag == False):
+                        # there is no such neighborhood constraints
+                        # include the bin
+                        subl = [curr_elem[2], curr_elem[3]]
+                        Final_Rep_Key_List.append(subl)
+                        if 0:
+                            print '\t\t *** inserted element in the final list: ', str(subl), '  generated Final_Rep_Key_List: ', str(Final_Rep_Key_List)
+                        
+                # now print the candidate interactions 
+                # of the current component
+                for i in range(len(Final_Rep_Key_List)):
+                    rep_bin_key = (Final_Rep_Key_List[i][0], Final_Rep_Key_List[i][1])
+                
+                    # fix the representative interaction
+                    rep_bin1_low = (rep_bin_key[0] - 1) * bin_size
+                    rep_bin1_high = rep_bin_key[0] * bin_size
+                    rep_bin2_low = (rep_bin_key[1] - 1) * bin_size
+                    rep_bin2_high = rep_bin_key[1] * bin_size
+                    cc = CurrChrDict[rep_bin_key]._GetCC()
+                    pval = CurrChrDict[rep_bin_key]._GetPVal()
+                    qval = CurrChrDict[rep_bin_key]._GetQVal()
+
+                    if 0:
+                        print '**** Selected bin key: ', rep_bin_key, ' start bin mid: ', (rep_bin1_low + rep_bin1_high)/2,  ' end bin mid: ', (rep_bin2_low + rep_bin2_high) / 2, ' cc: ', cc, ' pval: ', pval, ' qval: ', qval
+
+                    # write the interaction in the specified output file
+                    fp_outInt.write('\n' + str(curr_chr) + '\t' + str(rep_bin1_low) + '\t' + str(rep_bin1_high) + '\t' + str(curr_chr) + '\t' + str(rep_bin2_low) + '\t' + str(rep_bin2_high) + '\t' + str(cc) + '\t' + str(pval) + '\t' + str(qval) + '\t' + str(span_low_bin1) + '\t' + str(span_high_bin1) + '\t' + str(span_low_bin2) + '\t' + str(span_high_bin2) + '\t' + str(sum_cc) + '\t' + str(Percent_Significant_BinPair))
+
+            #==================================================
+            # approach 3: 
+            # if TopPctElem = 100 (latest implementation)
+            # then sequentially obtain the interactions with the lowest q-value
+            # and break the tie for the higher contact count
+            # use these elements if they satisfy the bin neighborhood threshold
+            #==================================================
+            if (TopPctElem == 100):
+
+                # list to store the q-values and the CC values for individual bin pairs
+                # for their sequential extraction
+                Curr_Comp_Tuple_List = []
+                
+                # lists storing different attributes
+                curr_conn_comp_CCList = []
+                curr_conn_comp_QValList = []
+
+                # process individual elements within this connected component
+                for j in range(len(curr_comp_list)):
+                    curr_key = curr_comp_list[j]
+                    curr_cc = CurrChrDict[curr_key]._GetCC()
+                    curr_qval = CurrChrDict[curr_key]._GetQVal()
+                    curr_conn_comp_CCList.append(curr_cc)
+                    curr_conn_comp_QValList.append(curr_qval)
+
+                    # create a sublist
+                    # Note: ordering is very important
+                    # first element: q-value (lower: better)
+                    # for ties, second element (contact count) - higher: better
+                    # important: as the heap is min heap by default, we use negative signs for both of the keys
+                    subl = [curr_qval, ((-1) * curr_cc), curr_key[0], curr_key[1]]
+
+                    # insert the element in the designated queue
+                    heapq.heappush(Curr_Comp_Tuple_List, subl)
+
+                # this list stores the candidate interactions
+                # from this particular connected component
+                # that will be used in the final set of interactions
+                Final_Rep_Key_List = []
+
+                if 0:
+                    print ' **** Processing the connected component ===== number of elements: ', len(Curr_Comp_Tuple_List)
+
+                # now extract elements from the constructed queue
+                while (len(Curr_Comp_Tuple_List) > 0):
+                    curr_elem = heapq.heappop(Curr_Comp_Tuple_List)
+                    if 0:
+                        print 'extracted element from heap: ', curr_elem
+
+                    # if this is the first element 
+                    # then insert they key in the candidate set of interactions
+                    if (len(Final_Rep_Key_List) == 0):
+                        subl = [curr_elem[2], curr_elem[3]]
+                        Final_Rep_Key_List.append(subl)
+                        if 0:
+                            print '*** inserted element in the final list: ', str(subl)
+                        continue
+
+                    # otherwise, check with the existing interactions
+                    # and do not include if the bin falls within a certain 
+                    # neighborhood of earlier included interactions
+                    # the neighborhood is already mentioned via command line parameters
+                    flag = False
+                    for i in range(len(Final_Rep_Key_List)):
+                        # both ends of the bins should be within neighborhood thresholds
+                        # of existing contacts
+                        if (((abs(Final_Rep_Key_List[i][0] - curr_elem[2])) * bin_size) <= NeighborHoodBinThr) and (((abs(Final_Rep_Key_List[i][1] - curr_elem[3])) * bin_size) <= NeighborHoodBinThr):
+                            flag = True
+                            if 0:
+                                print ' --- current element is within neighborhood of the existing (included) bin ', Final_Rep_Key_List[i]
+                            break
+
+                    if (flag == False):
+                        # there is no such neighborhood constraints
+                        # include the bin
+                        subl = [curr_elem[2], curr_elem[3]]
+                        Final_Rep_Key_List.append(subl)
+                        if 0:
+                            print '*** inserted element in the final list: ', str(subl)
+
+                # now print the candidate interactions 
+                # of the current component
+                if 0:
+                    print '\n\n**** Printing selected loops of the connected component ***\n\n'
+
+                for i in range(len(Final_Rep_Key_List)):
+                    rep_bin_key = (Final_Rep_Key_List[i][0], Final_Rep_Key_List[i][1])
+                
+                    # fix the representative interaction
+                    rep_bin1_low = (rep_bin_key[0] - 1) * bin_size
+                    rep_bin1_high = rep_bin_key[0] * bin_size
+                    rep_bin2_low = (rep_bin_key[1] - 1) * bin_size
+                    rep_bin2_high = rep_bin_key[1] * bin_size
+                    cc = CurrChrDict[rep_bin_key]._GetCC()
+                    pval = CurrChrDict[rep_bin_key]._GetPVal()
+                    qval = CurrChrDict[rep_bin_key]._GetQVal()                    
+                    if 0:
+                        print 'Selected bin key: ', rep_bin_key, ' start bin mid: ', (rep_bin1_low + rep_bin1_high)/2,  ' end bin mid: ', (rep_bin2_low + rep_bin2_high) / 2, ' cc: ', cc, ' pval: ', pval, ' qval: ', qval
+
+                    # write the interaction in the specified output file
+                    fp_outInt.write('\n' + str(curr_chr) + '\t' + str(rep_bin1_low) + '\t' + str(rep_bin1_high) + '\t' + str(curr_chr) + '\t' + str(rep_bin2_low) + '\t' + str(rep_bin2_high) + '\t' + str(cc) + '\t' + str(pval) + '\t' + str(qval) + '\t' + str(span_low_bin1) + '\t' + str(span_high_bin1) + '\t' + str(span_low_bin2) + '\t' + str(span_high_bin2) + '\t' + str(sum_cc) + '\t' + str(Percent_Significant_BinPair))
+
+
+            #==================================================
 
     # after processing all the chromosomes, now close the output interaction file
     fp_outInt.close()

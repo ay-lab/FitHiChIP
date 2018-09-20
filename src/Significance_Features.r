@@ -52,12 +52,12 @@ cat(sprintf("\n Output directory: %s \n", OutDir))
 # load the interaction matrix (pairs of intervals and their contacts)
 # contains a pair of chromosome intervals and the contact count
 # contains header information
-Interaction_Mat <- read.table(opt$IntFile, header=T)
+Interaction_Mat <- read.table(opt$IntFile, header=T, sep="\t", stringsAsFactors=F)
 # colnames(Interaction_Mat) <- c("chr1","s1","e1","chr2","s2","e2","cc")
 
 # File containing normalization related features of individual genomic bins
 # Note: this file does not have header information
-AllFeatures <- read.table(opt$AllFeatFile, header=F)	
+AllFeatures <- read.table(opt$AllFeatFile, header=F, sep="\t", stringsAsFactors=F)	
 colnames(AllFeatures) <- c("chr1","s1","e1","Coverage","isPeak", "Bias", "Mapp", "GCContent", "RESites")
 
 #================================================

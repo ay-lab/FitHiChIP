@@ -33,10 +33,10 @@ InitialInteractionFile <- args[3]
 # # with the distance thresholds satisfied
 # FinalInteractionFile <- args[6]
 
-IntervalMat <- read.table(IntervalFile, header=F)
+IntervalMat <- read.table(IntervalFile, header=F, sep="\t", stringsAsFactors=F)
 colnames(IntervalMat) <- c("chr1","s1","e1","idx")
 
-InpInteraction <- read.table(MatrixFile, header=F)
+InpInteraction <- read.table(MatrixFile, header=F, sep="\t", stringsAsFactors=F)
 colnames(InpInteraction) <- c("idx1","idx2","cc")
 
 # merge with respect to the index of 1st chromosome interval
