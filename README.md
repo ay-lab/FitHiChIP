@@ -82,9 +82,16 @@ FitHiChIP requires the following packages / libraries to be installed:
 Extracting the source code archieve
 -----------------------------------
 
-A) Download the source code and test data from GitHub.
+A) The source codes are placed within the directory code/
 
-B) The folder "TestData" contains the following files:
+		A.1) The file "sample_script.sh" within this folder contains the basic execution script of this pipeline. The script invokes a configuration file.
+
+		A.2) Four different configuration files are also placed within this folder. Those files vary according to the FitHiChIP bias correction (coverage or ICE bias) method and whether peak to all (loose) background or peak to peak (stringent) background are employed. 
+
+		** All of these configuration files are initialized with the location of the testing data employed (mentioned below). The user only needs to check the parameter "HiCProBasedir" and mention the directory containing HiC-pro installed package.
+
+
+B) The folder data/ contains the following files:
 		
 		1) Sample_ValidPairs.txt.gz: Sample valid pairs file, an output from HiC-Pro pipeline.
 		
@@ -110,7 +117,9 @@ B) The folder "TestData" contains the following files:
 
 			**** Note: For test data involving different reference genome and restriction fragments, user needs to first download or arrange for such reference genome, restriction fragment, and reference peak information (example commands are mentioned below). 
 
-			**** Subsequently, location (absolute path) of these files needs to be mentioned in the configuration file (as described below).
+			**** Subsequently, location (preferably absolute path) of these files needs to be mentioned in the configuration file (as described below).
+
+		4) chrom_hg19.sizes: length of individual chromosomes corresponding to the reference genome hg19
 
 
 Downloading data / parameter files (mandatory step)
