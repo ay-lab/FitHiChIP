@@ -16,7 +16,7 @@
 # Parameter 1 
 # File containing the valid pairs from HiCPro pipeline 
 # Can be either a text file, or a gzipped text file 
-ValidPairs=/home/sourya/proj/GitHub_Codes/FitHiChIP_HiCPro/TestData/Sample_ValidPairs.txt.gz
+ValidPairs=../data/Sample_ValidPairs.txt.gz
 
 # Parameter 2
 # File containing the bin intervals (according to a specified bin size)
@@ -37,11 +37,11 @@ Matrix=
 # mandatory parameter
 # either a reference ChIP-seq peak file is to be provided
 # or peaks inferred from the HiChIP data (using a separate script provided with this package) can be given as input
-PeakFile=/home/sourya/proj/GitHub_Codes/FitHiChIP_HiCPro/TestData/Sample.Peaks
+PeakFile=../data/Sample.Peaks
 
 # Parameter 5
 # Output base directory under which all results will be stored
-OutDir=/mnt/BioAdHoc/Groups/vd-vijay/sourya/DATA/HiChIP/TestData/
+OutDir=../results/FitHiChIP_Out_TestData/
 
 # Parameter 6
 # Base directory of HiC-pro package.
@@ -55,7 +55,7 @@ HiCProBasedir=/home/sourya/packages/HiCPro/HiC-Pro_2.9.0/
 #======================================
 
 # Absolute path of the file containing the information of reference chromosome size
-ChrSizeFile=/mnt/BioAdHoc/Groups/vd-vijay/sourya/genomes/chrsize/chrom_hg19.sizes
+ChrSizeFile=../data/chrom_hg19.sizes
 
 # fasta file of the reference genome
 # used to compute the GC content information
@@ -174,10 +174,10 @@ PREFIX=FitHiChIP
 
 # Specified as 1 or 0. If 1, draws the figures of various
 # statistics / analysis. Default 0.
-Draw=1
+Draw=0
 
 # Specified as 1 or 0. If 1, performs time profiling of the complete steps. Defalt 0.
-TimeProf=1
+TimeProf=0
 
 #*****************************
 # specified as 1 or 0
