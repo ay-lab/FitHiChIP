@@ -21,6 +21,7 @@ ValidPairs=/home/sourya/proj/GitHub_Codes/FitHiChIP_HiCPro/TestData/Sample_Valid
 # Parameter 2
 # File containing the bin intervals (according to a specified bin size)
 # which is an output of HiC-pro pipeline
+# each bin is assigned a bin ID (integer)
 # If not provided, this is computed from the parameter 1
 Interval=
 
@@ -28,21 +29,25 @@ Interval=
 # File storing the contact matrix (output of HiC-pro pipeline)
 # should be accompanied with the parameter 2
 # if not specified, computed from the parameter 1
+# stores the interaction count between two bins 
 Matrix=
 
 # Parameter 4
-# Peak detection output file
+# Reference peak file
 # mandatory parameter
+# either a reference ChIP-seq peak file is to be provided
+# or peaks inferred from the HiChIP data (using a separate script provided with this package) can be given as input
 PeakFile=/home/sourya/proj/GitHub_Codes/FitHiChIP_HiCPro/TestData/Sample.Peaks
 
 # Parameter 5
 # Output base directory under which all results will be stored
 OutDir=/mnt/BioAdHoc/Groups/vd-vijay/sourya/DATA/HiChIP/TestData/
 
-#Parameter 6
-#Base directory of HiC-pro package.
-#mandatory parameter
+# Parameter 6
+# Base directory of HiC-pro package.
+# mandatory parameter
 # Required to run the utility functions of HiC-pro
+# we recommend users to install HiC-pro version 2.9.0 or above
 HiCProBasedir=/home/sourya/packages/HiCPro/HiC-Pro_2.9.0/
 
 #======================================
@@ -55,7 +60,9 @@ ChrSizeFile=/mnt/BioAdHoc/Groups/vd-vijay/sourya/genomes/chrsize/chrom_hg19.size
 # fasta file of the reference genome
 # used to compute the GC content information
 # Note: now the parameter is optional (default: blank)
-RefFasta=
+# Note: this file is not used for significant contact estimation - so user may leave this field blank
+# if a fasta file is provided, summary statistics of the fasta and mappability files are generated
+RefFasta=/mnt/BioAdHoc/Groups/vd-vijay/sourya/genomes/Complete_Genome/hg19/hg19.fa
 
 # Absolute path of the Reference mappability file (according to the reference genome)
 # (may be downloaded from the site  http://hgdownload.cse.ucsc.edu/goldenPath/)
@@ -64,19 +71,24 @@ RefFasta=
 # is to be used for conversion to bedGraph format
 # BigWigToBedgraph inp.bw out.bedGraph
 # Note: now the parameter is optional (default: blank)
-MappabilityFile=
+# Note: this file is not used for significant contact estimation - so user may leave this field blank
+# if a mappability file is provided, summary statistics of the fasta and mappability files are generated
+MappabilityFile=/mnt/BioAdHoc/Groups/vd-vijay/sourya/genomes/mappability/hg19/wgEncodeCrgMapabilityAlign50mer.bedGraph
 
 # restriction fragment file
 # of the format:        chr     interval_start  interval_end
 # Note: now the parameter is optional (default: blank)
-REFragFile=
+# Note: this file is not used for significant contact estimation - so user may leave this field blank
+REFragFile=/home/sourya/packages/HiCPro/HiC-Pro_2.9.0/annotation/MboI_hg19_RE_Fragments.bed
 
 # size of the window upstream and downstream the restriction site used
 # to calculate the GC content(default 200)
+# useful only if the reference fasta sequence, mappability and restriction fragment files are provided
 GCSize=200
 
 # size of the window upstream and downstream the restriction site
 # used to calculate the mappability
+# useful only if the reference fasta sequence, mappability and restriction fragment files are provided
 MappSize=500
 
 #======================================
@@ -88,35 +100,43 @@ MappSize=500
 #2: peak to non peak
 #3: peak to all (default)
 #4: all to all
-#5: everything from 1 to 4.
+#5: everything from 1 to 4. That is, all different types of interactions from 1 to 4 would be computed.
 IntType=3
 
 # Size of the bins [default = 5000], in bases, for detecting the interactions.
+# default is 5 Kb binning
 BINSIZE=5000
 
 # Lower distance threshold of interaction between two segments
 # (default = 20000 or 20 Kb)
+# that is, interactions < 20 Kb would not be considered for significance
 LowDistThr=20000
 
 # Upper distance threshold of interaction between two segments
 # (default = 2000000 or 2 Mb)
+# that is, interactions > 2 Mb would not be considered for significance
 UppDistThr=2000000
 
 # Minimum FDR (q-value) cutoff for significant interaction detection
+# that is, loops with FDR < 0.01 would be considered as significant
 QVALUE=0.01
 
 #======================================
-# Parameters specific to the spline fit
+# Parameters specific to the spline fit employed in FitHiC
 #======================================
 
 # In the FitHiC model, this is the max no of equal occupancy bins (Default 200)
+# input interactions are divided in these bins according to their genomic distance 
 NBins=200
 
-# In the FitHiC model, for peak to all interactions,
-# setting this parameter to 1 means that peak to peak background will be used.
-# Else (value = 0) all the interactions of peak to all category will be used for background estimation.
+# ****************
+# Applicable only for peak to all interactions (where IntType=3)
+# value of 1 means that peak to peak (or stringent) locus pairs  will be used for FitHiC distance specific background estimation. Denoted as stringent background or FitHiChIP(S) (refer to the manuscript)
+# Value of 0 means all locus pairs (peak to peak or peak to non-peak) will be used for FitHiC distance specific background estimation. Denoted as loose background or FitHiChIP(L) (refer to the manuscript)
 # ******* Use 1 if you require very stringent output (only very highly significant interactions would be reported)
 # ******* Use 0 if you allow less stringency (higher number of interactions would be reported)
+# we recommend using this value as 1 (i.e. using FitHiChIP(S) version when peak to all interactions are reported)
+# ****************
 UseP2PBackgrnd=1
 
 #======================================
@@ -141,9 +161,9 @@ BiasType=1
 # (due to their originating bins are closer) are merged
 # to represent a single interaction
 # if 0, no merging step is performed
-# Note: Currently this feature is under development - so recommended 0 for the moment
-# default: 0
-MergeInt=0
+# default: 1
+# for peak to all interactions, depending on the loose or stringent backgrounds, the outputs are referred as either FitHiChIP(L+M) or FitHiChIP(S+M)
+MergeInt=1
 
 #==============================
 # Few other parameters related to its execution
@@ -154,14 +174,17 @@ PREFIX=FitHiChIP
 
 # Specified as 1 or 0. If 1, draws the figures of various
 # statistics / analysis. Default 0.
-Draw=0
+Draw=1
 
 # Specified as 1 or 0. If 1, performs time profiling of the complete steps. Defalt 0.
 TimeProf=1
 
+#*****************************
 # specified as 1 or 0
 # if 1, overwrites the existing output files
 # if 0, does not overwrite the existing output files
 # default 0
-OverWrite=0
+# if user is re-executing one sample (with the same parameters and output directory names), 
+# then consider this parameter and set to 1 if file contents need to be overwritten (and re-computed)
+OverWrite=1
 
