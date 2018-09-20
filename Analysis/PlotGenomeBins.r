@@ -122,7 +122,7 @@ opt = parse_args(opt_parser);
 
 # read the genome bins and associated normalization features
 # Note: the file does not have header information
-InpData <- read.table(opt$GenomeBinFile, header=F)	
+InpData <- read.table(opt$GenomeBinFile, header=F, sep="\t", stringsAsFactors=F)	
 # colnames(InpData) <- c("chr1","s1","e1","coverage","isPeak", "Bias", "Mapp", "GCContent", "numREsites")
 
 system(paste('mkdir -p', opt$CommonDir))

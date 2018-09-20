@@ -197,7 +197,7 @@ system(paste('mkdir -p', opt$BiasSpecificDir))
 # then coverage2, isPeak2, Bias2, mappability2, GC content2, and number of cut sites(2) for the second interval
 
 # Note that the file has one header line
-Interaction_Initial <- read.table(opt$IntFile, header=T)
+Interaction_Initial <- read.table(opt$IntFile, header=T, sep="\t", stringsAsFactors=F)
 colnames(Interaction_Initial) <- c("chr1", "s1", "e1", "chr2", "s2", "e2", "cc", "d1", "isPeak1", "Bias1", "mapp1", "gc1", "cut1", "d2", "isPeak2", "Bias2", "mapp2", "gc2", "cut2")
 cat(sprintf('\n Total interactions: %s ', nrow(Interaction_Initial)))
 

@@ -38,7 +38,7 @@ if (1) { #((file.exists(boxplotCCQvalfile) == FALSE) | (file.exists(plotfile) ==
 
 	# load the interaction matrix of the unfiltered file
 	# Note: this unfiltered interaction file has header information
-	unfilt.data <- read.table(unfilt.file, header=T)
+	unfilt.data <- read.table(unfilt.file, header=T, sep="\t", stringsAsFactors=F)
 
 	# absolute genomic distance data
 	gen.dist <- abs(unfilt.data[,5] - unfilt.data[,2])
