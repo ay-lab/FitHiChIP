@@ -150,7 +150,7 @@ def main():
     #=========================================
     for chridx in range(len(TargetChrList)):
         curr_chr = TargetChrList[chridx]
-        if 0:
+        if 1:
             print 'Processing the chromosome: ', str(curr_chr)
 
         # extract the interactions of current chromosome from the complete set of interactions
@@ -165,11 +165,11 @@ def main():
         num_Int = sum(1 for line in open(tempchrdumpfile))
 
         if (num_Int == 0):
-            if 0:
+            if 1:
                 print 'Number of interactions for this chromosome = 0 --- continue'
             continue
 
-        if 0:
+        if 1:
             print 'Extracted interactions for the current chromosome'
 
         # extract also the max span of interactions (6th column maximum element)
@@ -187,7 +187,7 @@ def main():
 
         # number of bins (matrix dimension)
         nbins = (max_coord / bin_size)
-        if 0:
+        if 1:
             print 'max_coord of the interactions: ', str(max_coord)
             print 'nbins: ', str(nbins)
 
@@ -219,7 +219,7 @@ def main():
 
         # now check the nodes of G
         # assign edges of G according to the 8 / 4 connectivity rule (according to the input parameter)
-        nodelist = G.nodes()
+        nodelist = list(G.nodes())
 
         for i in range(len(nodelist) - 1):
             node1 = nodelist[i]
@@ -241,9 +241,9 @@ def main():
                             print '4 connectivity Edge between node 1: ', node1, '  and node 2: ', node2
 
         # check the edges of G
-        edgelist = G.edges()
+        edgelist = list(G.edges())
 
-        if 0:
+        if 1:
             print 'No of nodes of G: ', G.number_of_nodes()
             print 'No of edges of G: ', G.number_of_edges()
             print 'Number of connected components of G: ', nx.number_connected_components(G)
@@ -253,7 +253,7 @@ def main():
         # we find a representative interaction and print it in the final output file
         list_conn_comp = sorted(nx.connected_components(G), key = len, reverse=True)
 
-        if 0:
+        if 1:
             print '\n\n**** Number of connected components: ', len(list_conn_comp), '  ****\n\n'
 
         #====================
