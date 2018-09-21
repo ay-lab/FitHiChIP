@@ -220,6 +220,11 @@ def main():
         # now check the nodes of G
         # assign edges of G according to the 8 / 4 connectivity rule (according to the input parameter)
         nodelist = G.nodes()
+
+        if (len(nodelist) <= 3):
+            print 'nuber of nodes in this graph: ', len(nodelist)
+            print 'very low number of nodes - continue'
+            continue        
         
         for i in range(len(nodelist) - 1):
             node1 = nodelist[i]
