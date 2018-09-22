@@ -161,26 +161,33 @@ def main():
     # scan the peak input file (if provided) and mark the corresponding 
     # chromosome intervals as 1 (having peak)
     #=====================================================
-    with open(peakfile, 'r') as fp:
-        for line in fp:
-            linecontents = (line.rstrip()).split()
-            curr_chr = linecontents[0]
-            peak_start = int(linecontents[1])
-            peak_end = int(linecontents[2])
-            # only process those peaks whose chromosome 
-            # is present in the current valid pairs file
-            # this is possible when the peak information is downloaded from a reference
-            if curr_chr in ChrNameList_Current:
-                interval_start = (int(peak_start / bin_size)) * bin_size
-                if ((peak_end % bin_size) == 0):
-                    interval_end = peak_end
-                else:
-                    interval_end = (int(peak_end / bin_size) + 1) * bin_size
-                for val in range(interval_start, interval_end, bin_size):
-                    curr_key = (curr_chr, val, (val + bin_size))
-                    # mark the corresponding dictionary entry as a peak segment
-                    # since it has an overlap with the MACS2 derived peak intervals
-                    SegmentDict[curr_key]._SetPeak()
+    if peakfile.endswith(".gz"):
+        fp = gzip.open(peakfile,'r')
+    else:
+        fp = open(peakfile,'r')
+    
+    for line in fp:
+        linecontents = (line.rstrip()).split()
+        curr_chr = linecontents[0]
+        peak_start = int(linecontents[1])
+        peak_end = int(linecontents[2])
+        # only process those peaks whose chromosome 
+        # is present in the current valid pairs file
+        # this is possible when the peak information is downloaded from a reference
+        if curr_chr in ChrNameList_Current:
+            interval_start = (int(peak_start / bin_size)) * bin_size
+            if ((peak_end % bin_size) == 0):
+                interval_end = peak_end
+            else:
+                interval_end = (int(peak_end / bin_size) + 1) * bin_size
+            for val in range(interval_start, interval_end, bin_size):
+                curr_key = (curr_chr, val, (val + bin_size))
+                # mark the corresponding dictionary entry as a peak segment
+                # since it has an overlap with the MACS2 derived peak intervals
+                SegmentDict[curr_key]._SetPeak()
+
+    # close the peak file
+    fp.close()
     
     # now write the genomic intervals and corresponding read count + peak information
     fp_cov = open(outfile, 'w')
