@@ -71,7 +71,7 @@ MappabilityWindowSize=500
 # 5 Kb resolution
 BIN_SIZE=5000
 
-QVALUE=1e-2	# 0.01
+QVALUE=0.01
 
 # default value of output directory is the present working directory
 OutDir=`pwd`'/'
@@ -122,6 +122,7 @@ UseP2PBackgrnd=1
 
 # Merging interactions which are near to each other
 MergeInteraction=1
+
 #========================
 # following parameters are now obsolete
 # so keeping them in a default state
@@ -1358,12 +1359,14 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 		start=$(date +%s.%N)
 	fi		
 
-	# generate distance vs CC plots
-	DistPlotfile=$GenFitHiCDir'/'$PREFIX'.interactions_FitHiC_Q'${QVALUE}'_Dist_CC.pdf'	
-	$RScriptExec ./Analysis/Distance_vs_CC.r --IntFile $FitHiC_Pass1_Filtfile --OutFile $DistPlotfile
-
 	# no of significant interactions (FitHiC)
 	nsigFitHiC=`cat $FitHiC_Pass1_Filtfile | wc -l`
+
+	# generate distance vs CC plots
+	if [[ $nsigFitHiC -gt 1 ]]; then
+		DistPlotfile=$GenFitHiCDir'/'$PREFIX'.interactions_FitHiC_Q'${QVALUE}'_Dist_CC.pdf'	
+		$RScriptExec ./Analysis/Distance_vs_CC.r --IntFile $FitHiC_Pass1_Filtfile --OutFile $DistPlotfile	
+	fi
 
 	# # Check the no of significant contacts associated with each peak segment
 	# # except all to all interactions
@@ -1401,7 +1404,7 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 
 	if [[ ! -f $FitHiC_Pass1_LogQ_file || $OverWrite == 1 ]]; then
 		# check for non empty interactions file
-		if [[ $nsigFitHiC -gt 2 ]]; then
+		if [[ $nsigFitHiC -gt 1 ]]; then
 			# print the midpoints of the interactions
 		    # for better display in the WashU genome browser
 		    # check: if Q score is 0, we replace the log of Q score by a default value of 100
@@ -1433,20 +1436,24 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 	# then we merge the nearby interactions from the earlier generated significant interactions
 	# and also create a washu browser generated compatible file
 
-	if [ $MergeInteraction == 1 ]; then
+	if [[ $MergeInteraction == 1 && $nsigFitHiC -gt 1 ]]; then
 		if [[ ! -f $FitHiC_Pass1_Filt_MergedIntfile || $OverWrite == 1 ]]; then
 			# create merged interactions - connected component based analysis
 			$PythonExec ./src/CombineNearbyInteraction.py --InpFile $FitHiC_Pass1_Filtfile --OutFile $FitHiC_Pass1_Filt_MergedIntfile --headerInp 1 --binsize $BIN_SIZE --percent 100 --Neigh 2
 			echo 'merged nearby interactions'
-		fi
-		if [[ ! -f $FitHiC_Pass1_Filt_MergedInt_LogQ_file || $OverWrite == 1 ]]; then
+
 			nint=`cat $FitHiC_Pass1_Filt_MergedIntfile | wc -l`
-			if [[ $nint -gt 2 ]]; then
+			if [[ $nint -gt 1 ]]; then
 				# 9th field stores the Q value
 				# print the midpoints of the interactions
 			    # for better display in the WashU genome browser
 			    # check: if Q score is 0, we replace the log of Q score by a default value of 100
 			    awk -F['\t'] '{if (NR > 1) {if ($9 > 0) {print $1","(($2+$3)/2-1)","(($2+$3)/2+1)"\t"$4","(($5+$6)/2-1)","(($5+$6)/2+1)"\t"(-log($9)/log(10))} else {print $1","(($2+$3)/2-1)","(($2+$3)/2+1)"\t"$4","(($5+$6)/2-1)","(($5+$6)/2+1)"\t500"}}}' $FitHiC_Pass1_Filt_MergedIntfile > $FitHiC_Pass1_Filt_MergedInt_LogQ_file
+
+				# generate distance vs CC plots
+				DistPlotfile=$MergeIntDir'/'$PREFIX'.interactions_FitHiC_Q'${QVALUE}'_MergeNearContacts_Dist_CC.pdf'
+				$RScriptExec ./Analysis/Distance_vs_CC.r --IntFile $FitHiC_Pass1_Filt_MergedIntfile --OutFile $DistPlotfile	
+
 			else
 				echo 'There is no significant interaction - so no WashU specific session file is created !!'
 			fi
@@ -1454,16 +1461,22 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 		fi
 	fi
 
-	# generate distance vs CC plots
-	DistPlotfile=$MergeIntDir'/'$PREFIX'.interactions_FitHiC_Q'${QVALUE}'_MergeNearContacts_Dist_CC.pdf'
-	$RScriptExec ./Analysis/Distance_vs_CC.r --IntFile $FitHiC_Pass1_Filt_MergedIntfile --OutFile $DistPlotfile	
-
 	# increment the counter
 	CurrIntType=`expr $CurrIntType + 1`
 	echo "Updated CurrIntType: "$CurrIntType
 
 done 	# end of different types of interaction traversal loop
 
+#=================================
+# call a separate script which summarizes all the output files and their location
+
+echo -e "\n **** Now summarizing FitHiChIP results in the HTML file *** \n"
+
+bash ./Analysis/SummaryFitHiChIP.sh $OutDir $BIN_SIZE $LowDistThres $UppDistThres $IntType $BiasCorr $BiasType $UseP2PBackgrnd $MergeInteraction $PREFIX ${QVALUE}
+
+#=================================
+
+echo "***** FitHiChIP pipeline is completely executed - congratulations !!! *****"
 
 #============================
 # sourya - now go back to the original working directory
