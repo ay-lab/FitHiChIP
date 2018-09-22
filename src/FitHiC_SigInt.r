@@ -263,15 +263,8 @@ inpdir <- dirname(opt$InpFile)
 OutIntDir <- dirname(opt$OutFile)
 
 # this directory will store the spline graph according to the model
-outdir <- paste0(OutIntDir,'/Results')
+outdir <- paste0(OutIntDir,'/Plots')
 system(paste('mkdir -p', outdir))
-
-# this file stores the spline fitted model
-plotfile <- paste0(outdir,'/','EqOccBin_SplinePass1.pdf')	
-
-# this file stores the variation of interaction distance
-# and the contact count in log scale
-plotfile2 <- paste0(outdir,'/','EqOccBin_SplinePass1_LogScale.pdf')
 
 if (timeprof == 1) {
 	starttime <- Sys.time()
@@ -304,7 +297,7 @@ if (opt$UseNonzeroContacts == 0) {
 			system(paste0("awk \'NR>1\' ", opt$CoverageFile, " | cut -f1 | uniq -c | awk \'{print $2\"\t\"$1}\' - > ", MappableBinCountChrFile))
 		}
 		# read the mappable bin count for individual chromosomes
-		MappableBinCount.df <- read.table(MappableBinCountChrFile, header=F)
+		MappableBinCount.df <- read.table(MappableBinCountChrFile, header=F, sep="\t", stringsAsFactors=F)
 	} else {
 		# dump individual chromosomes, their bins and corresponding peak information
 		if ((opt$BiasCorr == 1) & (opt$BiasFilt == 1)) {
@@ -313,14 +306,14 @@ if (opt$UseNonzeroContacts == 0) {
 			system(paste0("awk -v b=", opt$BinSize, " \'{if (NR>1) {print $1\"\t\"($2/b)\"\t\"$5}}\' ", opt$CoverageFile, " > ", MappableBinCountChrFile))
 		}
 		# read the chromosome specific bin information
-		ChrSpecBin.df <- read.table(MappableBinCountChrFile, header=F)
+		ChrSpecBin.df <- read.table(MappableBinCountChrFile, header=F, sep="\t", stringsAsFactors=F)
 	}
 }
 #========================================================
 
 # load the interaction data matrix
 # Note: the data has a header information
-interaction.data <- read.table(opt$InpFile, header=opt$headerInp)
+interaction.data <- read.table(opt$InpFile, header=opt$headerInp, sep="\t", stringsAsFactors=F)
 if (opt$headerInp == FALSE) {
 	colnames(interaction.data) <- c("chr1", "s1", "e1", "chr2", "s2", "e2", "cc", "d1", "isPeak1", "Bias1", "mapp1", "gc1", "cut1", "d2", "isPeak2", "Bias2", "mapp2", "gc2", "cut2")
 }
@@ -690,7 +683,8 @@ fit2_new.mr <- monoreg(fit2_new$x, fit2_new$y, type="antitonic")
 # plot the fitted spline and the smoothing regression
 if (opt$Draw) {
 	plotfile1 <- paste0(outdir,'/','EqOccBin_SplinePass1.pdf')	
-	pdf(plotfile1, width=10, height=8)
+	pdf(plotfile1, width=8, height=6)
+	# par(mar=c(5,5,2,2)+0.1)
 	plot(avg_int_dist, prior_contact_prob, cex=0.5, col="black", xlab="Average interaction distance", ylab="Prior contact probability", xlim=c(0, max(gene.dist)))
 	lines(fit2$x, fit2$y, col="yellow", lwd=0.5)
 	lines(fit2.mr$x, fit2.mr$yf, col="blue", lwd=0.5)
@@ -703,9 +697,10 @@ if (opt$Draw) {
 
 # plot the fitted spline and the smoothing regression
 # in log scale
-if (opt$Draw) {
+if (0) {	#(opt$Draw) {
 	plotfile1 <- paste0(outdir,'/','EqOccBin_SplinePass1_LOGScale.pdf')	
-	pdf(plotfile1, width=10, height=8)
+	pdf(plotfile1, width=8, height=6)
+	# par(mar=c(5,5,2,2)+0.1)
 	plot(log10(avg_int_dist), log10(prior_contact_prob), cex=0.5, col="black", xlab="Average interaction distance (log)", ylab="Prior contact probability (log)", xlim=c(0, log10(max(gene.dist))))
 	lines(log10(fit2$x), log10(fit2$y), col="yellow", lwd=0.5)
 	lines(log10(fit2.mr$x), log10(fit2.mr$yf), col="blue", lwd=0.5)
@@ -1027,9 +1022,10 @@ if (opt$BiasCorr == 0) {
 			cat(sprintf("\n modeled fit_spline_coeff_Intercept"))
 
 			# plot the fitted spline "fit_spline_coeff_Intercept_new"
-			if (opt$Draw) {
+			if (0) { #(opt$Draw) {
 				plotfile1 <- paste0(outdir,'/fit_spline_coeff_Intercept_new.pdf')	
-				pdf(plotfile1, width=10, height=8)
+				pdf(plotfile1, width=8, height=6)
+				# par(mar=c(5,5,2,2)+0.1)
 				plot(Regression_model_coeff.df[,1], Regression_model_coeff.df[,2], cex=0.5, col="black", xlab="Average interaction distance", ylab="Regression coefficient - intercept")
 				lines(fit_spline_coeff_Intercept_new$x, fit_spline_coeff_Intercept_new$y, col="red", lwd=0.5)
 				title("fit_spline_coeff_Intercept")
@@ -1037,9 +1033,10 @@ if (opt$BiasCorr == 0) {
 			}
 
 			# plot the fitted spline "fit_spline_coeff_Intercept_new" in log scale
-			if (opt$Draw) {
+			if (0) { #(opt$Draw) {
 				plotfile1 <- paste0(outdir,'/fit_spline_coeff_Intercept_new_LOGScale.pdf')	
-				pdf(plotfile1, width=10, height=8)
+				pdf(plotfile1, width=8, height=6)
+				# par(mar=c(5,5,2,2)+0.1)
 				plot(log10(Regression_model_coeff.df[,1]), log10(Regression_model_coeff.df[,2]), cex=0.5, col="black", xlab="Average interaction distance (log)", ylab="Regression coefficient - intercept (log)")
 				lines(log10(fit_spline_coeff_Intercept_new$x), log10(fit_spline_coeff_Intercept_new$y), col="red", lwd=0.5)
 				title("fit_spline_coeff_Intercept - log scale")
@@ -1053,9 +1050,10 @@ if (opt$BiasCorr == 0) {
 			cat(sprintf("\n modeled fit_spline_coeff_Logbias1"))
 
 			# plot the fitted spline "fit_spline_coeff_Logbias1_new"
-			if (opt$Draw) {
+			if (0) { #(opt$Draw) {
 				plotfile1 <- paste0(outdir,'/fit_spline_coeff_Logbias1_new.pdf')	
-				pdf(plotfile1, width=10, height=8)
+				pdf(plotfile1, width=8, height=6)
+				# par(mar=c(5,5,2,2)+0.1)
 				plot(Regression_model_coeff.df[,1], Regression_model_coeff.df[,3], cex=0.5, col="black", xlab="Average interaction distance", ylab="Regression coefficient - logbias1")
 				lines(fit_spline_coeff_Logbias1_new$x, fit_spline_coeff_Logbias1_new$y, col="red", lwd=0.5)
 				title("fit_spline_coeff_logbias1")
@@ -1063,9 +1061,10 @@ if (opt$BiasCorr == 0) {
 			}
 
 			# plot the fitted spline "fit_spline_coeff_Logbias1_new" in log scale
-			if (opt$Draw) {
+			if (0) { #(opt$Draw) {
 				plotfile1 <- paste0(outdir,'/fit_spline_coeff_Logbias1_new_LOGScale.pdf')	
-				pdf(plotfile1, width=10, height=8)
+				pdf(plotfile1, width=8, height=6)
+				# par(mar=c(5,5,2,2)+0.1)
 				plot(log10(Regression_model_coeff.df[,1]), log10(Regression_model_coeff.df[,3]), cex=0.5, col="black", xlab="Average interaction distance (log)", ylab="Regression coefficient - logbias1 (log)")
 				lines(log10(fit_spline_coeff_Logbias1_new$x), log10(fit_spline_coeff_Logbias1_new$y), col="red", lwd=0.5)
 				title("fit_spline_coeff_logbias1 - log scale")
@@ -1079,9 +1078,10 @@ if (opt$BiasCorr == 0) {
 			cat(sprintf("\n modeled fit_spline_coeff_Logbias2"))
 
 			# plot the fitted spline "fit_spline_coeff_Logbias2_new"
-			if (opt$Draw) {
+			if (0) { #(opt$Draw) {
 				plotfile1 <- paste0(outdir,'/fit_spline_coeff_Logbias2_new.pdf')	
-				pdf(plotfile1, width=10, height=8)
+				pdf(plotfile1, width=8, height=6)
+				# par(mar=c(5,5,2,2)+0.1)
 				plot(Regression_model_coeff.df[,1], Regression_model_coeff.df[,4], cex=0.5, col="black", xlab="Average interaction distance", ylab="Regression coefficient - logbias2")
 				lines(fit_spline_coeff_Logbias2_new$x, fit_spline_coeff_Logbias2_new$y, col="red", lwd=0.5)
 				title("fit_spline_coeff_logbias2")
@@ -1089,9 +1089,10 @@ if (opt$BiasCorr == 0) {
 			}
 
 			# plot the fitted spline "fit_spline_coeff_Logbias2_new" in log scale
-			if (opt$Draw) {
+			if (0) { #(opt$Draw) {
 				plotfile1 <- paste0(outdir,'/fit_spline_coeff_Logbias2_new_LOGScale.pdf')	
-				pdf(plotfile1, width=10, height=8)
+				pdf(plotfile1, width=8, height=6)
+				# par(mar=c(5,5,2,2)+0.1)
 				plot(log10(Regression_model_coeff.df[,1]), log10(Regression_model_coeff.df[,4]), cex=0.5, col="black", xlab="Average interaction distance (log)", ylab="Regression coefficient - logbias2 (log)")
 				lines(log10(fit_spline_coeff_Logbias2_new$x), log10(fit_spline_coeff_Logbias2_new$y), col="red", lwd=0.5)
 				title("fit_spline_coeff_logbias2 - log scale")
@@ -1268,13 +1269,13 @@ if (opt$BiasCorr == 0) {
 					b <- data.frame(group = "Est_Prob_Regr", x = seq(1,(ei-si+1)), y = log10(Prob_BiasRegr[si:ei]))
 					curr_plotA <- ggplot(rbind(a,b), aes(x=x, y=y, fill=group, colour=group)) + geom_point(size=0.01) + xlab('Locus pairs') + ylab('Probability value (log10)')
 					curr_plotA + ggtitle("Change in probability estimation")
-					ggsave(ProbValuePlotFile, plot = curr_plotA, width=12, height=8)		
+					ggsave(ProbValuePlotFile, plot = curr_plotA, width=8, height=6)		
 
 					c <- data.frame(group = "Orig_CC", x = seq(1,(ei-si+1)), y = interaction.data[si:ei, opt$cccol])
 					d <- data.frame(group = "Est_CC_Regr", x = seq(1,(ei-si+1)), y = Exp_CC_BiasRegr[si:ei])
 					curr_plotB <- ggplot(rbind.data.frame(c,d), aes(x=x, y=y, fill=group, colour=group)) + geom_point(size=0.01) + xlab('Locus pairs') + ylab('Contact count')
 					curr_plotB + ggtitle("Change in contact count estimation")
-					ggsave(ContactCountPlotFile, plot = curr_plotB, width=12, height=8)
+					ggsave(ContactCountPlotFile, plot = curr_plotB, width=8, height=6)
 				} # end distance loop for plotting
 			}	# end dummy if
 
@@ -1444,7 +1445,8 @@ if (opt$BiasCorr == 0) {
 			# plot the fitted spline "fit_spline_coeff_Intercept_new"
 			if (opt$Draw) {
 				plotfile1 <- paste0(outdir,'/fit_spline_coeff_Intercept_new.pdf')	
-				pdf(plotfile1, width=10, height=8)
+				pdf(plotfile1, width=8, height=6)
+				# par(mar=c(5,5,2,2)+0.1)
 				plot(Regression_model_coeff.df[,1], Regression_model_coeff.df[,2], cex=0.5, col="black", xlab="Average interaction distance", ylab="Regression coefficient - intercept")
 				lines(fit_spline_coeff_Intercept_new$x, fit_spline_coeff_Intercept_new$y, col="red", lwd=0.5)
 				title("fit_spline_coeff_Intercept")
@@ -1454,7 +1456,8 @@ if (opt$BiasCorr == 0) {
 			# plot the fitted spline "fit_spline_coeff_Intercept_new" in log scale
 			if (opt$Draw) {
 				plotfile1 <- paste0(outdir,'/fit_spline_coeff_Intercept_new_LOGScale.pdf')	
-				pdf(plotfile1, width=10, height=8)
+				pdf(plotfile1, width=8, height=6)
+				# par(mar=c(5,5,2,2)+0.1)
 				plot(log10(Regression_model_coeff.df[,1]), log10(Regression_model_coeff.df[,2]), cex=0.5, col="black", xlab="Average interaction distance (log)", ylab="Regression coefficient - intercept (log)")
 				lines(log10(fit_spline_coeff_Intercept_new$x), log10(fit_spline_coeff_Intercept_new$y), col="red", lwd=0.5)
 				title("fit_spline_coeff_Intercept - log scale")
@@ -1468,7 +1471,8 @@ if (opt$BiasCorr == 0) {
 			# plot the fitted spline "fit_spline_coeff_Logbias1_new"
 			if (opt$Draw) {
 				plotfile1 <- paste0(outdir,'/fit_spline_coeff_Logbias1_new.pdf')	
-				pdf(plotfile1, width=10, height=8)
+				pdf(plotfile1, width=8, height=6)
+				# par(mar=c(5,5,2,2)+0.1)
 				plot(Regression_model_coeff.df[,1], Regression_model_coeff.df[,3], cex=0.5, col="black", xlab="Average interaction distance", ylab="Regression coefficient - logbias1")
 				lines(fit_spline_coeff_Logbias1_new$x, fit_spline_coeff_Logbias1_new$y, col="red", lwd=0.5)
 				title("fit_spline_coeff_logbias1")
@@ -1478,7 +1482,8 @@ if (opt$BiasCorr == 0) {
 			# plot the fitted spline "fit_spline_coeff_Logbias1_new" in log scale
 			if (opt$Draw) {
 				plotfile1 <- paste0(outdir,'/fit_spline_coeff_Logbias1_new_LOGScale.pdf')	
-				pdf(plotfile1, width=10, height=8)
+				pdf(plotfile1, width=8, height=6)
+				# par(mar=c(5,5,2,2)+0.1)
 				plot(log10(Regression_model_coeff.df[,1]), log10(Regression_model_coeff.df[,3]), cex=0.5, col="black", xlab="Average interaction distance (log)", ylab="Regression coefficient - logbias1 (log)")
 				lines(log10(fit_spline_coeff_Logbias1_new$x), log10(fit_spline_coeff_Logbias1_new$y), col="red", lwd=0.5)
 				title("fit_spline_coeff_logbias1 - log scale")
@@ -1492,7 +1497,8 @@ if (opt$BiasCorr == 0) {
 			# plot the fitted spline "fit_spline_coeff_Logbias2_new"
 			if (opt$Draw) {
 				plotfile1 <- paste0(outdir,'/fit_spline_coeff_Logbias2_new.pdf')	
-				pdf(plotfile1, width=10, height=8)
+				pdf(plotfile1, width=8, height=6)
+				# par(mar=c(5,5,2,2)+0.1)
 				plot(Regression_model_coeff.df[,1], Regression_model_coeff.df[,4], cex=0.5, col="black", xlab="Average interaction distance", ylab="Regression coefficient - logbias2")
 				lines(fit_spline_coeff_Logbias2_new$x, fit_spline_coeff_Logbias2_new$y, col="red", lwd=0.5)
 				title("fit_spline_coeff_logbias2")
@@ -1502,7 +1508,8 @@ if (opt$BiasCorr == 0) {
 			# plot the fitted spline "fit_spline_coeff_Logbias2_new" in log scale
 			if (opt$Draw) {
 				plotfile1 <- paste0(outdir,'/fit_spline_coeff_Logbias2_new_LOGScale.pdf')	
-				pdf(plotfile1, width=10, height=8)
+				pdf(plotfile1, width=8, height=6)
+				# par(mar=c(5,5,2,2)+0.1)
 				plot(log10(Regression_model_coeff.df[,1]), log10(Regression_model_coeff.df[,4]), cex=0.5, col="black", xlab="Average interaction distance (log)", ylab="Regression coefficient - logbias2 (log)")
 				lines(log10(fit_spline_coeff_Logbias2_new$x), log10(fit_spline_coeff_Logbias2_new$y), col="red", lwd=0.5)
 				title("fit_spline_coeff_logbias2 - log scale")
@@ -1669,13 +1676,13 @@ if (opt$BiasCorr == 0) {
 					b <- data.frame(group = "Est_Prob_Regr", x = seq(1,(ei-si+1)), y = log10(Prob_BiasRegr[si:ei]))
 					curr_plotA <- ggplot(rbind(a,b), aes(x=x, y=y, fill=group, colour=group)) + geom_point(size=0.01) + xlab('Locus pairs') + ylab('Probability value (log10)')
 					curr_plotA + ggtitle("Change in probability estimation")
-					ggsave(ProbValuePlotFile, plot = curr_plotA, width=12, height=8)		
+					ggsave(ProbValuePlotFile, plot = curr_plotA, width=8, height=6)		
 
 					c <- data.frame(group = "Orig_CC", x = seq(1,(ei-si+1)), y = interaction.data[si:ei, opt$cccol])
 					d <- data.frame(group = "Est_CC_Regr", x = seq(1,(ei-si+1)), y = Exp_CC_BiasRegr[si:ei])
 					curr_plotB <- ggplot(rbind.data.frame(c,d), aes(x=x, y=y, fill=group, colour=group)) + geom_point(size=0.01) + xlab('Locus pairs') + ylab('Contact count')
 					curr_plotB + ggtitle("Change in contact count estimation")
-					ggsave(ContactCountPlotFile, plot = curr_plotB, width=12, height=8)
+					ggsave(ContactCountPlotFile, plot = curr_plotB, width=8, height=6)
 				} # end distance loop for plotting
 			}	# end dummy if
 
@@ -1736,4 +1743,38 @@ if (timeprof == 1) {
 	write(outstr, file=fp, append=T)
 	close(fp)
 }
+
+# plot the variation of q-value from 0 to 0.1, in the steps of 0.01
+# and corresponding number of interaction count per range of q-values
+qvalue_seq <- seq(0,0.1,by=0.01)
+IntCount <- c()
+LogIntCount <- c()
+for (i in (1:length(qvalue_seq))) {
+	if (i == 1) {
+		cnt <- length(which(FinalData[, ncol(FinalData)] <= qvalue_seq[i]))
+	} else {
+		cnt <- length(which((FinalData[, ncol(FinalData)] <= qvalue_seq[i]) & (FinalData[, ncol(FinalData)] > qvalue_seq[i-1])))
+	}
+	IntCount <- c(IntCount, cnt)
+	LogIntCount <- c(LogIntCount, log2(cnt+1))
+}
+
+plotfile1 <- paste0(outdir,'/Interaction_vs_qval.pdf')	
+pdf(plotfile1, width=8, height=6)
+# par(mar=c(5,5,2,2)+0.1)
+plot(qvalue_seq, IntCount, cex=0.8, col="black", xlab="FDR threshold", ylab="Interaction count", xlim=c(min(qvalue_seq), max(qvalue_seq)))
+lines(qvalue_seq, IntCount, col="blue", lwd=0.8)
+title("Number of interactions below various FDR threshold values")
+dev.off()
+
+plotfile1 <- paste0(outdir,'/Interaction_log2_vs_qval.pdf')	
+pdf(plotfile1, width=8, height=6)
+# par(mar=c(5,5,2,2)+0.1)
+plot(qvalue_seq, LogIntCount, cex=0.8, col="black", xlab="FDR threshold", ylab="Interaction count (log2)", xlim=c(min(qvalue_seq), max(qvalue_seq)))
+lines(qvalue_seq, LogIntCount, col="blue", lwd=0.8)
+title("Number of interactions (log2) below various FDR threshold values")
+dev.off()
+
+
+
 
