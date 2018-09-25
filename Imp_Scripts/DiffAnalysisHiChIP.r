@@ -295,9 +295,17 @@ MergeLoops <- function(LoopList, UnionLoopFile, UnionLoopTempFile, FDRThr) {
 	for (i in (1:length(LoopList))) {
 		inpfile <- LoopList[i]
 		if (i == 1) {
-			system(paste0("awk \'((NR>1) && ($NF < ", FDRThr, "))\' ", inpfile, " | cut -f1-6 > ", UnionLoopTempFile))
+			if (file_ext(inpfile) == "gz") {
+				system(paste0("zcat ", inpfile, " | awk \'((NR>1) && ($NF < ", FDRThr, "))\' - | cut -f1-6 > ", UnionLoopTempFile))
+			} else {
+				system(paste0("awk \'((NR>1) && ($NF < ", FDRThr, "))\' ", inpfile, " | cut -f1-6 > ", UnionLoopTempFile))
+			}
 		} else {
-			system(paste0("awk \'((NR>1) && ($NF < ", FDRThr, "))\' ", inpfile, " | cut -f1-6 >> ", UnionLoopTempFile))
+			if (file_ext(inpfile) == "gz") {
+				system(paste0("zcat ", inpfile, " | awk \'((NR>1) && ($NF < ", FDRThr, "))\' - | cut -f1-6 >> ", UnionLoopTempFile))
+			} else {
+				system(paste0("awk \'((NR>1) && ($NF < ", FDRThr, "))\' ", inpfile, " | cut -f1-6 >> ", UnionLoopTempFile))
+			}
 		}
 	}
 	# sort the file, remove duplicate loops
@@ -440,7 +448,11 @@ FillFeatureValues <- function(UnionLoopFile, AllLoopList, AllPeakFileList, ChrLi
 		curr_col_end <- 6 + (i-1) * 4
 		cat(sprintf("\n curr_col_end : %s ", curr_col_end))
 		
-		PeakData1 <- read.table(currpeakfile, header=F, sep="\t", stringsAsFactors=F)
+		if (file_ext(currpeakfile) == "gz") {
+			PeakData1 <- read.table(gzfile(currpeakfile), header=F, sep="\t", stringsAsFactors=F)
+		} else {
+			PeakData1 <- read.table(currpeakfile, header=F, sep="\t", stringsAsFactors=F)
+		}
 		PeakData1 <- PeakData1[, c(1,2,3,9)]
 
 		# extract the loops
@@ -551,15 +563,31 @@ ApplyEdgeR_ChIPCoverage <- function(InpFileList, HeaderInpList, ContactColList, 
 	for (i in (1:length(InpFileList))) {
 		if (HeaderInpList[i] == 1) {
 			if (i == 1) {
-				system(paste("cat", InpFileList[i], "| cut -f1-3 | awk \'(NR>1)\' - >", tempfile))
+				if (file_ext(InpFileList[i]) == "gz") {
+					system(paste("zcat", InpFileList[i], "| cut -f1-3 | awk \'(NR>1)\' - >", tempfile))
+				} else {
+					system(paste("cat", InpFileList[i], "| cut -f1-3 | awk \'(NR>1)\' - >", tempfile))
+				}
 			} else {
-				system(paste("cat", InpFileList[i], "| cut -f1-3 | awk \'(NR>1)\' - >>", tempfile))
+				if (file_ext(InpFileList[i]) == "gz") {
+					system(paste("zcat", InpFileList[i], "| cut -f1-3 | awk \'(NR>1)\' - >>", tempfile))
+				} else {
+					system(paste("cat", InpFileList[i], "| cut -f1-3 | awk \'(NR>1)\' - >>", tempfile))
+				}
 			}
 		} else {
 			if (i == 1) {
-				system(paste("cat", InpFileList[i], "| cut -f1-3 >", tempfile))
+				if (file_ext(InpFileList[i]) == "gz") {
+					system(paste("zcat", InpFileList[i], "| cut -f1-3 >", tempfile))
+				} else {
+					system(paste("cat", InpFileList[i], "| cut -f1-3 >", tempfile))
+				}
 			} else {
-				system(paste("cat", InpFileList[i], "| cut -f1-3 >>", tempfile))
+				if (file_ext(InpFileList[i]) == "gz") {
+					system(paste("zcat", InpFileList[i], "| cut -f1-3 >>", tempfile))
+				} else {
+					system(paste("cat", InpFileList[i], "| cut -f1-3 >>", tempfile))
+				}
 			}
 		}
 	}
@@ -572,9 +600,17 @@ ApplyEdgeR_ChIPCoverage <- function(InpFileList, HeaderInpList, ContactColList, 
 	# construct the coverage values for all the input data
 	for (i in (1:length(InpFileList))) {
 		if (HeaderInpList[i] == 1) {
-			x <- read.table(InpFileList[i], header=T, sep="\t", stringsAsFactors=F)
+			if (file_ext(InpFileList[i]) == "gz") {
+				x <- read.table(gzfile(InpFileList[i]), header=T, sep="\t", stringsAsFactors=F)
+			} else {
+				x <- read.table(InpFileList[i], header=T, sep="\t", stringsAsFactors=F)
+			}
 		} else {
-			x <- read.table(InpFileList[i], header=F, sep="\t", stringsAsFactors=F)
+			if (file_ext(InpFileList[i]) == "gz") {
+				x <- read.table(gzfile(InpFileList[i]), header=F, sep="\t", stringsAsFactors=F)
+			} else {
+				x <- read.table(InpFileList[i], header=F, sep="\t", stringsAsFactors=F)
+			}
 		}
 		y <- rep(0, nrow(OutDF))
 		ov <- Overlap1D(OutDF[,1:3], x[,1:3], boundary=1, offset=0, uniqov=FALSE)
@@ -1248,11 +1284,19 @@ GetPromEnh_OneSegment <- function(Segdata, TSSdata, ChIPSeqData, Ov_Offset=5000)
 Annotate_Loops_P_E <- function(InpLoopFile, InpTSSFile, ListChIPSeqFiles, AnnotatedLoopFile, CategoryList, Ov_Offset=5000) {
 
 	# read the FitHiChIP loops
-	FitHiChIPLoopData <- read.table(InpLoopFile, header=T, sep="\t", stringsAsFactors=F)
+	if (file_ext(InpLoopFile) == "gz") {
+		FitHiChIPLoopData <- read.table(gzfile(InpLoopFile), header=T, sep="\t", stringsAsFactors=F)
+	} else {
+		FitHiChIPLoopData <- read.table(InpLoopFile, header=T, sep="\t", stringsAsFactors=F)
+	}
 
 	# read the GTF file containing TSS annotation
 	# first three columns are assumed to have the chromosome segment information
-	InpGTFData <- read.table(InpTSSFile, header=T, sep="\t", stringsAsFactors=F)
+	if (file_ext(InpTSSFile) == "gz") {
+		InpGTFData <- read.table(gzfile(InpTSSFile), header=T, sep="\t", stringsAsFactors=F)
+	} else {
+		InpGTFData <- read.table(InpTSSFile, header=T, sep="\t", stringsAsFactors=F)
+	}
 
 	for (i in (1:length(ListChIPSeqFiles))) {
 		# current peak file
@@ -1332,7 +1376,11 @@ Annotate_Loops_P_E <- function(InpLoopFile, InpTSSFile, ListChIPSeqFiles, Annota
 Get_Promoter_Loops_FitHiChIP <- function(AnnotatedLoopFile, InpTSSFile, OutPromoterLoopFile, CategoryList, Ov_Offset=5000, GeneExprFileList=c(), GeneExprFileColGeneNameList=c(), GeneExprFileColGeneExprList=c()) {
 
 	# read the FitHiChIP loops
-	AnnotatedLoopData <- read.table(AnnotatedLoopFile, header=T, sep="\t", stringsAsFactors=F)
+	if (file_ext(AnnotatedLoopFile) == "gz") {
+		AnnotatedLoopData <- read.table(gzfile(AnnotatedLoopFile), header=T, sep="\t", stringsAsFactors=F)
+	} else {
+		AnnotatedLoopData <- read.table(AnnotatedLoopFile, header=T, sep="\t", stringsAsFactors=F)
+	}
 	CN <- colnames(AnnotatedLoopData)
 
 	# get the columns (indices) containing feature vectors of first segment
@@ -1350,7 +1398,11 @@ Get_Promoter_Loops_FitHiChIP <- function(AnnotatedLoopFile, InpTSSFile, OutPromo
 	Col_Feat_Gen <- setdiff(setdiff(seq(1, ncol(AnnotatedLoopData)), Col_idx_Feat1), Col_idx_Feat2)
 
 	# read the GTF file containing TSS annotation
-	InpGTFData <- read.table(InpTSSFile, header=T, sep="\t", stringsAsFactors=F)
+	if (file_ext(InpTSSFile) == "gz") {
+		InpGTFData <- read.table(gzfile(InpTSSFile), header=T, sep="\t", stringsAsFactors=F)
+	} else {
+		InpGTFData <- read.table(InpTSSFile, header=T, sep="\t", stringsAsFactors=F)
+	}
 
 	# first find out the promoter specific loops
 	# from the annotated interactions
@@ -1436,7 +1488,11 @@ Get_Promoter_Loops_FitHiChIP <- function(AnnotatedLoopFile, InpTSSFile, OutPromo
 				ColGeneName <- GeneExprFileColGeneNameList[i]
 				ColGeneExpr <- GeneExprFileColGeneExprList[i]
 
-				GeneExprData <- read.table(InpGeneExprFile, header=T, sep="\t", stringsAsFactors=FALSE)
+				if (file_ext(InpGeneExprFile) == "gz") {
+					GeneExprData <- read.table(gzfile(InpGeneExprFile), header=T, sep="\t", stringsAsFactors=FALSE)
+				} else {
+					GeneExprData <- read.table(InpGeneExprFile, header=T, sep="\t", stringsAsFactors=FALSE)
+				}
 
 				# first initialize a vector which will contain the expression value
 				# for all the interactions
