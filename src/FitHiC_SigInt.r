@@ -1746,15 +1746,11 @@ if (timeprof == 1) {
 
 # plot the variation of q-value from 0 to 0.1, in the steps of 0.01
 # and corresponding number of interaction count per range of q-values
-qvalue_seq <- seq(0,0.1,by=0.01)
+qvalue_seq <- seq(0.01,0.1,by=0.01)
 IntCount <- c()
 LogIntCount <- c()
 for (i in (1:length(qvalue_seq))) {
-	if (i == 1) {
-		cnt <- length(which(FinalData[, ncol(FinalData)] <= qvalue_seq[i]))
-	} else {
-		cnt <- length(which((FinalData[, ncol(FinalData)] <= qvalue_seq[i]) & (FinalData[, ncol(FinalData)] > qvalue_seq[i-1])))
-	}
+	cnt <- length(which(FinalData[, ncol(FinalData)] <= qvalue_seq[i]))
 	IntCount <- c(IntCount, cnt)
 	LogIntCount <- c(LogIntCount, log2(cnt+1))
 }
