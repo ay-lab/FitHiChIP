@@ -9,6 +9,7 @@
 #===========================================================
 
 library(optparse)
+library(ggplot2)
 
 #================================================
 option_list = list(
@@ -29,15 +30,22 @@ tempOutFile <- paste0(OutDir, '/temp_CC_Dist.bed')
 system(paste("awk \'function abs(v) {return v < 0 ? -v : v} {print abs($5-$2)}\'", opt$IntFile, "| sort -k1,1n | uniq -c | awk \'{if (NR>1) {print $2\"\t\"$1}}\' - > ", tempOutFile))
 
 InpData <- read.table(tempOutFile, header=F, sep="\t", stringsAsFactors=F)
-pdf(opt$OutFile, width=6, height=4)
-if (is.null(opt$TitleStr)) {
-	par(mar=c(5,5,2,2)+0.1)
-}
-plot(InpData[,1], log2(InpData[,2]+1), type="l", lty=1, lwd=2, cex=0.5, cex.lab=1.5, col="black", xlab="Interaction Distance", ylab="No of interactions (log2)", xlim=c(0, max(InpData[,1])))
-if (!is.null(opt$TitleStr)) {
-	title("FitHiChIP - distance vs interaction count (log2)")
-}
-dev.off()
+
+# pdf(opt$OutFile, width=6, height=4)
+# if (is.null(opt$TitleStr)) {
+# 	par(mar=c(5,5,2,2)+0.1)
+# }
+# plot(InpData[,1], log2(InpData[,2]+1), type="l", lty=1, lwd=2, cex=0.5, cex.lab=1.5, col="black", xlab="Interaction Distance", ylab="No of interactions (log2)", xlim=c(0, max(InpData[,1])))
+# if (!is.null(opt$TitleStr)) {
+# 	title("FitHiChIP - distance vs interaction count (log2)")
+# }
+# dev.off()
+
+a <- data.frame(group = paste("Distance vs Interaction"), x = InpData[,1], y = InpData[,2])
+curr_plotA <- ggplot(a, aes(x=x, y=y, fill=group, colour=group)) + geom_line(color="blue") + xlab('Interaction Distance') + ylab('No of significant interactions')
+curr_plotA + ggtitle("FitHiChIP - distance vs significant interactions")
+ggsave(opt$OutFile, plot = curr_plotA, width=8, height=6)
+
 
 # pdf(paste0(gsub("\\.pdf$", "", opt$OutFile), "_log.pdf"), width=6, height=4)
 # if (is.null(opt$TitleStr)) {
