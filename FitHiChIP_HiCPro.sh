@@ -189,7 +189,7 @@ do
 		if [[ $param != \#* ]]; then
 			# if there are multiple parameter values (separated by # - old values are kept)
 			# then the following operation selects the current one
-			paramval=$(echo "$paramval" | awk -F['#\t'] '{print $1}');
+			paramval=$(echo "$paramval" | awk -F['#\t'] '{print $1}' | tr -d '[:space:]');
 			echo -e "Content of $param is $paramval"
 			if [ $param == "ValidPairs" ]; then
 				InpValidPairsFile=$paramval
