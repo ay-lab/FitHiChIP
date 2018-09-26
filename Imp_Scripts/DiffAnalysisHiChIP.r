@@ -1900,14 +1900,14 @@ write.table(EdgeRCov_Differential_Bin, EdgeRCovSigFile, row.names = FALSE, col.n
 # first 19 columns are for different interacting segments
 # and the ChIP-seq related features like peak strength, etc.
 
-# # columns containing bias values for the first category
-# biascol_cat1 <- 21 + seq(1, ReplicaCount[1])
-# # columns containing bias values for the second category
-# biascol_cat2 <- 21 + ReplicaCount[1] + seq(1, ReplicaCount[2])
+# columns containing bias values for the first category
+biascol_cat1 <- 19 + seq(1, ReplicaCount[1])
+# columns containing bias values for the second category
+biascol_cat2 <- 19 + ReplicaCount[1] + seq(1, ReplicaCount[2])
 # columns containing contact count for different replicates of the first category
-CCColList_Cat1 <- 19 + ((seq(1, ReplicaCount[1]) - 1) * 2 + 1)
+CCColList_Cat1 <- 19 + ReplicaCount[1] + ReplicaCount[2] + ((seq(1, ReplicaCount[1]) - 1) * 2 + 1)
 # columns containing contact count for different replicates of the second category
-CCColList_Cat2 <- 19 + 2 * ReplicaCount[1] + ((seq(1, ReplicaCount[2]) - 1) * 2 + 1)
+CCColList_Cat2 <- 19 + ReplicaCount[1] + ReplicaCount[2] + 2 * ReplicaCount[1] + ((seq(1, ReplicaCount[2]) - 1) * 2 + 1)
 # columns containing q-val for different replicates of the first category
 QValColList_Cat1 <- CCColList_Cat1 + 1
 # columns containing q-val for different replicates of the second category
