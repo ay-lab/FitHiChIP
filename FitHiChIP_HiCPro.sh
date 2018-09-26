@@ -187,6 +187,9 @@ do
 	paramval=${value//\"/}
 	if [[ -n $param ]]; then
 		if [[ $param != \#* ]]; then
+			# if there are multiple parameter values (separated by # - old values are kept)
+			# then the following operation selects the current one
+			paramval=$(echo "$paramval" | awk -F['#\t'] '{print $1}');
 			echo -e "Content of $param is $paramval"
 			if [ $param == "ValidPairs" ]; then
 				InpValidPairsFile=$paramval
@@ -1364,7 +1367,7 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 
 	# generate distance vs CC plots
 	if [[ $nsigFitHiC -gt 1 ]]; then
-		DistPlotfile=$GenFitHiCDir'/'$PREFIX'.interactions_FitHiC_Q'${QVALUE}'_Dist_CC.pdf'	
+		DistPlotfile=$GenFitHiCDir'/'$PREFIX'.interactions_FitHiC_Q'${QVALUE}'_Dist_CC.png'	
 		$RScriptExec ./Analysis/Distance_vs_CC.r --IntFile $FitHiC_Pass1_Filtfile --OutFile $DistPlotfile	
 	fi
 
@@ -1451,7 +1454,7 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 			    awk -F['\t'] '{if (NR > 1) {if ($9 > 0) {print $1","(($2+$3)/2-1)","(($2+$3)/2+1)"\t"$4","(($5+$6)/2-1)","(($5+$6)/2+1)"\t"(-log($9)/log(10))} else {print $1","(($2+$3)/2-1)","(($2+$3)/2+1)"\t"$4","(($5+$6)/2-1)","(($5+$6)/2+1)"\t500"}}}' $FitHiC_Pass1_Filt_MergedIntfile > $FitHiC_Pass1_Filt_MergedInt_LogQ_file
 
 				# generate distance vs CC plots
-				DistPlotfile=$MergeIntDir'/'$PREFIX'.interactions_FitHiC_Q'${QVALUE}'_MergeNearContacts_Dist_CC.pdf'
+				DistPlotfile=$MergeIntDir'/'$PREFIX'.interactions_FitHiC_Q'${QVALUE}'_MergeNearContacts_Dist_CC.png'
 				$RScriptExec ./Analysis/Distance_vs_CC.r --IntFile $FitHiC_Pass1_Filt_MergedIntfile --OutFile $DistPlotfile	
 
 			else
