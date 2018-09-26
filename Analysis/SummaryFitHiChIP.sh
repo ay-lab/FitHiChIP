@@ -36,10 +36,10 @@ fi
 
 FileIntDistThr=$OutDir'/HiCPro_Matrix_BinSize'$BIN_SIZE'/L_'$LowDistThres'_U'$UppDistThres'/'$PREFIX'.cis.interactions.DistThr.bed'
 if [ -f $FileIntDistThr ]; then
-	echo \<p\> \<strong\>List of CIS interactions within the specified distance thresholds:\</strong\> \<span class=\"tab\"\> \<font color="blue"\> $FileIntDistThr \</font\> \</span\> \</p\> >>$html
+	echo \<p\> \<strong\>List of CIS interactions within the specified distance thresholds \(lower threshold: $LowDistThres upper threshold: $UppDistThres \): \</strong\> \<span class=\"tab\"\> \<font color="blue"\> $FileIntDistThr \</font\> \</span\> \</p\> >>$html
 	numIntDistThr=`cat $FileIntDistThr | wc -l`
 	numIntDistThr=`expr $numIntDistThr - 1`
-	echo \<br\> \<span class=\"tab\"\> \<font color="red"\> Number of loops: $numIntDistThr \</font\> \</span\> \</br\> >>$html
+	echo \<span class=\"tab\"\> \<font color="red"\> Number of interacting \(non zero contacts\) bin pairs \( all to all \) : $numIntDistThr \</font\> \</span\> >>$html
 fi
 
 if [ -f $OutDir'/NormFeatures/Coverage_Bias/'$PREFIX'.coverage_Bias.bed' ]; then
@@ -89,7 +89,9 @@ for looptype in 'Peak2ALL' 'Peak2Peak' 'Peak2NonPeak' 'ALL2ALL'; do
 				echo \<p\> \<h2\> Statistics for peak to non-peak loops \</h2\>\</p\> >>$html
 			fi
 			if [ $looptype == 'ALL2ALL' ]; then
-				echo \<p\> \<h2\> Statistics for ALL to ALL \(every possible loops, similar to Hi-C\) \</h3\>\</p\> >>$html
+				if [[ -d $CurrDir'/Coverage_Bias/FitHiC_BiasCorr/' || -d $CurrDir'/ICE_Bias/FitHiC_BiasCorr/' ]]; then
+					echo \<p\> \<h2\> Statistics for ALL to ALL \(every possible loops, similar to Hi-C\) \</h3\>\</p\> >>$html
+				fi
 			fi
 
 			for biastype in 'Coverage_Bias' 'ICE_Bias'; do
@@ -111,56 +113,88 @@ for looptype in 'Peak2ALL' 'Peak2Peak' 'Peak2NonPeak' 'ALL2ALL'; do
 						echo \<p\> \<h3\> Statistics for ICE bias regression \</h3\>\</p\> >>$html
 					fi
 
+					# all loops with FitHiChIP significance
 					echo \<p\> \<strong\> All interactions with their FitHiChIP significance values:\</strong\> \<span class=\"tab\"\> \<font color="blue"\> $CurrBiasDir$PREFIX'.interactions_FitHiC.bed' \</font\> \</span\> \</p\> >>$html
 
 					numInt=`cat $CurrBiasDir$PREFIX'.interactions_FitHiC.bed' | wc -l`
 					numInt=`expr $numInt - 1`
-					echo \<br\> \<span class=\"tab\"\> \<font color="red"\> Total number of interactions: $numInt \</font\> \</span\> \</br\> >>$html					
+					echo \<span class=\"tab\"\> \<font color="red"\> Number of interactions considered: $numInt \</font\> \</span\> >>$html	
 
+					# only the significant loops
 					if [ -f $CurrBiasDir$PREFIX'.interactions_FitHiC_Q'$QVALUE'.bed' ]; then
-						echo \<p\> \<strong\> Significance interactions:\</strong\> \<span class=\"tab\"\> \<font color="blue"\> $CurrBiasDir$PREFIX'.interactions_FitHiC_Q'$QVALUE'.bed' \</font\> \</span\> \</p\> >>$html
+						echo \<p\> \<strong\> Significant interactions:\</strong\> \<span class=\"tab\"\> \<font color="blue"\> $CurrBiasDir$PREFIX'.interactions_FitHiC_Q'$QVALUE'.bed' \</font\> \</span\> \</p\> >>$html
 
 						numInt=`cat $CurrBiasDir$PREFIX'.interactions_FitHiC_Q'$QVALUE'.bed' | wc -l`
 						numInt=`expr $numInt - 1`
-						echo \<br\> \<span class=\"tab\"\> \<font color="red"\> Total number of significant interactions: $numInt \</font\> \</span\> \</br\> >>$html
+						echo \<span class=\"tab\"\> \<font color="red"\> Total number of significant interactions \( FDR $QVALUE \) : $numInt \</font\> \</span\>  >>$html
 					fi
 
+					# WashU compatible files
 					if [ -f $CurrBiasDir$PREFIX'.interactions_FitHiC_Q'$QVALUE'_WashU.bed' ]; then
-						echo \<p\> \<strong\> WashU browser compatible file for significant loops:\</strong\> \<span class=\"tab\"\> \<font color="blue"\> $CurrBiasDir$PREFIX'.interactions_FitHiC_Q'$QVALUE'_WashU.bed' \</font\> \</span\> \</p\> >>$html
+						echo \<p\> \<strong\> File containing significant loops for visualization in the WashU genome browser: \</strong\> \<span class=\"tab\"\> \<font color="blue"\> $CurrBiasDir$PREFIX'.interactions_FitHiC_Q'$QVALUE'_WashU.bed' \</font\> \</span\> \</p\> >>$html
 					fi
+
+					# check if merging adjacent loops are enabled
+					if [ -f $CurrBiasDir'Merge_Nearby_Interactions/'$PREFIX'.interactions_FitHiC_Q'$QVALUE'_MergeNearContacts.bed' ]; then
+						echo \<p\> \<strong\> After merging adjacent loops \(connected component modeling\) significant interactions:\</strong\> \<span class=\"tab\"\> \<font color="blue"\> $CurrBiasDir'Merge_Nearby_Interactions/'$PREFIX'.interactions_FitHiC_Q'$QVALUE'_MergeNearContacts.bed' \</font\> \</span\> \</p\> >>$html
+
+						numInt=`cat $CurrBiasDir'Merge_Nearby_Interactions/'$PREFIX'.interactions_FitHiC_Q'$QVALUE'_MergeNearContacts.bed' | wc -l`
+						numInt=`expr $numInt - 1`
+						echo \<span class=\"tab\"\> \<font color="red"\> Total number of significant interactions \( FDR $QVALUE \) after merging adjacent loops: $numInt \</font\> \</span\>  >>$html
+					fi
+
+					# check if merging adjacent loops are enabled
+					if [ -f $CurrBiasDir'Merge_Nearby_Interactions/'$PREFIX'.interactions_FitHiC_Q'$QVALUE'_MergeNearContacts_WashU.bed' ]; then
+						echo \<p\> \<strong\> File containing significant interactions \(After merging adjacent loops\) for visualization in the WashU genome browser: \</strong\> \<span class=\"tab\"\> \<font color="blue"\> $CurrBiasDir'Merge_Nearby_Interactions/'$PREFIX'.interactions_FitHiC_Q'$QVALUE'_MergeNearContacts_WashU.bed' \</font\> \</span\> \</p\> >>$html
+					fi	
 
 					echo \<table  border=\"0\"\> >> $html
 					echo \<tbody\> >> $html
 
 					# check the spline fitting plot
-					pdffile=$CurrBiasDir'Plots/EqOccBin_SplinePass1.pdf'
-					if [ -f $pdffile ]; then
-						pngfile="${pdffile%.*}".png
-						if [ ! -f $pngfile ]; then
-							convert -verbose -density 500 -resize '800' "${pdffile}" "${pngfile}"
-						fi
+					# pdffile=$CurrBiasDir'Plots/EqOccBin_SplinePass1.pdf'
+					# if [ -f $pdffile ]; then
+					# 	pngfile="${pdffile%.*}".png
+					# 	if [ ! -f $pngfile ]; then
+					# 		convert -verbose -density 500 -resize '800' "${pdffile}" "${pngfile}"
+					# 	fi
+					# 	imgdata=$( base64 $pngfile )
+					# 	echo "<td> <a href=\"$pngfile\"><img src=\"data:image/png;base64,$imgdata\" width=500> </a></td>" >> $html
+					# fi
+					pngfile=$CurrBiasDir'Plots/EqOccBin_SplinePass1.png'
+					if [ -f $pngfile ]; then
 						imgdata=$( base64 $pngfile )
 						echo "<td> <a href=\"$pngfile\"><img src=\"data:image/png;base64,$imgdata\" width=500> </a></td>" >> $html
 					fi
 
 					# check the distance vs significant loop count plot
-					pdffile=$CurrBiasDir$PREFIX'.interactions_FitHiC_Q'$QVALUE'_Dist_CC.pdf'
-					if [ -f $pdffile ]; then
-						pngfile="${pdffile%.*}".png
-						if [ ! -f $pngfile ]; then
-							convert -verbose -density 500 -resize '800' "${pdffile}" "${pngfile}"
-						fi
+					# pdffile=$CurrBiasDir$PREFIX'.interactions_FitHiC_Q'$QVALUE'_Dist_CC.pdf'
+					# if [ -f $pdffile ]; then
+					# 	pngfile="${pdffile%.*}".png
+					# 	if [ ! -f $pngfile ]; then
+					# 		convert -verbose -density 500 -resize '800' "${pdffile}" "${pngfile}"
+					# 	fi
+					# 	imgdata=$( base64 $pngfile )
+					# 	echo "<td> <a href=\"$pngfile\"><img src=\"data:image/png;base64,$imgdata\" width=500> </a></td>" >> $html
+					# fi
+					pngfile=$CurrBiasDir$PREFIX'.interactions_FitHiC_Q'$QVALUE'_Dist_CC.png'
+					if [ -f $pngfile ]; then
 						imgdata=$( base64 $pngfile )
 						echo "<td> <a href=\"$pngfile\"><img src=\"data:image/png;base64,$imgdata\" width=500> </a></td>" >> $html
 					fi
 
 					# check the number of interactions vs q-value threshold plot
-					pdffile=$CurrBiasDir'Plots/Interaction_vs_qval.pdf'
-					if [ -f $pdffile ]; then
-						pngfile="${pdffile%.*}".png
-						if [ ! -f $pngfile ]; then
-							convert -verbose -density 500 -resize '800' "${pdffile}" "${pngfile}"
-						fi
+					# pdffile=$CurrBiasDir'Plots/Interaction_vs_qval.pdf'
+					# if [ -f $pdffile ]; then
+					# 	pngfile="${pdffile%.*}".png
+					# 	if [ ! -f $pngfile ]; then
+					# 		convert -verbose -density 500 -resize '800' "${pdffile}" "${pngfile}"
+					# 	fi
+					# 	imgdata=$( base64 $pngfile )
+					# 	echo "<td> <a href=\"$pngfile\"><img src=\"data:image/png;base64,$imgdata\" width=500> </a></td>" >> $html
+					# fi
+					pngfile=$CurrBiasDir'Plots/Interaction_vs_qval.png'
+					if [ -f $pngfile ]; then
 						imgdata=$( base64 $pngfile )
 						echo "<td> <a href=\"$pngfile\"><img src=\"data:image/png;base64,$imgdata\" width=500> </a></td>" >> $html
 					fi
