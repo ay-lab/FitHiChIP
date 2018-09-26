@@ -734,7 +734,7 @@ if [[ ! -z $MappabilityFile && ! -z $RefFastaFile && ! -z $REFragFile ]]; then
 		MappOffsetCutBedFile=$FeatureDir'/Temp_Fragment_Mapp_'$MappabilityWindowSize'bp.bed'
 		
 		if [[ ! -f $MappOffsetCutBedFile || $OverWrite == 1 ]]; then
-			awk -v s=$MappabilityWindowSize -F['\t'] 'function max(x,y) {return x>y?x:y}; function min(x,y) {return x<y?x:y}; {printf "%s\t%d\t%d\n%s\t%d\t%d\n", $1, $2, min($2+s,$3), $1, max($3-s, $2), $3}' $REFragFile | sort -k1,1 -k2,2n > $MappOffsetCutBedFile
+			awk -v s="$MappabilityWindowSize" -F['\t'] 'function max(x,y) {return x>y?x:y}; function min(x,y) {return x<y?x:y}; {printf "%s\t%d\t%d\n%s\t%d\t%d\n", $1, $2, min($2+s,$3), $1, max($3-s, $2), $3}' $REFragFile | sort -k1,1 -k2,2n > $MappOffsetCutBedFile
 
 			if [ $TimeProf == 1 ]; then
 				duration=$(echo "$(date +%s.%N) - $start" | bc)
@@ -779,7 +779,7 @@ if [[ ! -z $MappabilityFile && ! -z $RefFastaFile && ! -z $REFragFile ]]; then
 		GCOffsetCutBedFile=$FeatureDir'/Temp_Fragment_GC_'$GCContentWindowSize'bp.bed'
 		
 		if [[ ! -f $GCOffsetCutBedFile || $OverWrite == 1 ]]; then
-			awk -v s=$GCContentWindowSize -F['\t'] 'function max(x,y) {return x>y?x:y}; function min(x,y) {return x<y?x:y}; {printf "%s\t%d\t%d\n%s\t%d\t%d\n", $1, $2, min($2+s,$3), $1, max($3-s, $2), $3}' $REFragFile | sort -k1,1 -k2,2n > $GCOffsetCutBedFile
+			awk -v s="$GCContentWindowSize" -F['\t'] 'function max(x,y) {return x>y?x:y}; function min(x,y) {return x<y?x:y}; {printf "%s\t%d\t%d\n%s\t%d\t%d\n", $1, $2, min($2+s,$3), $1, max($3-s, $2), $3}' $REFragFile | sort -k1,1 -k2,2n > $GCOffsetCutBedFile
 
 			if [ $TimeProf == 1 ]; then
 				duration=$(echo "$(date +%s.%N) - $start" | bc)
