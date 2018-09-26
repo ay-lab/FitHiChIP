@@ -682,17 +682,25 @@ fit2_new.mr <- monoreg(fit2_new$x, fit2_new$y, type="antitonic")
 
 # plot the fitted spline and the smoothing regression
 if (opt$Draw) {
-	plotfile1 <- paste0(outdir,'/','EqOccBin_SplinePass1.pdf')	
-	pdf(plotfile1, width=8, height=6)
-	# par(mar=c(5,5,2,2)+0.1)
-	plot(avg_int_dist, prior_contact_prob, cex=0.5, col="black", xlab="Average interaction distance", ylab="Prior contact probability", xlim=c(0, max(gene.dist)))
-	lines(fit2$x, fit2$y, col="yellow", lwd=0.5)
-	lines(fit2.mr$x, fit2.mr$yf, col="blue", lwd=0.5)
-	lines(fit2_new$x, fit2_new$y, col="green", lwd=0.5)
-	lines(fit2_new.mr$x, fit2_new.mr$yf, col="red", lwd=0.5)
-	legend("topright",legend=c(paste("spline (fit2) - ", as.integer(fit2$df), "df (cv)"), "MR on spline (fit2.mr)", paste("5 Kb uniform spline (fit2_new) - ", as.integer(fit2_new$df), "df (cv)"), "MR on 5 Kb uniform spline (fit2_new.mr)"), col=c("yellow", "blue", "green", "red"), lty=1, lwd=1, cex=0.8)
-	title("Smooth spline - antitonic regression - pass 1")
-	dev.off()
+
+	plotfile1 <- paste0(outdir,'/EqOccBin_SplinePass1.png')
+	a <- data.frame(group = paste("Original points"), x = avg_int_dist, y = prior_contact_prob)
+	b <- data.frame(group = paste("Fitted spline"), x = fit2_new.mr$x, y = fit2_new.mr$yf)
+	curr_plotA <- ggplot(rbind(a, b), aes(x=x, y=y, fill=group)) + geom_point(size=0.1, color="blue") + geom_line(color="red") + xlab('Average interaction distance') + ylab('Prior contact probability')
+	curr_plotA + ggtitle("Smooth spline - antitonic regression - pass 1")
+	ggsave(plotfile1, plot = curr_plotA, width=8, height=6)		
+
+	# plotfile1 <- paste0(outdir,'/','EqOccBin_SplinePass1.pdf')	
+	# pdf(plotfile1, width=8, height=6)
+	# # par(mar=c(5,5,2,2)+0.1)
+	# plot(avg_int_dist, prior_contact_prob, cex=0.5, col="black", xlab="Average interaction distance", ylab="Prior contact probability", xlim=c(0, max(gene.dist)))
+	# lines(fit2$x, fit2$y, col="yellow", lwd=0.5)
+	# lines(fit2.mr$x, fit2.mr$yf, col="blue", lwd=0.5)
+	# lines(fit2_new$x, fit2_new$y, col="green", lwd=0.5)
+	# lines(fit2_new.mr$x, fit2_new.mr$yf, col="red", lwd=0.5)
+	# legend("topright",legend=c(paste("spline (fit2) - ", as.integer(fit2$df), "df (cv)"), "MR on spline (fit2.mr)", paste("5 Kb uniform spline (fit2_new) - ", as.integer(fit2_new$df), "df (cv)"), "MR on 5 Kb uniform spline (fit2_new.mr)"), col=c("yellow", "blue", "green", "red"), lty=1, lwd=1, cex=0.8)
+	# title("Smooth spline - antitonic regression - pass 1")
+	# dev.off()
 }
 
 # plot the fitted spline and the smoothing regression
@@ -1443,7 +1451,7 @@ if (opt$BiasCorr == 0) {
 			fit_spline_coeff_Intercept_new <- smooth.spline(pp.fit_spline_coeff_Intercept$x, pp.fit_spline_coeff_Intercept$y, cv=TRUE)
 
 			# plot the fitted spline "fit_spline_coeff_Intercept_new"
-			if (opt$Draw) {
+			if (0) { #(opt$Draw) {
 				plotfile1 <- paste0(outdir,'/fit_spline_coeff_Intercept_new.pdf')	
 				pdf(plotfile1, width=8, height=6)
 				# par(mar=c(5,5,2,2)+0.1)
@@ -1454,7 +1462,7 @@ if (opt$BiasCorr == 0) {
 			}
 
 			# plot the fitted spline "fit_spline_coeff_Intercept_new" in log scale
-			if (opt$Draw) {
+			if (0) { #(opt$Draw) {
 				plotfile1 <- paste0(outdir,'/fit_spline_coeff_Intercept_new_LOGScale.pdf')	
 				pdf(plotfile1, width=8, height=6)
 				# par(mar=c(5,5,2,2)+0.1)
@@ -1469,7 +1477,7 @@ if (opt$BiasCorr == 0) {
 			fit_spline_coeff_Logbias1_new <- smooth.spline(pp.fit_spline_coeff_Logbias1$x, pp.fit_spline_coeff_Logbias1$y, cv=TRUE)
 
 			# plot the fitted spline "fit_spline_coeff_Logbias1_new"
-			if (opt$Draw) {
+			if (0) { #(opt$Draw) {
 				plotfile1 <- paste0(outdir,'/fit_spline_coeff_Logbias1_new.pdf')	
 				pdf(plotfile1, width=8, height=6)
 				# par(mar=c(5,5,2,2)+0.1)
@@ -1480,7 +1488,7 @@ if (opt$BiasCorr == 0) {
 			}
 
 			# plot the fitted spline "fit_spline_coeff_Logbias1_new" in log scale
-			if (opt$Draw) {
+			if (0) { #(opt$Draw) {
 				plotfile1 <- paste0(outdir,'/fit_spline_coeff_Logbias1_new_LOGScale.pdf')	
 				pdf(plotfile1, width=8, height=6)
 				# par(mar=c(5,5,2,2)+0.1)
@@ -1495,7 +1503,7 @@ if (opt$BiasCorr == 0) {
 			fit_spline_coeff_Logbias2_new <- smooth.spline(pp.fit_spline_coeff_Logbias2$x, pp.fit_spline_coeff_Logbias2$y, cv=TRUE)
 
 			# plot the fitted spline "fit_spline_coeff_Logbias2_new"
-			if (opt$Draw) {
+			if (0) { #(opt$Draw) {
 				plotfile1 <- paste0(outdir,'/fit_spline_coeff_Logbias2_new.pdf')	
 				pdf(plotfile1, width=8, height=6)
 				# par(mar=c(5,5,2,2)+0.1)
@@ -1506,7 +1514,7 @@ if (opt$BiasCorr == 0) {
 			}
 
 			# plot the fitted spline "fit_spline_coeff_Logbias2_new" in log scale
-			if (opt$Draw) {
+			if (0) { #(opt$Draw) {
 				plotfile1 <- paste0(outdir,'/fit_spline_coeff_Logbias2_new_LOGScale.pdf')	
 				pdf(plotfile1, width=8, height=6)
 				# par(mar=c(5,5,2,2)+0.1)
@@ -1755,21 +1763,34 @@ for (i in (1:length(qvalue_seq))) {
 	LogIntCount <- c(LogIntCount, log2(cnt+1))
 }
 
-plotfile1 <- paste0(outdir,'/Interaction_vs_qval.pdf')	
-pdf(plotfile1, width=8, height=6)
-# par(mar=c(5,5,2,2)+0.1)
-plot(qvalue_seq, IntCount, cex=0.8, col="black", xlab="FDR threshold", ylab="Interaction count", xlim=c(min(qvalue_seq), max(qvalue_seq)))
-lines(qvalue_seq, IntCount, col="blue", lwd=0.8)
-title("Number of interactions below various FDR threshold values")
-dev.off()
+plotfile1 <- paste0(outdir,'/Interaction_vs_qval.png')
+a <- data.frame(group = paste("Interactions below FDR threshold"), x = qvalue_seq, y = IntCount)
+curr_plotA <- ggplot(a, aes(x=x, y=y, fill=group, colour=group)) + geom_line(color="blue") + xlab('FDR threshold') + ylab('No of significant interactions') + xlim(min(qvalue_seq), max(qvalue_seq)) + ylim(0, (max(IntCount) + 10))
+curr_plotA + ggtitle("Number of significant interactions below various FDR threshold values")
+ggsave(plotfile1, plot = curr_plotA, width=8, height=6)		
 
-plotfile1 <- paste0(outdir,'/Interaction_log2_vs_qval.pdf')	
-pdf(plotfile1, width=8, height=6)
-# par(mar=c(5,5,2,2)+0.1)
-plot(qvalue_seq, LogIntCount, cex=0.8, col="black", xlab="FDR threshold", ylab="Interaction count (log2)", xlim=c(min(qvalue_seq), max(qvalue_seq)))
-lines(qvalue_seq, LogIntCount, col="blue", lwd=0.8)
-title("Number of interactions (log2) below various FDR threshold values")
-dev.off()
+
+# plotfile1 <- paste0(outdir,'/Interaction_vs_qval.pdf')	
+# pdf(plotfile1, width=8, height=6)
+# # par(mar=c(5,5,2,2)+0.1)
+# plot(qvalue_seq, IntCount, cex=0.8, col="black", xlab="FDR threshold", ylab="Interaction count", xlim=c(min(qvalue_seq), max(qvalue_seq)))
+# lines(qvalue_seq, IntCount, col="blue", lwd=0.8)
+# title("Number of interactions below various FDR threshold values")
+# dev.off()
+
+plotfile1 <- paste0(outdir,'/Interaction_log2_vs_qval.png')
+a <- data.frame(group = paste("Interactions below FDR threshold"), x = qvalue_seq, y = LogIntCount)
+curr_plotA <- ggplot(a, aes(x=x, y=y, fill=group, colour=group)) + geom_line(color="blue") + xlab('FDR threshold') + ylab('No of significant interactions (log2)') + xlim(min(qvalue_seq), max(qvalue_seq)) + ylim(0, (max(LogIntCount) + 0.25))
+curr_plotA + ggtitle("Number of significant interactions (log2) below various FDR threshold values")
+ggsave(plotfile1, plot = curr_plotA, width=8, height=6)		
+
+# plotfile1 <- paste0(outdir,'/Interaction_log2_vs_qval.pdf')	
+# pdf(plotfile1, width=8, height=6)
+# # par(mar=c(5,5,2,2)+0.1)
+# plot(qvalue_seq, LogIntCount, cex=0.8, col="black", xlab="FDR threshold", ylab="Interaction count (log2)", xlim=c(min(qvalue_seq), max(qvalue_seq)))
+# lines(qvalue_seq, LogIntCount, col="blue", lwd=0.8)
+# title("Number of interactions (log2) below various FDR threshold values")
+# dev.off()
 
 
 
