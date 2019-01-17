@@ -73,8 +73,14 @@ FitHiChIP requires the following packages / libraries to be installed:
 
 		**** At least version 1.6 is required. We have tested with version 1.9
 
+		==== (New from version 6.0) Also install htslib (version >= 1.6) specifically for the utilities "bgzip" and "tabix"
+
+
+
 6) macs2 for peak calling (https://github.com/taoliu/MACS)
 
+
+**** User can check if the above packages are installed by typing each package name in the command line terminal and checking if the package exists in the system.
 
 **** FitHiChIP is tested in linux environment, and requires bash for executing the main script.
 
@@ -667,13 +673,73 @@ Parameters associated with this script are as follows:
 
 
 **** Example of differential loop calling using the above mentioned parameters, and with respect to the test data provided, 
-is described in the file "DiffAnalysisHiChIP_script.sh" placed within the folder "Imp_Scripts".
+is described in the file "Differetial_Analysis_Script.sh" placed in the main directory.
 
 **** This file also contains sample scripts to generate the TSS containing file (used in the parameter --InpTSSFile) 
 with respect to different reference genomes (such as hg19, mm9, mm10, etc.) Users are requested to check the script 
 in details for understanding the parameters.
 
+Describing output files generated from the Differential Analysis
+--------------------------------------------------------------
 
+Within the specified output directory (mentioned by the parameter --OutDir) of the differential analysis module, a folder with either of the following names is created (suppose we denote this folder as F):
+
+		"ExpCC": if the parameter --UseRawCC is 0
+		"RawCC": if the parameter --UseRawCC is 1
+
+	Within the directory structure F/EdgeR/, following files are observed:
+	
+		F.1.1) EdgeR_CC_Significance.bed: 3D Loops along with EdgeR generated significance 
+		F.1.2) EdgeR_CC_Significance_Expanded_FINAL_Sig.bed: significant differential 3D loops (according to EdgeR significance threshold)
+		F.1.3) EdgeR_ChIPCoverage_Significance.bed: 1D ChIP-seq bins (fixed size bins) along with their coverage based differential analysis and significance (by EdgeR)
+		F.1.4) EdgeR_ChIPCoverage_Significance_FINAL_Sig.bed: 1D significant differential bins (according to ChIP seq coverage)
+
+		In addition, two folders are provided:
+			Annot_P_P: lists all P-P loops
+			Annot_P_E: lists all P-E loops
+			
+		File Annot_P_P/Differential_3D_not_1D/Genes_Not_Excl_Both_Categories/Loops.bed:
+			Differential P-P loops which are not caused by 1D (ChIP) difference.
+
+		There are additional files within this folder, of the following naming covention:
+				Loops_CellType1_cnt1_CellType2_cnt2.bed
+				Such a file lists those loops which are significant in "cnt1" number of replicates of the category "CellType1" and "cnt2" number of replicates of the category "CellType2".
+				
+		Similarly, the file Annot_P_E/Differential_3D_not_1D/Genes_Not_Excl_Both_Categories/Loops.bed:
+			Differential P-E loops which are not caused by 1D (ChIP) difference.
+			
+
+
+Description of a differential loop file:
+----------------------------------------
+
+Above mentioned files like Loops.bed, or Loops_CellType1_cnt1_CellType2_cnt2.bed, have the following columns:
+
+		1) First 7 columns denote the TSS site information of the promoter.
+		2) Next 3 columns indicate the 5 Kb bin corresponding to the promoter (we have allowed 5 Kb slack between a TSS site and a 5 Kb bin to term it a promoter bin)
+		3) Next 3 columns denote the other interacting 5 Kb bin. For P-P loops, this bin is also a promoter. For P-E loops, this bin is an enhancer.
+		4) Next two columns denote the corresponding label (promoter / enhancer) of this second interacting segment for both input categories.
+		5) Next four columns denote whether the second interacting 5 Kb segment is peak or non-peak for both input categories. If peak, average peak strength (PS) of this bin for both input categories are also mentioned.
+		6) Next columns (except the last four) list the bias (coverage or ICE depending on the input FitHiChIP loop configurations), contact count, q-value, of individual replicates of both categories.
+		7) Last four columns denote the EdgeR output (last column: EdgeR significance)
+
+
+Utility 5 - Producing FitHiChIP loops with different FDR thresholds, and merging those loops
+-------------------------------------------------------------------------------------------------
+
+It is useful to obtain significant loops on different FDR threholds, without running the complete FitHiChIP module with different FDR threshold parameters. Those significant loops can also be applied connected component based modeling, to merge the adjacent loops for improved specificity.
+
+For a custom FDR threshold of 0.05, first user should apply the following awk script on the file PREFIX.interactions_FitHiC.bed (mentioned in section 4.1.4, file no C):
+
+awk '((NR==1) || ($NF<0.05))' ${PREFIX}.interactions_FitHiC.bed > ${PREFIX}.interactions_FitHiC_Q0.05.bed
+
+Assuming the source code of FitHiChIP is placed within the folder ${CodeDir}, user can merge the adjacent loops using the following command:
+
+python ${CodeDir}/src/CombineNearbyInteraction.py --InpFile ${PREFIX}.interactions_FitHiC_Q0.05.bed --OutFile ${PREFIX}.interactions_FitHiC_Q0.05_MergeNearContacts.bed --headerInp 1 --binsize 5000 --percent 100 --Neigh 2
+
+The file ${PREFIX}.interactions_FitHiC_Q0.05_MergeNearContacts.bed is the set of loops generated after merging adjacent ones.
+
+			
 Sample logs from the console, corresponding to the TestData
 --------------------------------------------------------------
 

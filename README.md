@@ -24,9 +24,15 @@ FitHiChIP requires the following packages / libraries to be installed:
 		
 4) bedtools (http://bedtools.readthedocs.io/en/latest/) (>= version 2.26.0)
 	
-5) samtools (http://www.htslib.org/) (>= version 1.6)
+5) samtools (http://www.htslib.org/) (>= version 1.6), 
+
+	==== (New from version 6.0) Also install htslib (version >= 1.6) specifically for the utilities "bgzip" and "tabix"
 
 6) macs2 for peak calling (https://github.com/taoliu/MACS)
+
+
+**** User can check if the above packages are installed by typing each package name in the command line terminal and checking if the package exists in the system.
+
 
 **** FitHiChIP is tested in linux environment, and requires bash for executing the main script.
 
