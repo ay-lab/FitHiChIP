@@ -1,0 +1,79 @@
+Release Notes for FitHiChIP
+---------------------------
+
+Release 6.0 - January 17, 2019 (second draft of BiorXiv)
+--------------------------
+
+1. Supports ChIP-seq peak files with or without arbitrary header lines.
+2. Minor update in plotting spline fit of regression coefficients (loop calling module).
+3. Updated code to convert the significant loops into WashU epigenome browser compatible format. A gzipped file "*_WashU.bed.gz" along with its tabix indexed file are created which can be directly used in WashU genome browser for loop visualization.
+4. Included routines to check the dependency packages and their installation in the host system, and report users accordingly.
+5. Updated configuration files so that users can readily run the test data provided with this package.
+
+
+
+Release 5.1 - Sept 25, 2018 
+--------------------------
+
+1. Creation of a summary .html file in the specified output directory. This summary file lists all the important output files the user should check, including the significant interactions. It also plots distribution of interactions according to the genomic distance, FDR thresholds, etc.
+2. Support for gzipped file in the validpairs input, matrix input (from HiC-pro) and also for the input peak file. It'll enable users to save storage space.
+3. Minor fix in the parsing configuration file routine.
+4. Minor modification in the spline and interaction plots.
+
+
+Release 5.0 - Sept 21, 2018 (corresponding to first draft in BiorXiv)
+--------------------------
+
+1. Introduced differential HiChIP loop finding routine. Input: two categories of FitHiChIP loops, each with multiple replicates.
+2. Included a separate script for peak calling from the HiChIP data itself. The generated peaks can be used for significant loop calling.
+3. Included various utility scripts:
+	3.1: producing contact matrix of varying resolutions (bin size)
+	3.2: merging ChIP-seq alignments (for producing ChIP peaks from the merged alignment)
+	3.3: generating ChIP-seq coverage from a ChIP alignment file. Useful for finding replicate specific CHIP coverage to be applied to the differential analysis module.
+4. Minor bug fix in merged filtering code.
+5. Added plotting of distance vs contact count for the significant loops.
+6. Cleaned code for discarding various redundant / experimental parameters (internal).
+
+Release 4.1 - April 3, 2018 
+--------------------------
+
+1. Reference files such as fasta sequence (corresponding to the reference genome), mappability file, restriction fragment file, are made as optional parameters. User can proceed without specifying these parameters (keeping the entries blank in the configuration file). The output interaction file is of the same format as before, except that, without any such genome specific input files, those fields have 0 values.
+2. Included support for gzipped Valid pairs and peak files.
+3. Conditional plotting of mappability, GC content, and RE sites related features, based on the inpuyt settings.
+
+
+Release 4.0.1 - March 24, 2018 (major release)
+--------------------------
+
+1. Bias regression technique is fully updated.
+2. Distance decay modeling and spline fitting (equal occupancy binning) is also fully modified.
+3. Bias regression using both peak and non-peak specific coverage bias, as well as ICE bias (implemented in HiC-pro pipeline) are supported.
+4. Introduces stringent background (using only peak to peak locus pairs) for significant loop calling for peak-to-all foreground. Corresponding version of FitHiChIP is termed as FitHiChIP(S). Earlier implemented peak-to-all locus pair specific background modeling is now referred to FitHiChIP(L).
+5. Introduces "Overwrite" parameter in the configuration file, which if 1, overwrites existing results. 
+
+
+
+Release 3.0 - Nov 28, 2017
+--------------------------
+
+1. Included a configuration file as input, where user would specify the input files as well as execution parameters.
+2. Update of merged filtering code.
+3. Adjustment of code corresponding to bedtools version 2.26.0
+
+
+Release 2.0 - Nov 15, 2017
+--------------------------
+
+1. Updated bias regression.
+2. Peak and non-peak specific coverage bias definition.
+3. First draft of merged filtering (of adjacent loops) routine.
+4. Minor bug fix regarding distance thresholding of loops.
+
+
+
+Release 1.0 - Oct 19, 2017
+--------------------------
+
+1. First release of FitHiChIP.
+2. Draft version of bias regression.
+
