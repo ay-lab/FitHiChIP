@@ -168,9 +168,18 @@ def main():
     
     for line in fp:
         linecontents = (line.rstrip()).split()
-        curr_chr = linecontents[0]
+
+        # add - sourya
+        # if the second and third entries of this line are not numbers
+        # then continue
+        if ((linecontents[1].isdigit() == False) or (linecontents[2].isdigit() == False)):
+            continue
+
+        # otherwise note down the current peak interval 
+        curr_chr = str(linecontents[0])
         peak_start = int(linecontents[1])
         peak_end = int(linecontents[2])
+        
         # only process those peaks whose chromosome 
         # is present in the current valid pairs file
         # this is possible when the peak information is downloaded from a reference
