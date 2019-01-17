@@ -16,32 +16,32 @@
 # Parameter 1 
 # File containing the valid pairs from HiCPro pipeline 
 # Can be either a text file, or a gzipped text file 
-ValidPairs=./data/GM_Cohesin_Rep1/InpValidPairs.txt.gz
+ValidPairs=./TestData/Sample_ValidPairs.txt.gz
 
 # Parameter 2
 # File containing the bin intervals (according to a specified bin size)
 # which is an output of HiC-pro pipeline
 # each bin is assigned a bin ID (integer)
 # If not provided, this is computed from the parameter 1
-Interval=./data/GM_Cohesin_Rep1/MatrixHiCPro_abs.bed.gz
+Interval=
 
 # Parameter 3
 # File storing the contact matrix (output of HiC-pro pipeline)
 # should be accompanied with the parameter 2
 # if not specified, computed from the parameter 1
 # stores the interaction count between two bins 
-Matrix=./data/GM_Cohesin_Rep1/MatrixHiCPro.matrix.gz
+Matrix=
 
 # Parameter 4
 # Reference peak file
 # mandatory parameter
 # either a reference ChIP-seq peak file is to be provided
 # or peaks inferred from the HiChIP data (using a separate script provided with this package) can be given as input
-PeakFile=./data/GM_Cohesin_Rep1/Inp.Peaks.gz
+PeakFile=./TestData/Sample.Peaks.gz
 
 # Parameter 5
 # Output base directory under which all results will be stored
-OutDir=./results/GM_Cohesin_Rep1/
+OutDir=./TestData/results/
 
 # Parameter 6
 # Base directory of HiC-pro package.
@@ -55,7 +55,7 @@ HiCProBasedir=/home/sourya/packages/HiCPro/HiC-Pro_2.9.0/
 #======================================
 
 # Absolute path of the file containing the information of reference chromosome size
-ChrSizeFile=./data/chrom_hg19.sizes
+ChrSizeFile=./TestData/chrom_hg19.sizes
 
 # fasta file of the reference genome
 # used to compute the GC content information
@@ -132,7 +132,8 @@ NBins=200
 # ****************
 # Applicable only for peak to all interactions (where IntType=3)
 # value of 1 means that peak to peak (or stringent) locus pairs  will be used for FitHiC distance specific background estimation. Denoted as stringent background or FitHiChIP(S) (refer to the manuscript)
-# Value of 0 means all locus pairs (peak to peak or peak to non-peak) will be used for FitHiC distance specific background estimation. Denoted as loose background or FitHiChIP(L) (refer to the manuscript)
+# Value of 0 means all locus pairs (peak to peak or peak to non-peak) will be used for FitHiC distance specific background estimation. 
+# Denoted as loose background or FitHiChIP(L) (refer to the manuscript)
 # ******* Use 1 if you require very stringent output (only very highly significant interactions would be reported)
 # ******* Use 0 if you allow less stringency (higher number of interactions would be reported)
 # we recommend using this value as 1 (i.e. using FitHiChIP(S) version when peak to all interactions are reported)
@@ -186,5 +187,5 @@ TimeProf=0
 # default 0
 # if user is re-executing one sample (with the same parameters and output directory names), 
 # then consider this parameter and set to 1 if file contents need to be overwritten (and re-computed)
-OverWrite=0
+OverWrite=1
 
