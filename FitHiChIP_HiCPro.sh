@@ -409,20 +409,221 @@ fi
 
 if [[ -z $HiCProBasedir ]]; then
 	if [[ -z $InpBinIntervalFile || -z $InpMatrixFile ]]; then
-		echo 'Input matrices are not provided and the Base directory of HiC-pro installation path is also not provided - exit !!'
+		echo 'ERROR ====>>> Input matrices are not provided and the Base directory of HiC-pro installation path is also not provided - exit !!'
 		exit 1
 	fi
 fi
 
 if [[ -z $ChrSizeFile ]]; then
-	echo 'Chromosome size file is not specified - exit !!'
+	echo 'ERROR ====>>> Chromosome size file is not specified - exit !!'
 	exit 1
 fi
 
-#==============================
+#*****************************
+# error checking - 
+# check if the required libraries are all installed or not
+#*****************************
+if [ 1 == 1 ]; then
+
+# boolean variable indicating error condition
+errcond=0
+
+# first check the HiC-pro installation
+HiCProVersion=$(HiC-Pro -v | head -n 1 | awk -F[" "] '{print $3}' -)
+if [[ -z "$HiCProVersion" ]]; then
+    echo "ERROR ====>>> HiC-pro is not installed in the system !!! FitHiChIP quits !!!" 
+    errcond=1
+    # exit 1
+else
+	echo "HiC-pro is installed in the system"
+fi
+parsedVersion=$(echo "${HiCProVersion//./}")
+if [[ "$parsedVersion" -lt "290" ]]; then 
+    echo "ERROR ====>>> HiC-pro should have version >=  2.9.0 !!! FitHiChIP quits !!!"
+    errcond=1
+    # exit 1
+else
+	echo "Installed HiC-pro version: "${HiCProVersion}
+fi
+
+# first check the python version
+# check if python is installed and its version is > 2.7.0
+pythonversion=$(python -V 2>&1 | grep -Po '(?<=Python )(.+)')
+if [[ -z "$pythonversion" ]]; then
+    echo "ERROR ====>>> No Python installation is detected in the system !!! FitHiChIP quits !!!" 
+    errcond=1
+    # exit 1
+fi
+parsedVersion=$(echo "${pythonversion//./}")
+if [[ "$parsedVersion" -lt "300" && "$parsedVersion" -gt "270" ]]; then 
+    echo "*** Valid python version is detected - installed version: "$pythonversion
+elif [[ "$parsedVersion" -lt "3000" && "$parsedVersion" -gt "2700" ]]; then 
+	echo "*** Valid python version is detected - installed version: "$pythonversion
+else
+    echo "ERROR ====>>> Invalid python version : "$pythonversion
+    echo " --- should be python 2 with version > 2.7.0 !!! FitHiChIP quits !!!"
+    errcond=1
+    # exit 1
+fi
+
+# check if python libraries are also installed
+if python -c "import gzip"; then
+    echo '*** Python library gzip is installed'
+else
+    echo 'ERROR ====>>> Python library gzip is not installed !!! FitHiChIP quits !!!'
+    errcond=1
+    # exit 1
+fi
+if python -c "from optparse import OptionParser"; then
+    echo '*** Python module OptionParser (from the package optparse) is installed'
+else
+    echo 'ERROR ====>>> Python module OptionParser (from the package optparse) is not installed !!! FitHiChIP quits !!!'
+    errcond=1
+    # exit 1
+fi
+if python -c "import networkx"; then
+    echo '*** Python package networkx is installed'
+else
+    echo 'ERROR ====>>> Python package networkx is not installed !!! FitHiChIP quits !!!'
+    errcond=1
+    # exit 1
+fi
+
+# check if MACS2 package is installed
+macs2version=$(macs2 --version 2>&1 |  head -n 1 | awk -F[" "] '{print $2 }' -)
+if [[ -z "$macs2version" ]]; then
+    echo "ERROR ====>>> MACS2 peak calling package is not detected in the system !!! FitHiChIP quits !!!" 
+    errcond=1
+    # exit 1
+else
+	echo "*** Found MACS2 package (for peak calling) installed in the system -  "$macs2version
+fi
+
+# check the R version
+Rversion=$(R --version | head -n 1 | awk -F[" "] '{print $3}' -)
+if [[ -z "$Rversion" ]]; then
+    echo "ERROR ====>>> No R installation is detected in the system !!! FitHiChIP quits !!!" 
+    errcond=1
+    # exit 1
+fi
+parsedVersion=$(echo "${Rversion//./}")
+if [[ "$parsedVersion" -ge "330" && "$parsedVersion" -lt "1000" ]]; then 
+    echo "*** Valid R version is detected - installed R version: "$Rversion
+elif [[ "$parsedVersion" -ge "3300" && "$parsedVersion" -lt "10000" ]]; then 
+    echo "*** Valid R version is detected - installed R version: "$Rversion
+elif [[ "$parsedVersion" -ge "31000" ]]; then 
+    echo "*** Valid R version is detected - installed R version: "$Rversion      
+else
+    echo "ERROR ====>>> Invalid R version: "$Rversion
+    echo " -- should be at least R 3.3 !!! FitHiChIP quits !!!"
+    errcond=1
+    # exit 1
+fi
+
+# check the samtools version
+samtoolsversion=$(samtools 2>&1 | grep "Version" | awk -F[" "] '{print $2}' -)
+if [[ -z "$samtoolsversion" ]]; then
+    echo "ERROR ====>>> No samtools installation is detected in the system !!! FitHiChIP quits !!!" 
+    errcond=1
+    # exit 1
+fi
+parsedsamtoolsVersion=$(echo "${samtoolsversion//./}")
+if [[ ${samtoolsversion:0:1} == "0" ]]; then
+	# samtools version is 0.*
+	echo "ERROR ====>>> Invalid samtools version : "$samtoolsversion 
+	echo " - should be at least 1.6 !!! FitHiChIP quits !!!"
+	errcond=1
+elif [[ "$parsedsamtoolsVersion" -ge "16" && "$parsedsamtoolsVersion" -lt "99" ]]; then
+    echo "*** Valid samtools version is detected - installed version: "$samtoolsversion
+elif [[ "$parsedsamtoolsVersion" -ge "160" && "$parsedsamtoolsVersion" -lt "999" ]]; then
+	echo "*** Valid samtools version is detected - installed version: "$samtoolsversion
+else
+    echo "ERROR ====>>> Invalid samtools version : "$samtoolsversion 
+    echo " - should be at least 1.6 !!! FitHiChIP quits !!!"
+    errcond=1
+    # exit 1
+fi
+
+# check if bgzip is installed in the system
+bgzipnum=`bgzip -h 2>&1 | wc -l`
+if [[ $bgzipnum -gt 5 ]]; then
+	echo "*** bgzip utility is installed in the system"
+else
+	echo "ERROR =====>> bgzip utility is NOT installed in the system -- please install it from htslib (associated with samtools) version >= 1.6"
+	errcond=1
+	# exit 1
+fi
+
+# check if tabix is installed in the system
+tabixnum=`tabix -h 2>&1 | wc -l`
+if [[ $tabixnum -gt 5 ]]; then
+	echo "*** tabix utility is installed in the system"
+else
+	echo "ERROR =====>> tabix utility is NOT installed in the system -- please install it from htslib (associated with samtools) version >= 1.6"
+	errcond=1
+	# exit 1
+fi
+
+# check the bedtools version
+# command 1
+bedtoolsversion1=$(bedtools --version | head -n 1 | awk -F[" "] '{print substr($2,2); }' -)
+# echo "bedtoolsversion1: "$bedtoolsversion1
+# command 2
+bedtoolsversion2=$(bedtools 2>&1 | grep "Version" | awk -F[" "] '{print substr($NF,2); }' -)
+# echo "bedtoolsversion2: "$bedtoolsversion2
+# if both commands fail then surely bedtools is not installed in the system
+if [[ -z "$bedtoolsversion1" && -z "$bedtoolsversion2" ]]; then
+    echo "ERROR ====>>> No bedtools installation is detected in the system !!! FitHiChIP quits !!!" 
+    errcond=1
+    # exit 1
+fi
+if [[ ! -z "$bedtoolsversion1" ]]; then
+    parsedbedtoolsVersion=$(echo "${bedtoolsversion1//./}")
+    if [[ "$parsedbedtoolsVersion" -ge "2260" && "$parsedbedtoolsVersion" -lt "9999" ]]; then 
+        echo "*** Valid bedtools version is detected - installed version: "$bedtoolsversion1
+    elif [[ "$parsedbedtoolsVersion" -ge "300" && "$parsedbedtoolsVersion" -lt "999" ]]; then
+        echo "*** Valid bedtools version is detected - installed version: "$bedtoolsversion1
+    else
+        echo "ERROR ====>>> Invalid bedtools version : "$bedtoolsversion1
+        echo " - should be at least 2.26.0 !!! FitHiChIP quits !!!"
+        errcond=1
+        # exit 1
+    fi
+fi
+if [[ -z "$bedtoolsversion1" && ! -z "$bedtoolsversion2" ]]; then
+    parsedbedtoolsVersion=$(echo "${bedtoolsversion2//./}")
+    if [[ "$parsedbedtoolsVersion" -ge "2260" && "$parsedbedtoolsVersion" -lt "9999" ]]; then 
+        echo "*** Valid bedtools version is detected - installed version: "$bedtoolsversion2
+    elif [[ "$parsedbedtoolsVersion" -ge "300" && "$parsedbedtoolsVersion" -lt "999" ]]; then
+        echo "*** Valid bedtools version is detected - installed version: "$bedtoolsversion2
+    else
+        echo "ERROR ====>>> Invalid bedtools version : "$bedtoolsversion2
+        echo " - should be at least 2.26.0 !!! FitHiChIP quits !!!"
+        errcond=1
+        # exit 1
+    fi
+fi
+
+# final evaluation
+if [[ $errcond == 1 ]]; then
+	echo " --------->>>>>> ERROR - current system has one or more packages missing" 
+	echo " ------- please check the above logs and install the missing packages before executing FitHiChIP"
+	echo " ------- exiting for the moment !!"
+	exit 1
+fi
+
+#*****************************
+fi 	# end dummy if - testing installed packages
+#*****************************
+
+
+#*****************************
 # here check if the configuration file has relative path names as the input
 # in such a case, convert the relative path names (with respect to the location of the configuration file itself)
 # in the absolute file
+
+# also perform Error checking - check if input files provided are correct
+# i.e. these files exist
 
 echo -e "\n ================ Changing relative pathnames of the input files to their absolute path names ================="
 
@@ -433,6 +634,11 @@ ConfigFileDir=$(dirname "${ConfigFile}")
 cd $ConfigFileDir
 
 if [[ ! -z $InpValidPairsFile ]]; then
+	if [ ! -f $InpValidPairsFile ]; then
+		echo 'ERROR ===>>>> Valid pairs file provided as input : '$InpValidPairsFile
+		echo 'However, no such valid pairs file exists - check input file and path - FitHiChIP quits !!'
+		exit 1
+	fi
 	if [[ "${InpValidPairsFile:0:1}" != / && "${InpValidPairsFile:0:2}" != ~[/a-z] ]]; then
 		# relative path - convert to absolute path
 		InpValidPairsFile="$(cd $(dirname $InpValidPairsFile); pwd)/$(basename $InpValidPairsFile)"
@@ -441,6 +647,11 @@ if [[ ! -z $InpValidPairsFile ]]; then
 fi
 
 if [[ ! -z $InpBinIntervalFile ]]; then
+	if [ ! -f $InpBinIntervalFile ]; then
+		echo 'ERROR ===>>>> Bin interval file provided as input : '$InpBinIntervalFile
+		echo 'However, no such bin interval file exists - check input file and path - FitHiChIP quits !!'
+		exit 1
+	fi
 	if [[ "${InpBinIntervalFile:0:1}" != / && "${InpBinIntervalFile:0:2}" != ~[/a-z] ]]; then
 		# relative path - convert to absolute path
 		InpBinIntervalFile="$(cd $(dirname $InpBinIntervalFile); pwd)/$(basename $InpBinIntervalFile)"
@@ -449,6 +660,11 @@ if [[ ! -z $InpBinIntervalFile ]]; then
 fi
 
 if [[ ! -z $InpMatrixFile ]]; then
+	if [ ! -f $InpMatrixFile ]; then
+		echo 'ERROR ===>>>> HiChIP matrix file provided as input : '$InpMatrixFile
+		echo 'However, no such matrix file exists - check input file and path - FitHiChIP quits !!'
+		exit 1
+	fi	
 	if [[ "${InpMatrixFile:0:1}" != / && "${InpMatrixFile:0:2}" != ~[/a-z] ]]; then
 		# relative path - convert to absolute path
 		InpMatrixFile="$(cd $(dirname $InpMatrixFile); pwd)/$(basename $InpMatrixFile)"
@@ -457,6 +673,11 @@ if [[ ! -z $InpMatrixFile ]]; then
 fi
 
 if [[ ! -z $PeakFILE ]]; then
+	if [ ! -f $PeakFILE ]; then
+		echo 'ERROR ===>>>> Peak file provided as input : '$PeakFILE
+		echo 'However, no such peak file exists - check input file and path - FitHiChIP quits !!'
+		exit 1
+	fi
 	if [[ "${PeakFILE:0:1}" != / && "${PeakFILE:0:2}" != ~[/a-z] ]]; then
 		# relative path - convert to absolute path
 		PeakFILE="$(cd $(dirname $PeakFILE); pwd)/$(basename $PeakFILE)"
@@ -465,6 +686,11 @@ if [[ ! -z $PeakFILE ]]; then
 fi
 
 if [[ ! -z $RefFastaFile ]]; then
+	if [ ! -f $RefFastaFile ]; then
+		echo 'ERROR ===>>>> Fasta file of reference genome provided as input : '$RefFastaFile
+		echo 'However, no such fasta file exists - check input file and path - FitHiChIP quits !!'
+		exit 1
+	fi
 	if [[ "${RefFastaFile:0:1}" != / && "${RefFastaFile:0:2}" != ~[/a-z] ]]; then
 		# relative path - convert to absolute path
 		RefFastaFile="$(cd $(dirname $RefFastaFile); pwd)/$(basename $RefFastaFile)"
@@ -473,6 +699,11 @@ if [[ ! -z $RefFastaFile ]]; then
 fi
 
 if [[ ! -z $REFragFile ]]; then
+	if [ ! -f $REFragFile ]; then
+		echo 'ERROR ===>>>> Restriction fragment file provided as input : '$REFragFile
+		echo 'However, no such restriction fragment file exists - check input file and path - FitHiChIP quits !!'
+		exit 1
+	fi
 	if [[ "${REFragFile:0:1}" != / && "${REFragFile:0:2}" != ~[/a-z] ]]; then
 		# relative path - convert to absolute path
 		REFragFile="$(cd $(dirname $REFragFile); pwd)/$(basename $REFragFile)"
@@ -481,6 +712,11 @@ if [[ ! -z $REFragFile ]]; then
 fi
 
 if [[ ! -z $ChrSizeFile ]]; then
+	if [ ! -f $ChrSizeFile ]; then
+		echo 'ERROR ===>>>> File containing size of chromosomes for the reference genome, as provided : '$ChrSizeFile
+		echo 'However, no such chromosome size containing file exists - check input file and path - FitHiChIP quits !!'
+		exit 1
+	fi
 	if [[ "${ChrSizeFile:0:1}" != / && "${ChrSizeFile:0:2}" != ~[/a-z] ]]; then
 		# relative path - convert to absolute path
 		ChrSizeFile="$(cd $(dirname $ChrSizeFile); pwd)/$(basename $ChrSizeFile)"
@@ -489,6 +725,11 @@ if [[ ! -z $ChrSizeFile ]]; then
 fi
 
 if [[ ! -z $MappabilityFile ]]; then
+	if [ ! -f $MappabilityFile ]; then
+		echo 'ERROR ===>>>> Mappability information containing file provided as input : '$MappabilityFile
+		echo 'However, no such Mappability related file exists - check input file and path - FitHiChIP quits !!'
+		exit 1
+	fi
 	if [[ "${MappabilityFile:0:1}" != / && "${MappabilityFile:0:2}" != ~[/a-z] ]]; then
 		# relative path - convert to absolute path
 		MappabilityFile="$(cd $(dirname $MappabilityFile); pwd)/$(basename $MappabilityFile)"
@@ -505,6 +746,11 @@ if [[ ! -z $OutDir ]]; then
 fi
 
 if [[ ! -z $HiCProBasedir ]]; then
+	if [ ! -d $HiCProBasedir ]; then
+		echo 'ERROR ===>>>> Base directory of HiC-Pro package as provided : '$HiCProBasedir
+		echo 'However, no such directory exists in the system - check input file and path - FitHiChIP quits !!'
+		exit 1
+	fi	
 	if [[ "${HiCProBasedir:0:1}" != / && "${HiCProBasedir:0:2}" != ~[/a-z] ]]; then
 		# relative path - convert to absolute path
 		HiCProBasedir="$(cd $(dirname $HiCProBasedir); pwd)/$(basename $HiCProBasedir)"
@@ -530,19 +776,21 @@ if [[ ! -f $ConfFile || $OverWrite == 1 ]]; then
 
 	echo "Listing the input files: " >> $ConfFile
 	echo "Input file containing the valid pairs (generated from HIC-PRO pipeline): $InpValidPairsFile " >> $ConfFile
-	echo "Input file containing the fixed size bin intervals (generated from HIC-PRO pipeline): $InpBinIntervalFile " >> $ConfFile
-	echo "Input file storing the contact matrix between the fixed size bins (generated from HIC-PRO pipeline): $InpMatrixFile " >> $ConfFile
+	if [[ ! -z $InpBinIntervalFile ]]; then
+		echo "Input file containing the fixed size bin intervals (generated from HIC-PRO pipeline): $InpBinIntervalFile " >> $ConfFile
+	fi
+	if [[ ! -z $InpMatrixFile ]]; then
+		echo "Input file storing the contact matrix between the fixed size bins (generated from HIC-PRO pipeline): $InpMatrixFile " >> $ConfFile
+	fi
 	echo "Input ChIP-seq peak file: $PeakFILE " >> $ConfFile
 	echo "File containing chromosome size information corresponding to the reference chromosome: $ChrSizeFile " >> $ConfFile
 
 	if [[ ! -z $MappabilityFile ]]; then
 		echo "Mappability File: $MappabilityFile " >> $ConfFile
 	fi
-
 	if [[ ! -z $RefFastaFile ]]; then
 		echo "Reference Fasta sequence File: $RefFastaFile " >> $ConfFile
 	fi
-
 	if [[ ! -z $REFragFile ]]; then
 		echo "Restriction Fragment File: $REFragFile " >> $ConfFile
 	fi
@@ -599,7 +847,11 @@ echo 'Executable of python (2): '$PythonExec
 RScriptExec=`which Rscript`
 echo 'Executable of R : '$RScriptExec
 
-#==============================
+# #************************
+# # error checking
+# # check if R libraries are also installed
+# # otherwise, install those packages
+# $RScriptExec ./Analysis/PackageTest.r
 
 #=================
 # if the matrices are not provided and the validpairs text file is provided
@@ -618,10 +870,18 @@ if [[ -z $InpBinIntervalFile || -z $InpMatrixFile ]]; then
 	MatrixBuildExecSet=( $(find $HiCProBasedir -type f -name 'build_matrix') )
 	len=${#MatrixBuildExecSet[@]}
 	# echo 'len: '$len
-	if [[ $len == 0 ]]; then
-		echo 'Did not find HiC-pro package installation and the utility for matrix generation - quit !!'
+	
+	#==========================
+	# error in the reference HiC-pro package
+	# if such script is not found
+	if [[ $len == 0 ]]; then		
+		echo 'ERROR ===>>>> searching the script build_matrix within HiC-pro installed package but did not find ----'
+		echo 'Matrix from the input valid pairs file could not be generated - FitHiChIP is quiting !!!'
+		echo 'Check the directory of HiC-pro Package or check its version (recommended >= 2.9.0)'
 		exit 1
 	fi
+	#==========================
+	
 	idx=`expr $len - 1`
 	# echo 'idx: '$idx
 	MatrixBuildExec=${MatrixBuildExecSet[$idx]}
@@ -730,7 +990,7 @@ if [[ ! -z $MappabilityFile && ! -z $RefFastaFile && ! -z $REFragFile ]]; then
 		# the final generated file is applied on bedtools map function
 		# do, it should be sorted by genome coordinate, using the function sort -k1,1 -k2,2n
 		#============================
-		echo 'Creating the fragment end (w.r.t window size) file -- to compute the mappability information!!'
+		echo '======== Creating the fragment end (w.r.t window size) file -- to compute the mappability information!!'
 		MappOffsetCutBedFile=$FeatureDir'/Temp_Fragment_Mapp_'$MappabilityWindowSize'bp.bed'
 		
 		if [[ ! -f $MappOffsetCutBedFile || $OverWrite == 1 ]]; then
@@ -751,7 +1011,7 @@ if [[ ! -z $MappabilityFile && ! -z $RefFastaFile && ! -z $REFragFile ]]; then
 		# mean indicates the average score to be used in the final output
 		# Note: Also replace the non-number entries with 0
 		#============================
-		echo 'Creating the mappability file !!'
+		echo '======== Creating the mappability file !!'
 		MappabilityOutFile=$FeatureDir'/Mappability_RE_Fragments.bed'
 		
 		if [[ ! -f $MappabilityOutFile || $OverWrite == 1 ]]; then
@@ -775,7 +1035,7 @@ if [[ ! -z $MappabilityFile && ! -z $RefFastaFile && ! -z $REFragFile ]]; then
 		# the final generated file is applied on bedtools map function
 		# do, it should be sorted by genome coordinate, using the function sort -k1,1 -k2,2n
 		#============================
-		echo 'Creating the fragment end (w.r.t window size) file -- to compute the GC content information!!'
+		echo '======== Creating the fragment end (w.r.t window size) file -- to compute the GC content information!!'
 		GCOffsetCutBedFile=$FeatureDir'/Temp_Fragment_GC_'$GCContentWindowSize'bp.bed'
 		
 		if [[ ! -f $GCOffsetCutBedFile || $OverWrite == 1 ]]; then
@@ -793,7 +1053,7 @@ if [[ ! -z $MappabilityFile && ! -z $RefFastaFile && ! -z $REFragFile ]]; then
 		# bedtools suite is used
 		# Note: Also replace the non-number entries with 0
 		#============================
-		echo 'Creating the GC content file !!'
+		echo '======== Creating the GC content file !!'
 		GCOutFile=$FeatureDir'/GC_Content_RE_Fragments.bed'
 		
 		if [[ ! -f $GCOutFile || $OverWrite == 1 ]]; then
@@ -856,7 +1116,7 @@ CoverageFile=$FeatureDir'/'$PREFIX'.coverage.bed'
 
 if [[ ! -f $CoverageFile || $OverWrite == 1 ]]; then
 	$PythonExec ./src/CoverageBin.py -i $InpValidPairsFile -p $PeakFILE -b $BIN_SIZE -o $CoverageFile -c $ChrSizeFile
-	echo 'Computed initial coverage information for individual genomic bins'
+	echo '======== Computed initial coverage information for individual genomic bins'
 	
 	if [ $TimeProf == 1 ]; then
 		duration=$(echo "$(date +%s.%N) - $start" | bc)
@@ -892,7 +1152,7 @@ if [[ ! -f $CoverageBiasFile || $OverWrite == 1 ]]; then
 		# compute the bias from the coverage of individual bins
 		# use peaks and non-peaks separately for bias computation
 		$RScriptExec ./src/BiasCalc.r --CoverageFile $CoverageFile --OutFile $CoverageBiasFile
-		echo 'Appended bias information for individual genomic bins'
+		echo '======== Appended coverage bias information for individual genomic bins'
 	else
 		# here ICE specific bias is used
 		# compute the bias vector from the HiC-pro contact matrix
@@ -924,6 +1184,7 @@ if [[ ! -f $CoverageBiasFile || $OverWrite == 1 ]]; then
 		# so we do not use the "paste" function
 		$RScriptExec ./src/BiasCalc.r --CoverageFile $CoverageFile --BiasFile $temp_ICEBias_binfile --OutFile $CoverageBiasFile
 
+		echo '======== Appended ICE bias information for individual genomic bins'
 	fi
 
 	if [ $TimeProf == 1 ]; then
@@ -1013,9 +1274,9 @@ fi
 #=================
 # now we plot various features for individual genomic bins
 #=================
-echo -e "\n ================ Plotting bias and non-bias related feature distributions for peaks and non-peaks ================="
-
 if [ $DrawFig == 1 ]; then
+
+	echo -e "\n ================ Plotting bias and non-bias related feature distributions for peaks and non-peaks ================="
 
 	# only bias specific plots would be placed in different directories, based on 
 	# whether coverage specific bias or ICE specific bias is used
@@ -1084,9 +1345,9 @@ echo 'Total number of columns for the complete feature interactions: '$totcol
 # using the merged interaction + feature file for all bins
 # plot the variation among different features
 #===================
-echo -e "\n ================ Plotting the distribution of normalization features among peak and non peak segments =============="
-
 if [ $DrawFig == 1 ]; then
+
+	echo -e "\n ================ Plotting the distribution of normalization features among peak and non peak segments =============="
 
 	# two different directories are employed for plotting
 	# 1) common dir for plotting non-bias related features
@@ -1190,7 +1451,7 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 		start=$(date +%s.%N)
 	fi
 
-	echo -e "\n ============ Performing FitHiC =============== \n"
+	echo -e "\n ============ Calling significant interactions =============== \n"
 
 	# first create interaction files with sorted genomic distance
 	CurrIntFile=$currdirname'/'$InteractionFileName
@@ -1240,7 +1501,7 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 	# else
 	# 	GenFitHiCDir=$GenFitHiCDir'/BinomDistr'
 	# fi
-	echo '============== ************* Current directory for FitHiC execution: '$GenFitHiCDir
+	echo '============== ************* Current directory for FitHiChIP significant interaction calling: '$GenFitHiCDir
 	mkdir -p $GenFitHiCDir
 
 	#====================================
@@ -1341,7 +1602,7 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 		fi
 		# end add - sourya
 		#===========================
-		echo '---- Applied FitHiC (complete set of interactions)'
+		echo '******** FINISHED calling significant interactions'
 	fi
 
 	# Filter the interaction file with respect to significance (Q value < $QVALUE)
@@ -1353,7 +1614,7 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 		# due to strange awk error - possibly due to format conversion error between awk and R
 		# also we check whether the field is not NA
 		awk -F['\t'] -v q="$QVALUE" '{if ((NR==1) || (($NF != "NA") && (sprintf("%0.400f",$NF) < q))) {print $0}}' $FitHiC_Pass1_outfile > $FitHiC_Pass1_Filtfile
-		echo '----- Extracted significant interactions from FitHiC'
+		echo '----- Extracted significant interactions ---- FDR threshold lower than: '$QVALUE
 	fi
 
 	if [ $TimeProf == 1 ]; then
@@ -1405,18 +1666,36 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 	# for that, a special file containing only the interacting chromosome intervals 
 	# and the log of Q value is created
 
-	if [[ ! -f $FitHiC_Pass1_LogQ_file || $OverWrite == 1 ]]; then
+	# comment - sourya
+	# if [[ ! -f $FitHiC_Pass1_LogQ_file || $OverWrite == 1 ]]; then
+		
 		# check for non empty interactions file
 		if [[ $nsigFitHiC -gt 1 ]]; then
 			# print the midpoints of the interactions
 		    # for better display in the WashU genome browser
 		    # check: if Q score is 0, we replace the log of Q score by a default value of 100
-		    awk -F['\t'] '{if (NR > 1) {if ($NF > 0) {print $1","(($2+$3)/2-1)","(($2+$3)/2+1)"\t"$4","(($5+$6)/2-1)","(($5+$6)/2+1)"\t"(-log($NF)/log(10))} else {print $1","(($2+$3)/2-1)","(($2+$3)/2+1)"\t"$4","(($5+$6)/2-1)","(($5+$6)/2+1)"\t500"}}}' $FitHiC_Pass1_Filtfile > $FitHiC_Pass1_LogQ_file			
+
+		    # old code - sourya
+		    # compatible with the old WashU browser 
+		    # awk -F['\t'] '{if (NR > 1) {if ($NF > 0) {print $1","(($2+$3)/2-1)","(($2+$3)/2+1)"\t"$4","(($5+$6)/2-1)","(($5+$6)/2+1)"\t"(-log($NF)/log(10))} else {print $1","(($2+$3)/2-1)","(($2+$3)/2+1)"\t"$4","(($5+$6)/2-1)","(($5+$6)/2+1)"\t500"}}}' $FitHiC_Pass1_Filtfile > $FitHiC_Pass1_LogQ_file
+
+		    # new code - sourya
+		    # compatible with the new WashU browser (or generally applicable)
+		    # converts into a tabix formatted gzipped file
+		    awk -F['\t'] '{if (NR > 1) {if ($NF > 0) {print $1"\t"(($2+$3)/2-1)"\t"(($2+$3)/2+1)"\t"$4":"(($5+$6)/2-1)"-"(($5+$6)/2+1)","(-log($NF)/log(10))"\t"(NR-1)"\t."} else {print $1"\t"(($2+$3)/2-1)"\t"(($2+$3)/2+1)"\t"$4":"(($5+$6)/2-1)"-"(($5+$6)/2+1)",500\t"(NR-1)"\t."}}}' $FitHiC_Pass1_Filtfile | sort -k1,1 -k2,2n > $FitHiC_Pass1_LogQ_file
+		    if [ -f $FitHiC_Pass1_LogQ_file'.gz' ]; then
+		    	rm $FitHiC_Pass1_LogQ_file'.gz'
+	    	fi
+		    bgzip $FitHiC_Pass1_LogQ_file
+		    tabix -f -p bed $FitHiC_Pass1_LogQ_file'.gz'
+
 			echo 'generated WashU epigenome browser compatible significant interactions'
 		else
 			echo 'There is no significant interaction - so no WashU specific session file is created !!'
 		fi
-	fi
+
+	# comment - sourya
+	# fi
 
 	# if [[ $DrawFig == 1 && $currdirname != $DirALLtoALL ]]; then
 	# 	res_outdir=$GenFitHiCDir'/Results'
@@ -1443,7 +1722,8 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 		if [[ ! -f $FitHiC_Pass1_Filt_MergedIntfile || $OverWrite == 1 ]]; then
 			# create merged interactions - connected component based analysis
 			$PythonExec ./src/CombineNearbyInteraction.py --InpFile $FitHiC_Pass1_Filtfile --OutFile $FitHiC_Pass1_Filt_MergedIntfile --headerInp 1 --binsize $BIN_SIZE --percent 100 --Neigh 2
-			echo 'merged nearby interactions'
+			echo '-------- *** Merged filtering option is true'
+			echo '----- Applied merged filtering (connected component model) on the adjacent loops of FitHiChIP'
 
 			nint=`cat $FitHiC_Pass1_Filt_MergedIntfile | wc -l`
 			if [[ $nint -gt 1 ]]; then
@@ -1451,7 +1731,20 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 				# print the midpoints of the interactions
 			    # for better display in the WashU genome browser
 			    # check: if Q score is 0, we replace the log of Q score by a default value of 100
-			    awk -F['\t'] '{if (NR > 1) {if ($9 > 0) {print $1","(($2+$3)/2-1)","(($2+$3)/2+1)"\t"$4","(($5+$6)/2-1)","(($5+$6)/2+1)"\t"(-log($9)/log(10))} else {print $1","(($2+$3)/2-1)","(($2+$3)/2+1)"\t"$4","(($5+$6)/2-1)","(($5+$6)/2+1)"\t500"}}}' $FitHiC_Pass1_Filt_MergedIntfile > $FitHiC_Pass1_Filt_MergedInt_LogQ_file
+
+			    # old code - sourya
+		    	# compatible with the old WashU browser
+			    # awk -F['\t'] '{if (NR > 1) {if ($9 > 0) {print $1","(($2+$3)/2-1)","(($2+$3)/2+1)"\t"$4","(($5+$6)/2-1)","(($5+$6)/2+1)"\t"(-log($9)/log(10))} else {print $1","(($2+$3)/2-1)","(($2+$3)/2+1)"\t"$4","(($5+$6)/2-1)","(($5+$6)/2+1)"\t500"}}}' $FitHiC_Pass1_Filt_MergedIntfile > $FitHiC_Pass1_Filt_MergedInt_LogQ_file
+
+			    # new code - sourya
+			    # compatible with the new WashU browser (or generally applicable)
+			    # converts into a tabix formatted gzipped file
+			    awk -F['\t'] '{if (NR > 1) {if ($9 > 0) {print $1"\t"(($2+$3)/2-1)"\t"(($2+$3)/2+1)"\t"$4":"(($5+$6)/2-1)"-"(($5+$6)/2+1)","(-log($9)/log(10))"\t"(NR-1)"\t."} else {print $1"\t"(($2+$3)/2-1)"\t"(($2+$3)/2+1)"\t"$4":"(($5+$6)/2-1)"-"(($5+$6)/2+1)",500\t"(NR-1)"\t."}}}' $FitHiC_Pass1_Filt_MergedIntfile | sort -k1,1 -k2,2n > $FitHiC_Pass1_Filt_MergedInt_LogQ_file
+			    if [ -f $FitHiC_Pass1_Filt_MergedInt_LogQ_file'.gz' ]; then
+			    	rm $FitHiC_Pass1_Filt_MergedInt_LogQ_file'.gz'
+		    	fi		    
+			    bgzip $FitHiC_Pass1_Filt_MergedInt_LogQ_file
+			    tabix -f -p bed $FitHiC_Pass1_Filt_MergedInt_LogQ_file'.gz'
 
 				# generate distance vs CC plots
 				DistPlotfile=$MergeIntDir'/'$PREFIX'.interactions_FitHiC_Q'${QVALUE}'_MergeNearContacts_Dist_CC.png'
@@ -1460,7 +1753,7 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 			else
 				echo 'There is no significant interaction - so no WashU specific session file is created !!'
 			fi
-			echo 'Merged nearby significant interactions - created washu browser compatible file for these merged interactions!!!'
+			echo 'Merged filtering significant interactions - created washu browser compatible file for these interactions!!!'
 		fi
 	fi
 
