@@ -448,13 +448,15 @@ fi
 
 # first check the python version
 # check if python is installed and its version is > 2.7.0
-pythonversion=$(python -V 2>&1 | grep -Po '(?<=Python )(.+)')
+# pythonversion=$(python -V 2>&1 | grep -Po '(?<=Python )(.+)')
+pythonversion=$(python --version 2>&1 | head -n 1 | awk '{print $2}' -)
 if [[ -z "$pythonversion" ]]; then
     echo "ERROR ====>>> No Python installation is detected in the system !!! FitHiChIP quits !!!" 
     errcond=1
     # exit 1
 fi
 parsedVersion=$(echo "${pythonversion//./}")
+# echo "parsedVersion : "$parsedVersion
 if [[ "$parsedVersion" -lt "300" && "$parsedVersion" -gt "270" ]]; then 
     echo "*** Valid python version is detected - installed version: "$pythonversion
 elif [[ "$parsedVersion" -lt "3000" && "$parsedVersion" -gt "2700" ]]; then 
