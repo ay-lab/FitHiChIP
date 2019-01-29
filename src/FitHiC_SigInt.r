@@ -706,7 +706,7 @@ if (1) {
 
 # plot the fitted spline and the smoothing regression
 # in log scale
-if (0) {	#(opt$Draw) {
+if (1) {	#(opt$Draw) {
 	plotfile1 <- paste0(outdir,'/','EqOccBin_SplinePass1_LOGScale.pdf')	
 	pdf(plotfile1, width=8, height=6)
 	# par(mar=c(5,5,2,2)+0.1)
@@ -1140,21 +1140,56 @@ if (opt$BiasCorr == 0) {
 				coeff_LogBias2 <- pp_L2$y
 
 				if (0) {
-					cat(sprintf("\n *** Processing uniq distance idx: %s  si: %s  ei: %s num elem : %s Spline prob: %s  coeff_Intcpt : %s  coeff_LogBias1 : %s   coeff_LogBias2 : %s ", k, si, ei, (ei-si+1), p, coeff_Intcpt, coeff_LogBias1, coeff_LogBias2))
+					cat(sprintf("\n *** Processing uniq distance idx: %s  si: %s  ei: %s num elem : %s  gene dist : %s  Spline prob: %s  coeff_Intcpt : %s coeff_LogBias1 : %s coeff_LogBias2 : %s ", k, si, ei, (ei-si+1), gene.dist[si], p, coeff_Intcpt, coeff_LogBias1, coeff_LogBias2))
 				}
 
 				# copy the spline based probability 
 				Prob_Val[si:ei] <- p
 
+				# #================
+				# # add - sourya
+
+				# # first compute the expected contact count
+				# # using the regression coefficients
+				# # and then filter out the NA entries
+				# if (opt$Resid == 0) {
+				# 	expCCVec <- 10^(coeff_Intcpt + coeff_LogBias1 * log10(interaction.data[si:ei, bias1.col]) + coeff_LogBias2 * log10(interaction.data[si:ei, bias2.col]))
+				# } else {
+				# 	expCCVec <- 10^(coeff_Intcpt + coeff_LogBias1 * log10(interaction.data[si:ei, bias1.col]) + coeff_LogBias2 * log10(interaction.data[si:ei, bias2.col]) + log10(TotContact * p))
+				# }
+
+				# # get indices having non-NA expected contact count
+				# # Note: here we add the quantity (si-1) since the which operator returns indices from 1
+				# # to get the indices mapped back on the range si:ei, we add this offset
+				# non_NA_idx <- which(!is.na(expCCVec))
+				# nonzero_biasidx_set <- non_NA_idx + (si-1)
+				# # the zero bias values are those not in nonzero_biasidx_set
+				# zero_biasidx_set <- setdiff(seq(si, ei), nonzero_biasidx_set)
+
+				# # end add - sourya
+				# #================
+
+				#================
 				# get indices having zero and non zero bias 
 				# Note: here we add the quantity (si-1) since the which operator returns indices from 1
 				# to get the indices mapped back on the range si:ei, we add this offset
-				nonzero_biasidx_set <- which((interaction.data[si:ei, bias1.col] > 0) & (interaction.data[si:ei, bias2.col] > 0)) + (si-1)
+
+				# debug - sourya
+				# for ICE bias, don't allow bias > 1000
+				if (opt$BiasCorr == 1) {
+					# coverage bias
+					nonzero_biasidx_set <- which((interaction.data[si:ei, bias1.col] > 0) & (interaction.data[si:ei, bias2.col] > 0)) + (si-1)
+				} else {
+					# ICE bias
+					# use bias values < 1000
+					nonzero_biasidx_set <- which((interaction.data[si:ei, bias1.col] > 0) & (interaction.data[si:ei, bias1.col] < 1000) & (interaction.data[si:ei, bias2.col] > 0) & (interaction.data[si:ei, bias2.col] < 1000)) + (si-1)
+				}
+
 				# the zero bias values are those not in nonzero_biasidx_set
 				zero_biasidx_set <- setdiff(seq(si, ei), nonzero_biasidx_set)
 
 				if (0) {
-					cat(sprintf(" ---  length nonzero_biasidx_set: %s  length zero_biasidx_set : %s ", length(nonzero_biasidx_set), length(zero_biasidx_set)))
+					cat(sprintf("\n\n ****** length nonzero_biasidx_set: %s  length zero_biasidx_set : %s  ", length(nonzero_biasidx_set), length(zero_biasidx_set)))
 				}
 
 				# if one of the bias values are zero
@@ -1173,9 +1208,29 @@ if (opt$BiasCorr == 0) {
 						Exp_CC_BiasRegr[nonzero_biasidx_set] <- 10^(coeff_Intcpt + coeff_LogBias1 * log10(interaction.data[nonzero_biasidx_set, bias1.col]) + coeff_LogBias2 * log10(interaction.data[nonzero_biasidx_set, bias2.col]) + log10(TotContact * p))
 					}
 				}
+				#================
+
+				# #================
+				# # add - sourya
+
+				# # for NA entries of expected contact count
+				# # assign the spline predicted probability for the estimated distance
+				# if (length(zero_biasidx_set) > 0) {
+				# 	Exp_CC_BiasRegr[zero_biasidx_set] <- (TotContact * p)
+				# }
+
+				# # for non-NA entries of expected contact count
+				# # use the bias regression predicted contact count	
+				# if (length(nonzero_biasidx_set) > 0) {
+				# 	Exp_CC_BiasRegr[nonzero_biasidx_set] <- expCCVec[non_NA_idx]
+				# }			
+
+				# # end add - sourya
+				# #================
+
 			}	# end distance loop 
 
-			if (0) {
+			if (1) {
 				cat(sprintf("\n\n *** modeled the bias regression based probability and expected contact count **** \n\n"))
 			}
 
@@ -1189,10 +1244,12 @@ if (opt$BiasCorr == 0) {
 			# now use the expected contact count from the bias correction 
 			# to model the binomial distribution
 			NumElem <- length(Exp_CC_BiasRegr)
+			non_NA_Exp_CC_BiasRegr <- which(!is.na(Exp_CC_BiasRegr))
+			ExpTotContact_1 <- sum(Exp_CC_BiasRegr)
 			ExpTotContact <- as.integer(sum(Exp_CC_BiasRegr))
 
-			if (0) {
-				cat(sprintf("\n *** NumElem: %s  ExpTotContact : %s ", NumElem, ExpTotContact))
+			if (1) {
+				cat(sprintf("\n *** NumElem: %s  length non_NA_Exp_CC_BiasRegr : %s  ExpTotContact_1 : %s ExpTotContact : %s ", NumElem, length(non_NA_Exp_CC_BiasRegr), ExpTotContact_1, ExpTotContact))
 			}
 
 			# debug - sourya
@@ -1239,7 +1296,7 @@ if (opt$BiasCorr == 0) {
 				Spline_Binom_P_Val_CC[si:ei] <- as.double(resbias[4,1:ncol(resbias)])
 			}	# end distance loop
 
-			if (0) {
+			if (1) {
 				cat(sprintf("\n\n *** modeled the binomial distribution with respect to bias regression probability **** \n\n"))
 			}
 
