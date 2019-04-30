@@ -42,11 +42,19 @@ done
 #======================
 
 # input files
+# 3 different ways to provide input to FitHiChIP
+# option 1: provide a valid pairs file generated from HiC pro pipeline
 InpValidPairsFile=""
+# option 2: provide the bin intervakl file and the matrix file generated from HiC pro pipeline
 InpBinIntervalFile=""
 InpMatrixFile=""
+# option 3: provide the set of locus pairs (6 columns storing the interacting bins and the 7th column storing the contact count)
+InpInitialInteractionBedFile=""
+
+# reference ChIP-seq / HiChIP peak file
 PeakFILE=""
 
+# prefix string used for every output file
 PREFIX='FitHiChIP'
 
 # size of the chromosome that is to be provided
@@ -137,10 +145,10 @@ MergeInteraction=1
 # # 1 for equal occupancy bin (default)
 # FitHiCBinMethod=1
 
-# type of distribution for modeling the P value of FitHiC
-# 1: binomial distribution (employed in FitHiC - default)
-# 2: negative binomial distribution
-DistrType=1
+# # type of distribution for modeling the P value of FitHiC
+# # 1: binomial distribution (employed in FitHiC - default)
+# # 2: negative binomial distribution
+# DistrType=1
 
 # default lower cutoff of bias value
 biaslowthr=0.2
@@ -199,6 +207,9 @@ do
 			fi
 			if [ $param == "Matrix" ]; then
 				InpMatrixFile=$paramval
+			fi
+			if [ $param == "Bed" ]; then
+				InpInitialInteractionBedFile=$paramval
 			fi
 			if [ $param == "PeakFile" ]; then
 				PeakFILE=$paramval
@@ -375,15 +386,15 @@ done < $ConfigFile
 
 echo -e "\n ================ Verifying input configuration parameters ================="
 
-if [[ -z $InpValidPairsFile ]]; then
+if [[ -z $InpValidPairsFile && -z $InpInitialInteractionBedFile ]]; then
 	if [[ -z $InpBinIntervalFile || -z $InpMatrixFile ]]; then
-		echo 'User did not provide any valid pairs file. So, user needs to provide both of the interval and matrix files. But at least one of them is missing - exit !!'
+		echo -e 'There are three ways to provide FitHiChIP input: \n 1) provide valid pairs file (from HiC pro pipeline), \n 2) Provide both bin interval and matrix files (from HiC pro pipeline), or \n 3) provide a set of locus pairs along with their contact counts (7 columns). \n But user did not provide any of these input configurations. - exit !!'
 		exit 1
 	fi
 fi
 
 if [[ -z $PeakFILE ]]; then
-	echo 'User should provide a reference peak detection file to compute the interactions involving peak segments - exit !!'
+	echo 'User should provide a reference peak file (either ChIP or HiChIP) to compute the interactions involving peak segments - exit !!'
 	exit 1
 fi
 
@@ -407,9 +418,9 @@ fi
 # fi
 #======================
 
-if [[ -z $HiCProBasedir ]]; then
+if [[ -z $HiCProBasedir && -z $InpInitialInteractionBedFile ]]; then
 	if [[ -z $InpBinIntervalFile || -z $InpMatrixFile ]]; then
-		echo 'ERROR ====>>> Input matrices are not provided and the Base directory of HiC-pro installation path is also not provided - exit !!'
+		echo 'ERROR ====>>> As user did not provide any pre-computed locus pairs (along with their contact count) in BED input, neither provided the HiC-pro base installation directory, FitHiChIP quits - exit !!'
 		exit 1
 	fi
 fi
@@ -418,6 +429,8 @@ if [[ -z $ChrSizeFile ]]; then
 	echo 'ERROR ====>>> Chromosome size file is not specified - exit !!'
 	exit 1
 fi
+
+echo '***** Specified output directory : '$OutDir
 
 #*****************************
 # error checking - 
@@ -674,6 +687,19 @@ if [[ ! -z $InpMatrixFile ]]; then
 	fi
 fi
 
+if [[ ! -z $InpInitialInteractionBedFile ]]; then
+	if [ ! -f $InpInitialInteractionBedFile ]; then
+		echo 'ERROR ===>>>> Pre-computed locus pairs (along with their contact counts) are provided as input : '$InpInitialInteractionBedFile
+		echo 'However, no such file containing locus pairs exists - check input file and path - FitHiChIP quits !!'
+		exit 1
+	fi	
+	if [[ "${InpInitialInteractionBedFile:0:1}" != / && "${InpInitialInteractionBedFile:0:2}" != ~[/a-z] ]]; then
+		# relative path - convert to absolute path
+		InpInitialInteractionBedFile="$(cd $(dirname $InpInitialInteractionBedFile); pwd)/$(basename $InpInitialInteractionBedFile)"
+		echo 'Absolute converted path: InpInitialInteractionBedFile: '$InpInitialInteractionBedFile
+	fi
+fi
+
 if [[ ! -z $PeakFILE ]]; then
 	if [ ! -f $PeakFILE ]; then
 		echo 'ERROR ===>>>> Peak file provided as input : '$PeakFILE
@@ -764,6 +790,61 @@ fi
 cd -
 
 #===================
+# further error checking - check for false values
+#===================
+
+if [[ $IntType -lt 1 || $IntType -gt 5 ]]; then
+	echo 'ERROR ===>>>> Parameter IntType should have value between 1 to 5: -- FitHiChIP quits !!!'
+	exit 1
+fi
+
+if [[ $BIN_SIZE -lt 0 ]]; then
+	echo 'ERROR ===>>>> Parameter Bin size is specified negative: -- FitHiChIP quits !!!'
+	exit 1
+fi
+
+if [[ $LowDistThres -lt 0 ]]; then
+	echo 'ERROR ===>>>> Parameter low distance threshold is specified negative: -- FitHiChIP quits !!!'
+	exit 1
+fi
+
+if [[ $UppDistThres -lt 0 ]]; then
+	echo 'ERROR ===>>>> Parameter upper distance threshold is specified negative: -- FitHiChIP quits !!!'
+	exit 1
+fi
+
+if [[ $UppDistThres -lt $LowDistThres ]]; then
+	echo 'ERROR ===>>>> Parameter upper distance threshold is specified lower than the lower distance threshold -- check both values -- FitHiChIP quits !!!'
+	exit 1
+fi
+
+if [[ $UseP2PBackgrnd -lt 0 || $UseP2PBackgrnd -gt 1 ]]; then
+	echo 'ERROR ===>>>> Parameter UseP2PBackgrnd should have values either 0 or 1: -- FitHiChIP quits !!!'
+	exit 1
+fi
+
+if [[ $BiasType -lt 1 || $BiasType -gt 2 ]]; then
+	echo 'ERROR ===>>>> Parameter BiasType should have values either 1 (indicating coverage bias regression) or 2 (ICE bias regression): -- FitHiChIP quits !!!'
+	exit 1
+fi
+
+if [[ $MergeInteraction -lt 0 || $MergeInteraction -gt 1 ]]; then
+	echo 'ERROR ===>>>> Parameter MergeInt should have values either 0 or 1: -- FitHiChIP quits !!!'
+	exit 1
+fi
+
+if [[ $QVALUE -lt 0 || $QVALUE -ge 1 ]]; then
+	echo 'ERROR ===>>>> Parameter q-value (FDR) should be positive but close to 0 (default 0.01) - but here invalid values are provided - check the parameters -- FitHiChIP quits !!!'
+	exit 1
+fi
+
+if [[ $OverWrite -lt 0 || $OverWrite -gt 1 ]]; then
+	echo 'ERROR ===>>>> Parameter OverWrite should have values either 0 or 1: -- FitHiChIP quits !!!'
+	exit 1
+fi
+
+
+#===================
 # create the output directory
 #===================
 mkdir -p $OutDir
@@ -777,12 +858,17 @@ if [[ ! -f $ConfFile || $OverWrite == 1 ]]; then
 	echo "Summarizing the parameters employed in this execution" > $ConfFile
 
 	echo "Listing the input files: " >> $ConfFile
-	echo "Input file containing the valid pairs (generated from HIC-PRO pipeline): $InpValidPairsFile " >> $ConfFile
+	if [[ ! -z $InpValidPairsFile ]]; then
+		echo "Input file containing the valid pairs (generated from HIC-PRO pipeline): $InpValidPairsFile " >> $ConfFile
+	fi
 	if [[ ! -z $InpBinIntervalFile ]]; then
 		echo "Input file containing the fixed size bin intervals (generated from HIC-PRO pipeline): $InpBinIntervalFile " >> $ConfFile
 	fi
 	if [[ ! -z $InpMatrixFile ]]; then
 		echo "Input file storing the contact matrix between the fixed size bins (generated from HIC-PRO pipeline): $InpMatrixFile " >> $ConfFile
+	fi
+	if [[ ! -z $InpInitialInteractionBedFile ]]; then
+		echo "Input file containing pre-computed locus pairs and contact count: $InpInitialInteractionBedFile " >> $ConfFile
 	fi
 	echo "Input ChIP-seq peak file: $PeakFILE " >> $ConfFile
 	echo "File containing chromosome size information corresponding to the reference chromosome: $ChrSizeFile " >> $ConfFile
@@ -798,9 +884,14 @@ if [[ ! -f $ConfFile || $OverWrite == 1 ]]; then
 	fi
 
 	echo "Output directory which will store all the results: $OutDir " >> $ConfFile
-	echo "Base directory containing the HIC-PRO executable: $HiCProBasedir " >> $ConfFile
+	if [[ ! -z $HiCProBasedir ]]; then
+		echo "Base directory containing the HIC-PRO executable: $HiCProBasedir " >> $ConfFile
+	fi
 
-	echo "Genome specific parameters: " >> $ConfFile
+	echo "Low distance threshold: $LowDistThres " >> $ConfFile
+	echo "Higher distance threshold: $UppDistThres " >> $ConfFile
+
+	# echo "Genome specific parameters: " >> $ConfFile
 	# echo "RefGENOME: $RefGENOME " >> $ConfFile
 	
 	if [[ ! -z $MappabilityFile && ! -z $RefFastaFile && ! -z $REFragFile ]]; then
@@ -810,9 +901,9 @@ if [[ ! -f $ConfFile || $OverWrite == 1 ]]; then
 
 	echo "BIN_SIZE: $BIN_SIZE " >> $ConfFile
 	echo "PREFIX (string of output files): $PREFIX " >> $ConfFile
-	echo "Timeprof (1 means timing will be noted): $TimeProf " >> $ConfFile
+	# echo "Timeprof (1 means timing will be noted): $TimeProf " >> $ConfFile
 	echo "OverWrite (1 means existing files will be overwritten): $OverWrite " >> $ConfFile
-	echo "DrawFig (1 means various summary statistics will be plotted, depending on the availability of reference fasta sequence file and mappability file): $DrawFig " >> $ConfFile
+	# echo "DrawFig (1 means various summary statistics will be plotted, depending on the availability of reference fasta sequence file and mappability file): $DrawFig " >> $ConfFile
 fi
 
 #=======================================
@@ -827,6 +918,7 @@ if [ $TimeProf == 1 ]; then
 	start=$(date +%s.%N)
 fi
 
+
 #==============================
 # important - sourya
 # first change the current working directory to the directory containing this script
@@ -835,11 +927,6 @@ fi
 currworkdir=`pwd`
 currscriptdir=`dirname $0`
 cd $currscriptdir
-
-# generate the matrix of Hi-C interactions (ALL)
-# using HiC-pro pipeline
-HiCProMatrixDir=$OutDir'/HiCPro_Matrix_BinSize'$BIN_SIZE
-mkdir -p $HiCProMatrixDir
 
 #==============================
 # note down the executables of python and Rscript
@@ -855,90 +942,137 @@ echo 'Executable of R : '$RScriptExec
 # # otherwise, install those packages
 # $RScriptExec ./Analysis/PackageTest.r
 
-#=================
-# if the matrices are not provided and the validpairs text file is provided
-# then compute the interaction matrices using the HiC-pro utility
-#=================
-echo -e "\n ================ Processing HiC-pro contact matrices ================="
+#================================
 
-if [[ -z $InpBinIntervalFile || -z $InpMatrixFile ]]; then
+# generate the matrix of Hi-C interactions (ALL)
+# using HiC-pro pipeline
+HiCProMatrixDir=$OutDir'/HiCPro_Matrix_BinSize'$BIN_SIZE
+mkdir -p $HiCProMatrixDir
 
-	# this is an executable which builds matrix from the input valid pairs file
-	# thats why we require the HiC pro executable directory as a command line option
+# if pre-computed locus pairs are provided as input
+# then use this interaction file
+if [[ ! -z $InpInitialInteractionBedFile ]]; then
 
-	# executable of matrix building is to be obtained from the HiC-pro base directory
-	# provided as the input
-	# MatrixBuildExec=$HiCProBasedir'/scripts/build_matrix'
-	MatrixBuildExecSet=( $(find $HiCProBasedir -type f -name 'build_matrix') )
-	len=${#MatrixBuildExecSet[@]}
-	# echo 'len: '$len
-	
-	#==========================
-	# error in the reference HiC-pro package
-	# if such script is not found
-	if [[ $len == 0 ]]; then		
-		echo 'ERROR ===>>>> searching the script build_matrix within HiC-pro installed package but did not find ----'
-		echo 'Matrix from the input valid pairs file could not be generated - FitHiChIP is quiting !!!'
-		echo 'Check the directory of HiC-pro Package or check its version (recommended >= 2.9.0)'
-		exit 1
+	echo -e "\n ================ Processing input pre-computed locus pairs along with the contact count ================="
+
+	# check whether the file is gzippe or not
+	if [[ $InpInitialInteractionBedFile == *.gz ]]; then
+		gzipInt=1
+		echo -e "\n The input locus pair file is in gzipped format --- "
+	else
+		gzipInt=0
 	fi
-	#==========================
+
+	Interaction_Initial_File=$HiCProMatrixDir/$PREFIX.interactions.initial.bed
 	
-	idx=`expr $len - 1`
-	# echo 'idx: '$idx
-	MatrixBuildExec=${MatrixBuildExecSet[$idx]}
-	echo -e '\n *** MatrixBuildExec: '$MatrixBuildExec
+	# dump the lines having 2nd, 3rd, 5th, 6th and 7th fields as integer
+	if [ $gzipInt == 1 ]; then
+		zcat $InpInitialInteractionBedFile | awk '{if (($2 ~ /^[0-9]+$/) && ($3 ~ /^[0-9]+$/) && ($5 ~ /^[0-9]+$/) && ($6 ~ /^[0-9]+$/) && ($7 ~ /^[0-9]+$/)) {print $0}}' - | cut -f1-7 | awk '($7>0)' - > $Interaction_Initial_File
+	else
+		awk '{if (($2 ~ /^[0-9]+$/) && ($3 ~ /^[0-9]+$/) && ($5 ~ /^[0-9]+$/) && ($6 ~ /^[0-9]+$/) && ($7 ~ /^[0-9]+$/)) {print $0}}' $InpInitialInteractionBedFile | cut -f1-7 | awk '($7>0)' - > $Interaction_Initial_File
+	fi
+	
+	# insert a header line
+	sed -i '1ichr\ts1\te1\tchr2\ts2\te2\tcc' $Interaction_Initial_File
 
-	echo '*** Computing HiC-pro matrices from the input valid pairs file'
+	echo -e "\n Dumped the set of input interactions along with the header --- "
 
-	# This directory and prefix is used to denote the generated matrices
-	# using the HiC pro routine
-	OutPrefix=$HiCProMatrixDir'/MatrixHiCPro'
+else 
 
-	if [[ ! -f $OutPrefix'_abs.bed' || $OverWrite == 1 ]]; then
-		# check the extension of input valid pairs file
-		# and extract accordingly
-		if [[ $InpValidPairsFile == *.gz ]]; then
-			echo "***** HiC-pro input valid pairs file in gzipped format"
-			zcat $InpValidPairsFile | $MatrixBuildExec --binsize $BIN_SIZE --chrsizes $ChrSizeFile --ifile /dev/stdin --oprefix $OutPrefix --matrix-format 'upper'  
-		else
-			echo "***** HiC-pro input valid pairs file in simple text format"
-			cat $InpValidPairsFile | $MatrixBuildExec --binsize $BIN_SIZE --chrsizes $ChrSizeFile --ifile /dev/stdin --oprefix $OutPrefix --matrix-format 'upper' 
+	#=================
+	# if the matrices are not provided and the validpairs text file is provided
+	# then compute the interaction matrices using the HiC-pro utility
+	#=================
+	echo -e "\n ================ Processing HiC-pro contact matrices ================="
+
+	if [[ -z $InpBinIntervalFile || -z $InpMatrixFile ]]; then
+
+		# this is an executable which builds matrix from the input valid pairs file
+		# thats why we require the HiC pro executable directory as a command line option
+
+		# executable of matrix building is to be obtained from the HiC-pro base directory
+		# provided as the input
+		# MatrixBuildExec=$HiCProBasedir'/scripts/build_matrix'
+		MatrixBuildExecSet=( $(find $HiCProBasedir -type f -name 'build_matrix') )
+		len=${#MatrixBuildExecSet[@]}
+		# echo 'len: '$len
+		
+		#==========================
+		# error in the reference HiC-pro package
+		# if such script is not found
+		if [[ $len == 0 ]]; then		
+			echo 'ERROR ===>>>> could not find the executable build_matrix within HiC-pro installed package ----'
+			echo 'Check the directory of HiC-pro Package or check its version (recommended >= 2.9.0)'
+			echo 'Matrix from the input valid pairs file could not be generated - FitHiChIP is quiting !!!'			
+			exit 1
 		fi
+		#==========================
+	
+		idx=`expr $len - 1`
+		# echo 'idx: '$idx
+		MatrixBuildExec=${MatrixBuildExecSet[$idx]}
+		echo -e '\n *** MatrixBuildExec: '$MatrixBuildExec
+
+		echo '*** Computing HiC-pro matrices from the input valid pairs file'
+
+		# This directory and prefix is used to denote the generated matrices
+		# using the HiC pro routine
+		OutPrefix=$HiCProMatrixDir'/MatrixHiCPro'
+
+		if [[ ! -f $OutPrefix'_abs.bed' || $OverWrite == 1 ]]; then
+			# check the extension of input valid pairs file
+			# and extract accordingly
+			if [[ $InpValidPairsFile == *.gz ]]; then
+				echo "***** HiC-pro input valid pairs file in gzipped format"
+				zcat $InpValidPairsFile | $MatrixBuildExec --binsize $BIN_SIZE --chrsizes $ChrSizeFile --ifile /dev/stdin --oprefix $OutPrefix --matrix-format 'upper'  
+			else
+				echo "***** HiC-pro input valid pairs file in simple text format"
+				cat $InpValidPairsFile | $MatrixBuildExec --binsize $BIN_SIZE --chrsizes $ChrSizeFile --ifile /dev/stdin --oprefix $OutPrefix --matrix-format 'upper' 
+			fi
+			if [ $TimeProf == 1 ]; then
+				duration=$(echo "$(date +%s.%N) - $start" | bc)
+				echo " ++++ Time (in seconds) for computing the interaction matrix using HiC-Pro build_matrix utility: $duration" >> $OutTimeFile
+				start=$(date +%s.%N)
+			fi		
+		fi
+
+		# now assign the matrix names to the designated variables
+		InpBinIntervalFile=$OutPrefix'_abs.bed'
+		InpMatrixFile=$OutPrefix'.matrix'
+
+	fi
+
+	#=======================
+	# Now generate the list of interactions from the HiC-pro matrix data
+	# ALL to ALL interactions
+	# Both cis and trans interactions are considered (with respect to the given bin size)
+	# No distance threshold based filtering is used
+	# Interaction format:
+	# chr1	start1	end1	chr2	start2	end2	cc
+	#=======================
+	echo -e "\n ================ Creating input interactions ================="
+
+	Interaction_Initial_File=$HiCProMatrixDir/$PREFIX.interactions.initial.bed
+
+	if [[ ! -f $Interaction_Initial_File || $OverWrite == 1 ]]; then
+		$RScriptExec ./src/InteractionHicPro.r $InpBinIntervalFile $InpMatrixFile $Interaction_Initial_File
+		
 		if [ $TimeProf == 1 ]; then
 			duration=$(echo "$(date +%s.%N) - $start" | bc)
-			echo " ++++ Time (in seconds) for computing the interaction matrix using HiC-Pro build_matrix utility: $duration" >> $OutTimeFile
+			echo " ++++ Time (in seconds) for getting CIS interactions: $duration" >> $OutTimeFile
 			start=$(date +%s.%N)
-		fi		
-	fi
-
-	# now assign the matrix names to the designated variables
-	InpBinIntervalFile=$OutPrefix'_abs.bed'
-	InpMatrixFile=$OutPrefix'.matrix'
-
-fi
-
-#=======================
-# Now generate the list of interactions from the HiC-pro matrix data
-# ALL to ALL interactions
-# Both cis and trans interactions are considered (with respect to the given bin size)
-# No distance threshold based filtering is used
-# Interaction format:
-# chr1	start1	end1	chr2	start2	end2	cc
-#=======================
-echo -e "\n ================ Creating input interactions ================="
-
-Interaction_Initial_File=$HiCProMatrixDir/$PREFIX.interactions.initial.bed
-
-if [[ ! -f $Interaction_Initial_File || $OverWrite == 1 ]]; then
-	$RScriptExec ./src/InteractionHicPro.r $InpBinIntervalFile $InpMatrixFile $Interaction_Initial_File
-	
-	if [ $TimeProf == 1 ]; then
-		duration=$(echo "$(date +%s.%N) - $start" | bc)
-		echo " ++++ Time (in seconds) for getting CIS interactions: $duration" >> $OutTimeFile
-		start=$(date +%s.%N)
+		fi
 	fi
 fi
+
+# check the number of interactions
+numLoop=`cat $Interaction_Initial_File | wc -l`
+echo 'Number of locus pairs with nonzero contact count (without any distance thresholding): '$numLoop
+if [ $numLoop == 0 ]; then
+	echo 'Number of locus pairs with nonzero contact count is zero - FitHiChIP is quiting !!!'			
+	exit 1
+fi
+
 
 #=======================
 # generate filtered cis interactions 
@@ -946,7 +1080,7 @@ fi
 # ALL to ALL interactions
 #=======================
 
-echo -e "\n ================ Limiting input interactions to the specified distance ranges ================="
+echo -e "\n ================ Limiting input interactions to the specified distance ranges ${LowDistThres} to ${UppDistThres} ================="
 
 # create a directory for individual distance thresholds
 InteractionThrDir=$HiCProMatrixDir'/L_'$LowDistThres'_U'$UppDistThres
@@ -954,13 +1088,21 @@ mkdir -p $InteractionThrDir
 Interaction_File=$InteractionThrDir/$PREFIX.cis.interactions.DistThr.bed
 
 if [[ ! -f $Interaction_File || $OverWrite == 1 ]]; then
-	awk -v l="$LowDistThres" -v u="$UppDistThres" -F['\t'] 'function abs(v) {return v < 0 ? -v : v} {if ((NR==1) || ($1==$4 && abs($2-$5)>=l && abs($2-$5)<=u)) {print $0}}' $Interaction_Initial_File > $Interaction_File
+	awk -v l="$LowDistThres" -v u="$UppDistThres" -F['\t'] 'function abs(v) {return v < 0 ? -v : v} {if ((NR==1) || ($1==$4 && ($7>0) && abs($2-$5)>=l && abs($2-$5)<=u)) {print $0}}' $Interaction_Initial_File > $Interaction_File
 
 	if [ $TimeProf == 1 ]; then
 		duration=$(echo "$(date +%s.%N) - $start" | bc)
 		echo " ++++ Time (in seconds) for getting CIS interactions within distance thresholds: $duration" >> $OutTimeFile
 		start=$(date +%s.%N)
 	fi
+fi
+
+# check the number of interactions
+numLoop=`cat $Interaction_File | wc -l`
+echo 'Number of locus pairs with nonzero contact count (after distance thresholding): '$numLoop
+if [ $numLoop == 0 ]; then
+	echo 'Number of locus pairs with nonzero contact count (after distance thresholding) is zero - FitHiChIP is quiting !!!'			
+	exit 1
 fi
 
 #============================
@@ -1107,17 +1249,26 @@ if [[ ! -z $MappabilityFile && ! -z $RefFastaFile && ! -z $REFragFile ]]; then
 fi 	# end if mappability, GC content and RE frag files exist
 
 #=================
-# From the input valid paired end read file, and the given input bin size parameter
-# compute the coverage of individual genome segments (bins)
-# the output is a list of chromosome and bins, their coverage, and a boolean indicator 
-# whether the segment overlaps with a peak
+# modifications - sourya
+# from the generated initial CIS interaction file (without distance thresholding)
+# get the HiChIP 1D bin coverage values, and also whether those bins overlap with
+# input peak segments (either ChIP peaks or HiChIP peaks)
+
+# previously a python script was used
+# now a better optimized R script is used
 #=================
 echo -e "\n ================ Generating coverage statistics for individual bins ================="
 
 CoverageFile=$FeatureDir'/'$PREFIX'.coverage.bed'
 
 if [[ ! -f $CoverageFile || $OverWrite == 1 ]]; then
-	$PythonExec ./src/CoverageBin.py -i $InpValidPairsFile -p $PeakFILE -b $BIN_SIZE -o $CoverageFile -c $ChrSizeFile
+
+	# comment - sourya
+	# $PythonExec ./src/CoverageBin.py -i $InpValidPairsFile -p $PeakFILE -b $BIN_SIZE -o $CoverageFile -c $ChrSizeFile
+
+	# add - sourya
+	$RScriptExec ./src/CoverageBin.r --InpFile $Interaction_Initial_File --PeakFile $PeakFILE --BinSize $BIN_SIZE --ChrSizeFile $ChrSizeFile --OutFile $CoverageFile
+
 	echo '======== Computed initial coverage information for individual genomic bins'
 	
 	if [ $TimeProf == 1 ]; then
@@ -1126,6 +1277,8 @@ if [[ ! -f $CoverageFile || $OverWrite == 1 ]]; then
 		start=$(date +%s.%N)
 	fi
 fi
+
+
 
 #=======================================
 # condition: value of BiasType - 1 means coverage specific bias
@@ -1372,6 +1525,10 @@ fi
 # Create the interaction files for other types of interactions
 # peak to peak, peak to non peak, and peak to all
 #===================
+
+# boolean variable indicating error condition
+errcond=0
+
 if [[ $IntType -ge 1 && $IntType -le 4 ]]; then
 	IntLow=$IntType
 	IntHigh=$IntType
@@ -1607,9 +1764,20 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 		echo '******** FINISHED calling significant interactions'
 	fi
 
+	# error checking condition - 
+	# check if FitHiChIP significance is computed at all !!
+	if [ ! -f $FitHiC_Pass1_outfile ]; then
+		echo "ERROR !!!!!!!! FitHiChIP could not compute the statistical significance of input interactions"
+		echo "Check the input parameters, or check if the number of input nonzero contact locus pairs are too few !!!"
+		echo "If you are using peak to peak background only (UseP2PBackgrnd=1 or stringent background), check the number of nonzero peak-to-peak locus pairs (peak-to-peak) !!! In such a case, you should go for loose background (UseP2PBackgrnd=0) for modeling interaction significance!!! Specially, if the sequencing depth of your data is very low...."
+
+		errcond=1	# indicating errors
+		# exit 1
+	fi
+
 	# Filter the interaction file with respect to significance (Q value < $QVALUE)
 	# also print the header line
-	if [[ ! -f $FitHiC_Pass1_Filtfile || $OverWrite == 1 ]]; then
+	# if [[ ! -f $FitHiC_Pass1_Filtfile || $OverWrite == 1 ]]; then
 		# comment - sourya
 		# awk -v q="$QVALUE" '{if ((NR==1) || ($NF < q)) {print $0}}' $FitHiC_Pass1_outfile > $FitHiC_Pass1_Filtfile
 		# add - sourya
@@ -1617,7 +1785,7 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 		# also we check whether the field is not NA
 		awk -F['\t'] -v q="$QVALUE" '{if ((NR==1) || (($NF != "NA") && (sprintf("%0.400f",$NF) < q))) {print $0}}' $FitHiC_Pass1_outfile > $FitHiC_Pass1_Filtfile
 		echo '----- Extracted significant interactions ---- FDR threshold lower than: '$QVALUE
-	fi
+	# fi
 
 	if [ $TimeProf == 1 ]; then
 		duration=$(echo "$(date +%s.%N) - $start" | bc)
@@ -1627,6 +1795,17 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 
 	# no of significant interactions (FitHiC)
 	nsigFitHiC=`cat $FitHiC_Pass1_Filtfile | wc -l`
+
+	# error checking condition - 
+	# check if there is no significant loops at all
+	if [[ $nsigFitHiC -le 1 ]]; then
+		echo "SORRY !!!!!!!! FitHiChIP could not find any statistically significant interactions"
+		echo "Check the input parameters, or check if the number of input nonzero contact locus pairs are too few !!!"
+		echo "If you are using peak to peak background only (UseP2PBackgrnd=1 or stringent background), check the number of nonzero peak-to-peak locus pairs (peak-to-peak) !!! In such a case, you should go for loose background (UseP2PBackgrnd=0) for modeling interaction significance!!! Specially, if the sequencing depth of your data is very low...."
+
+		errcond=1	# indicating errors
+		# exit 1
+	fi
 
 	# generate distance vs CC plots
 	if [[ $nsigFitHiC -gt 1 ]]; then
@@ -1690,7 +1869,6 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 	    	fi
 		    bgzip $FitHiC_Pass1_LogQ_file
 		    tabix -f -p bed $FitHiC_Pass1_LogQ_file'.gz'
-
 			echo 'generated WashU epigenome browser compatible significant interactions'
 		else
 			echo 'There is no significant interaction - so no WashU specific session file is created !!'
@@ -1728,6 +1906,19 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 			echo '----- Applied merged filtering (connected component model) on the adjacent loops of FitHiChIP'
 
 			nint=`cat $FitHiC_Pass1_Filt_MergedIntfile | wc -l`
+
+			# error checking condition - 
+			# check if there is no significant loops at all
+			if [[ $nint -le 1 ]]; then
+				echo "SORRY !!!!!!!! FitHiChIP could not find any statistically significant interactions after applying merge filtering on the generated set of loops !!"
+				echo "Option 1: use significant loops without merge filtering"
+				echo "Option 2: If the number of significant loops (without merge filtering) is also very low, Check the input parameters, or check if the number of input nonzero contact locus pairs are too few !!!"
+				echo "If you are using peak to peak background only (UseP2PBackgrnd=1 or stringent background), check the number of nonzero peak-to-peak locus pairs (peak-to-peak) !!! In such a case, you should go for loose background (UseP2PBackgrnd=0) for modeling interaction significance!!! Specially, if the sequencing depth of your data is very low...."
+
+				errcond=1	# indicating errors
+				# exit 1
+			fi
+
 			if [[ $nint -gt 1 ]]; then
 				# 9th field stores the Q value
 				# print the midpoints of the interactions
@@ -1767,14 +1958,17 @@ done 	# end of different types of interaction traversal loop
 
 #=================================
 # call a separate script which summarizes all the output files and their location
-
 echo -e "\n **** Now summarizing FitHiChIP results in the HTML file *** \n"
-
 bash ./Analysis/SummaryFitHiChIP.sh $OutDir $BIN_SIZE $LowDistThres $UppDistThres $IntType $BiasCorr $BiasType $UseP2PBackgrnd $MergeInteraction $PREFIX ${QVALUE}
 
 #=================================
 
-echo "***** FitHiChIP pipeline is completely executed - congratulations !!! *****"
+if [ $errcond == 1 ]; then
+	echo "***** There are one or more errors / notifications (such as zero interaction count) associated with this execution !!!"
+	echo "***** Please check the console to know about them !!"
+else
+	echo "***** FitHiChIP pipeline is completely executed - congratulations !!! *****"
+fi
 
 #============================
 # sourya - now go back to the original working directory
