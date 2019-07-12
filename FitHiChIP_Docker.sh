@@ -24,5 +24,5 @@ awk "/^[^#].+=.+/" $ConfigFile | sed "s/=/: /g" > ./nf.yaml
 nextflow run main.nf -params-file ./nf.yaml -profile docker
 
 
-echo "\n\nCommand completed. It is normal to see some warnings above. You can see if FitHiChIP completed successfully by looking above the warnings."
+echo "Command completed. It is normal to see some warnings above. You can see if FitHiChIP completed successfully by looking above the warnings."
 
