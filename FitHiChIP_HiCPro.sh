@@ -26,10 +26,11 @@ Options:
 EOF
 }
 
-while getopts "C:" opt;
+while getopts "sC:" opt;
 do
 	case "$opt" in
 		C) ConfigFile=$OPTARG;;
+		s) Singularity=true;;
 		\?) usage
 			echo "error: unrecognized option -$OPTARG";
 			exit 1
@@ -417,8 +418,11 @@ fi
 # 	exit 1
 # fi
 #======================
+if [[ ! -z "$Singularity" ]]; then
+	HiCProBasedir="/HiC-Pro-2.11.1/"
+fi
 
-if [[ -z $HiCProBasedir && -z $InpInitialInteractionBedFile ]]; then
+if [[ -z $HiCProBasedir && -z "$Singularity" && -z $InpInitialInteractionBedFile ]]; then
 	if [[ -z $InpBinIntervalFile || -z $InpMatrixFile ]]; then
 		echo 'ERROR ====>>> As user did not provide any pre-computed locus pairs (along with their contact count) in BED input, neither provided the HiC-pro base installation directory, FitHiChIP quits - exit !!'
 		exit 1
@@ -642,6 +646,7 @@ fi 	# end dummy if - testing installed packages
 
 echo -e "\n ================ Changing relative pathnames of the input files to their absolute path names ================="
 
+
 # directory of the configuration file
 ConfigFileDir=$(dirname "${ConfigFile}")
 
@@ -773,7 +778,7 @@ if [[ ! -z $OutDir ]]; then
 	fi
 fi
 
-if [[ ! -z $HiCProBasedir ]]; then
+if [[ -z "$Singularity" && ! -z $HiCProBasedir ]]; then
 	if [ ! -d $HiCProBasedir ]; then
 		echo 'ERROR ===>>>> Base directory of HiC-Pro package as provided : '$HiCProBasedir
 		echo 'However, no such directory exists in the system - check input file and path - FitHiChIP quits !!'
@@ -885,7 +890,12 @@ if [[ ! -f $ConfFile || $OverWrite == 1 ]]; then
 
 	echo "Output directory which will store all the results: $OutDir " >> $ConfFile
 	if [[ ! -z $HiCProBasedir ]]; then
-		echo "Base directory containing the HIC-PRO executable: $HiCProBasedir " >> $ConfFile
+		if [[ -z "$Singularity" ]]; then
+			echo "Base directory containing the HIC-PRO executable: $HiCProBasedir " >> $ConfFile
+		fi
+		if [[ ! -z "$Singularity" ]]; then
+			echo "Base directory containing the HIC-PRO executable: /HiC-Pro-2.11.1/ " >> $ConfFile
+		fi
 	fi
 
 	echo "Low distance threshold: $LowDistThres " >> $ConfFile
