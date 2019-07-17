@@ -361,7 +361,7 @@ errcond=0
 
 # directory of the configuration file
 ConfigFileDir=$(dirname "${ConfigFile}")
-BINDARG="$ConfigFileDir"
+BINDARG="$ConfigFileDir,$TMPDIR"
 
 # first go to the configuration file directory
 cd $ConfigFileDir
