@@ -48,6 +48,12 @@ RUN conda install bowtie2
 
 # Install HiCPro dependencies
 RUN pip install pysam bx-python numpy scipy
+RUN conda install -y python=2.7.11
+RUN conda install -y -c anaconda scipy 
+RUN conda install -y -c anaconda numpy 
+RUN conda install -y -c bcbio bx-python 
+RUN conda install -y -c bioconda pysam 
+
 RUN R -e "install.packages(c('RColorBrewer'), quitely=TRUE, repos='http://cran.rstudio.com/')"
 
 # Install HiCPro
