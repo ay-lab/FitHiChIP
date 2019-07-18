@@ -79,5 +79,6 @@ RUN rm -rf /bedtools2/
 RUN rm -rf /htslib-1.9/
 RUN rm -rf /samtools-1.9/
 
+RUN chmod -R 777 /root/miniconda2/
 
 ENTRYPOINT /bin/bash
