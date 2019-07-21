@@ -82,4 +82,6 @@ RUN rm -rf /samtools-1.9/
 RUN chmod -R 777 /root
 RUN conda install -y iced 
 
+RUN conda clean --all -y
+
 ENTRYPOINT /bin/bash
