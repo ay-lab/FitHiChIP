@@ -492,5 +492,5 @@ if [[ ! -z $OutDir ]]; then
 fi
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-singularity exec -B "$BINDARG" library://tuvan/default/fithichip bash "$DIR/FitHiChIP_HiCPro.sh" -C "$ConfigFile" -s
+singularity exec -B "$BINDARG" library://tuvan/default/fithichip bash "/FitHiChIP/FitHiChIP_HiCPro.sh" -C "$ConfigFile" -s
 fi
