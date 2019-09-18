@@ -19,10 +19,12 @@ https://ay-lab.github.io/FitHiChIP/
 
 Citation
 -----------
+*FitHiChIP is now published at Nature Communications (<https://www.nature.com/articles/s41467-019-11950-y>)*
+
 
 If you are using FitHiChIP, please cite:
 
-Sourya Bhattacharyya, Vivek Chandra, Pandurangan Vijayanand, and Ferhat Ay, *FitHiChIP: Identification of significant chromatin contacts from HiChIP data*, preprint at <https://www.biorxiv.org/content/early/2018/09/10/412833>, DOI: <https://doi.org/10.1101/412833>
+Sourya Bhattacharyya, Vivek Chandra, Pandurangan Vijayanand, and Ferhat Ay, *Identification of significant chromatin contacts from HiChIP data by FitHiChIP*, Nature Communications, Vol 10, No 4221, 2019, DOI: <https://doi.org/10.1038/s41467-019-11950-y>
 
 
 Release notes corresponding to version 7.0 (29th April 2019) (Major release)
