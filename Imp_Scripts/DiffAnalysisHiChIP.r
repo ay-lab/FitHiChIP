@@ -351,6 +351,7 @@ ApplyEdgeR <- function(ALLLoopData, MainDir, CountData, CategoryList, ReplicaCou
 FillFeatureValues <- function(UnionLoopFile, AllLoopList, ChIPCovFileList, AllRepLabels, CategoryList) {
 
 	temp_final_UnionLoopFile <- paste0(dirname(UnionLoopFile), '/temp_final_mastersheet.bed')
+	bool_chr_Specific_Write <- FALSE
 
 	for (chr_idx in (1:length(CHRLIST_NAMENUM))) {
 		chrName <- CHRLIST_NAMENUM[chr_idx]
@@ -515,8 +516,12 @@ FillFeatureValues <- function(UnionLoopFile, AllLoopList, ChIPCovFileList, AllRe
 		colnames(MergedIntTempData) <- namesvec
 
 		# now write this data frame in the temporary master sheet file
-		if (chr_idx == 1) {
-			write.table(MergedIntTempData, temp_final_UnionLoopFile, row.names = FALSE, col.names = TRUE, sep = "\t", quote=FALSE, append=FALSE)		
+		# sourya - should be modified - 
+		# we need to insert a boolean variable to see if chromosome specific writing is enabled or not
+		# if (chr_idx == 1) {
+		if (bool_chr_Specific_Write == FALSE) {
+			write.table(MergedIntTempData, temp_final_UnionLoopFile, row.names = FALSE, col.names = TRUE, sep = "\t", quote=FALSE, append=FALSE)
+			bool_chr_Specific_Write <- TRUE	
 		} else {
 			write.table(MergedIntTempData, temp_final_UnionLoopFile, row.names = FALSE, col.names = FALSE, sep = "\t", quote=FALSE, append=TRUE)		
 		}
@@ -907,6 +912,9 @@ close(fp_out)
 # then apply EdgeR based differential loop analysis
 #===================
 MasterSheetData <- read.table(UnionLoopFile, header=T, sep="\t", stringsAsFactors=F)
+# re-initialize the column names
+CN <- colnames(MasterSheetData)
+colnames(MasterSheetData) <- c("chr1", "start1", "end1", "chr2", "start2", "end2", CN[7:ncol(MasterSheetData)])
 
 DiffLoopDir <- paste0(opt$OutDir, '/EdgeR_Loops_ALL')
 system(paste("mkdir -p", DiffLoopDir))
