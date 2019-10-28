@@ -137,8 +137,7 @@ MergeInteraction=1
 # user cannot alter these values
 #========================
 
-# # reference genome
-# # sourya - this parameter can be removed
+# reference genome
 # RefGENOME='hg19'
 
 # # binning method for FitHiC technique
@@ -275,9 +274,9 @@ do
 					NBins=$paramval
 				fi
 			fi
-			if [ $param == "HiCProBasedir" ]; then
-				HiCProBasedir=$paramval
-			fi
+			# if [ $param == "HiCProBasedir" ]; then
+			# 	HiCProBasedir=$paramval
+			# fi
 			if [ $param == "PREFIX" ]; then
 				if [[ ! -z $paramval ]]; then
 					PREFIX=$paramval
@@ -380,6 +379,19 @@ do
 	fi
 done < $ConfigFile
 
+#=========================
+# check whether HiC-pro is installed or not
+#=========================
+# path of HiC pro executable
+# of the format somedir/bin/HiC-Pro
+HiCProExec=`which HiC-Pro`
+if [[ -z $HiCProExec ]]; then
+	echo 'ERROR ===>>>> HiC-pro is not installed in the system - FitHiChIP quits !!!'
+	exit 1
+fi
+# extract the "somedir" portion
+HiCProBasedir=${HiCProExec::-12}
+
 #===================
 # verify the input parameters
 #===================
@@ -394,8 +406,10 @@ if [[ -z $InpValidPairsFile && -z $InpInitialInteractionBedFile ]]; then
 fi
 
 if [[ -z $PeakFILE ]]; then
-	echo 'User should provide a reference peak file (either ChIP or HiChIP) to compute the interactions involving peak segments - exit !!'
-	exit 1
+	if [[ $IntType != 4 ]]; then
+		echo 'Input interaction type specified requires peak file information - but no reference peak file (either ChIP or HiChIP) is provided - exit !!'
+		exit 1
+	fi
 fi
 
 #======================
@@ -833,7 +847,8 @@ if [[ $MergeInteraction -lt 0 || $MergeInteraction -gt 1 ]]; then
 	exit 1
 fi
 
-if [[ $QVALUE -lt 0 || $QVALUE -ge 1 ]]; then
+# if [[ $QVALUE -lt 0 || $QVALUE -ge 1 ]]; then
+if [[ 1 -eq "$(echo "${QVALUE} < 0" | bc)" || 1 -eq "$(echo "${QVALUE} > 1" | bc)" ]]; then
 	echo 'ERROR ===>>>> Parameter q-value (FDR) should be positive but close to 0 (default 0.01) - but here invalid values are provided - check the parameters -- FitHiChIP quits !!!'
 	exit 1
 fi
@@ -842,7 +857,6 @@ if [[ $OverWrite -lt 0 || $OverWrite -gt 1 ]]; then
 	echo 'ERROR ===>>>> Parameter OverWrite should have values either 0 or 1: -- FitHiChIP quits !!!'
 	exit 1
 fi
-
 
 #===================
 # create the output directory
@@ -955,7 +969,7 @@ if [[ ! -z $InpInitialInteractionBedFile ]]; then
 
 	echo -e "\n ================ Processing input pre-computed locus pairs along with the contact count ================="
 
-	# check whether the file is gzippe or not
+	# check whether the file is gzipped or not
 	if [[ $InpInitialInteractionBedFile == *.gz ]]; then
 		gzipInt=1
 		echo -e "\n The input locus pair file is in gzipped format --- "
@@ -975,6 +989,17 @@ if [[ ! -z $InpInitialInteractionBedFile ]]; then
 	# insert a header line
 	sed -i '1ichr\ts1\te1\tchr2\ts2\te2\tcc' $Interaction_Initial_File
 
+	# also create two files: 
+	# 1) bin interval file, containing the bins with respect to the specified bin size, and bin numbers
+	# 2) matrix file, containing the contact counts for individual bins
+	OutPrefix=$HiCProMatrixDir'/MatrixHiCPro'
+	InpBinIntervalFile=$OutPrefix'_abs.bed'
+	InpMatrixFile=$OutPrefix'.matrix'
+
+	if [[ ! -f $InpBinIntervalFile || ! -f $InpMatrixFile ]]; then
+		$RScriptExec ./src/CreateBinMatrixFromBed.r --BinSize $BIN_SIZE --ChrSizeFile $ChrSizeFile --InpFile $Interaction_Initial_File --Interval $InpBinIntervalFile --Matrix $InpMatrixFile
+	fi
+
 	echo -e "\n Dumped the set of input interactions along with the header --- "
 
 else 
@@ -992,25 +1017,26 @@ else
 
 		# executable of matrix building is to be obtained from the HiC-pro base directory
 		# provided as the input
-		# MatrixBuildExec=$HiCProBasedir'/scripts/build_matrix'
-		MatrixBuildExecSet=( $(find $HiCProBasedir -type f -name 'build_matrix') )
-		len=${#MatrixBuildExecSet[@]}
-		# echo 'len: '$len
-		
+		MatrixBuildExec=$HiCProBasedir'/scripts/build_matrix'
+		# MatrixBuildExecSet=( $(find $HiCProBasedir -type f -name 'build_matrix') )
+		# len=${#MatrixBuildExecSet[@]}
+		# echo 'len: '$len		
 		#==========================
 		# error in the reference HiC-pro package
 		# if such script is not found
-		if [[ $len == 0 ]]; then		
-			echo 'ERROR ===>>>> could not find the executable build_matrix within HiC-pro installed package ----'
-			echo 'Check the directory of HiC-pro Package or check its version (recommended >= 2.9.0)'
+		# if [[ $len == 0 ]]; then		
+		if [[ ! -f $MatrixBuildExec ]]; then
+			echo 'ERROR ===>>>> could not find the executable ** build_matrix ** within HiC-pro installed package ----'
+			echo '**** Make sure you have installed HiCPro using its makefile and make install command ****'
+			echo 'Also, please check the directory of HiC-pro Package or check its version (recommended >= 2.9.0)'
 			echo 'Matrix from the input valid pairs file could not be generated - FitHiChIP is quiting !!!'			
 			exit 1
 		fi
 		#==========================
 	
-		idx=`expr $len - 1`
+		# idx=`expr $len - 1`
 		# echo 'idx: '$idx
-		MatrixBuildExec=${MatrixBuildExecSet[$idx]}
+		# MatrixBuildExec=${MatrixBuildExecSet[$idx]}
 		echo -e '\n *** MatrixBuildExec: '$MatrixBuildExec
 
 		echo '*** Computing HiC-pro matrices from the input valid pairs file'
@@ -1249,7 +1275,6 @@ if [[ ! -z $MappabilityFile && ! -z $RefFastaFile && ! -z $REFragFile ]]; then
 fi 	# end if mappability, GC content and RE frag files exist
 
 #=================
-# modifications - sourya
 # from the generated initial CIS interaction file (without distance thresholding)
 # get the HiChIP 1D bin coverage values, and also whether those bins overlap with
 # input peak segments (either ChIP peaks or HiChIP peaks)
@@ -1267,7 +1292,11 @@ if [[ ! -f $CoverageFile || $OverWrite == 1 ]]; then
 	# $PythonExec ./src/CoverageBin.py -i $InpValidPairsFile -p $PeakFILE -b $BIN_SIZE -o $CoverageFile -c $ChrSizeFile
 
 	# add - sourya
-	$RScriptExec ./src/CoverageBin.r --InpFile $Interaction_Initial_File --PeakFile $PeakFILE --BinSize $BIN_SIZE --ChrSizeFile $ChrSizeFile --OutFile $CoverageFile
+	if [[ ! -z $PeakFILE ]]; then
+		$RScriptExec ./src/CoverageBin.r --InpFile $Interaction_Initial_File --PeakFile $PeakFILE --BinSize $BIN_SIZE --ChrSizeFile $ChrSizeFile --OutFile $CoverageFile
+	else
+		$RScriptExec ./src/CoverageBin.r --InpFile $Interaction_Initial_File --BinSize $BIN_SIZE --ChrSizeFile $ChrSizeFile --OutFile $CoverageFile
+	fi
 
 	echo '======== Computed initial coverage information for individual genomic bins'
 	
@@ -1308,6 +1337,7 @@ if [[ ! -f $CoverageBiasFile || $OverWrite == 1 ]]; then
 		# use peaks and non-peaks separately for bias computation
 		$RScriptExec ./src/BiasCalc.r --CoverageFile $CoverageFile --OutFile $CoverageBiasFile
 		echo '======== Appended coverage bias information for individual genomic bins'
+	
 	else
 		# here ICE specific bias is used
 		# compute the bias vector from the HiC-pro contact matrix
@@ -1330,7 +1360,16 @@ if [[ ! -f $CoverageBiasFile || $OverWrite == 1 ]]; then
 		# these bins correspond to the bins specified in the $InpBinIntervalFile
 		temp_ICEBias_binfile=$AllFeatureDir'/'$PREFIX'.temp_bin_bias.txt'
 		if [[ ! -f $temp_ICEBias_binfile || $OverWrite == 1 ]]; then
-			paste $InpBinIntervalFile $BiasVecFile | cut -f1,2,3,5 > $temp_ICEBias_binfile
+			# modify - sourya
+			# if the input bin interval file is gzipped then first unzip
+			if [[ $InpBinIntervalFile == *.gz ]]; then
+				InpBinIntervalFileTEMP=$AllFeatureDir'/'$PREFIX'.temp_InpBinIntervalFile'
+				zcat $InpBinIntervalFile > $InpBinIntervalFileTEMP
+				paste $InpBinIntervalFileTEMP $BiasVecFile | cut -f1,2,3,5 > $temp_ICEBias_binfile
+				rm $InpBinIntervalFileTEMP
+			else
+				paste $InpBinIntervalFile $BiasVecFile | cut -f1,2,3,5 > $temp_ICEBias_binfile
+			fi
 		fi
 
 		# merge the files containing coverage + peak information of individual bins
@@ -1478,7 +1517,7 @@ IntFileALLtoALL=$DirALLtoALL'/'$InteractionFileName
 if [[ ! -f $IntFileALLtoALL || $OverWrite == 1 ]]; then
 	# merge the input interactions (chromosome interval + contact count)
 	# with the feature file	
-	$RScriptExec ./src/Significance_Features.r -I $Interaction_File -E $AllFeatFile -O $IntFileALLtoALL
+	$RScriptExec ./src/Significance_Features.r -I $Interaction_File -E $AllFeatFile -O $IntFileALLtoALL -C $ChrSizeFile
 	
 	if [ $TimeProf == 1 ]; then
 		duration=$(echo "$(date +%s.%N) - $start" | bc)
@@ -1618,7 +1657,13 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 
 	coln=`expr $totcol + 1`
 	if [[ ! -f $CurrIntFileSortDist || $OverWrite == 1 ]]; then
+
+		# old code - sourya
 		awk -F['\t'] -v OFS='\t' 'function abs(v) {return v < 0 ? -v : v} {print $0"\t"abs($5-$2)}' $CurrIntFile | sort -k${coln},${coln}n -k${cccol},${cccol}nr | cut -f1-${totcol} - > $CurrIntFileSortDist	
+
+		# new code - sourya
+		# distance specific locus pair extract + sorted by genomic distance
+		# $RScriptExec ./src/Interaction_Sort_Genomic_Distance.r $CurrIntFile $CurrIntFileSortDist
 
 		if [[ $TimeProf == 1 ]]; then
 			duration=$(echo "$(date +%s.%N) - $start" | bc)
@@ -1651,7 +1696,7 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 		# 	GenFitHiCDir=$GenFitHiCDir'_Mult_'$MultBias
 		# else 
 		# 	# name is appended with the bias correction regression parameters
-		# 	GenFitHiCDir=$GenFitHiCDir'_Resid_'$resid_biascorr'_EqOcc_'$eqocc_biascorr
+		#   GenFitHiCDir=$GenFitHiCDir'_Resid_'$resid_biascorr'_EqOcc_'$eqocc_biascorr
 		# fi
 	fi
 
@@ -1755,9 +1800,9 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 		#===========================
 		# add - sourya
 		if [[ $currdirname == $DirPeaktoALL ]]; then			
-			$RScriptExec ./src/FitHiC_SigInt.r --InpFile $CurrIntFileSortDist --headerInp --OutFile $FitHiC_Pass1_outfile --CoverageFile $CoverageBiasFile --BinSize $BIN_SIZE --P2P $UseP2PBackgrnd --IntType $CurrIntType --UseNonzeroContacts $UseNonzeroContacts --BiasCorr $BiasCorr --BiasLowThr $biaslowthr --BiasHighThr $biashighthr --Draw --cccol $cccol --BiasFilt $BeginBiasFilter --MultBias $MultBias --Resid $resid_biascorr --EqOcc $eqocc_biascorr
+			$RScriptExec ./src/FitHiC_SigInt.r --InpFile $CurrIntFileSortDist --headerInp --OutFile $FitHiC_Pass1_outfile --CoverageFile $CoverageBiasFile --BinSize $BIN_SIZE --P2P $UseP2PBackgrnd --IntType $CurrIntType --UseNonzeroContacts $UseNonzeroContacts --BiasCorr $BiasCorr --BiasType $BiasType --BiasLowThr $biaslowthr --BiasHighThr $biashighthr --Draw --cccol $cccol --BiasFilt $BeginBiasFilter --MultBias $MultBias --Resid $resid_biascorr --EqOcc $eqocc_biascorr
 		else
-			$RScriptExec ./src/FitHiC_SigInt.r --InpFile $CurrIntFileSortDist --headerInp --OutFile $FitHiC_Pass1_outfile --CoverageFile $CoverageBiasFile --BinSize $BIN_SIZE --P2P 0 --IntType $CurrIntType --UseNonzeroContacts $UseNonzeroContacts --BiasCorr $BiasCorr --BiasLowThr $biaslowthr --BiasHighThr $biashighthr --Draw --cccol $cccol --BiasFilt $BeginBiasFilter --MultBias $MultBias --Resid $resid_biascorr --EqOcc $eqocc_biascorr
+			$RScriptExec ./src/FitHiC_SigInt.r --InpFile $CurrIntFileSortDist --headerInp --OutFile $FitHiC_Pass1_outfile --CoverageFile $CoverageBiasFile --BinSize $BIN_SIZE --P2P 0 --IntType $CurrIntType --UseNonzeroContacts $UseNonzeroContacts --BiasCorr $BiasCorr --BiasType $BiasType --BiasLowThr $biaslowthr --BiasHighThr $biashighthr --Draw --cccol $cccol --BiasFilt $BeginBiasFilter --MultBias $MultBias --Resid $resid_biascorr --EqOcc $eqocc_biascorr
 		fi
 		# end add - sourya
 		#===========================
