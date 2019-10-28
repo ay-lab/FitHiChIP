@@ -12,10 +12,14 @@
 suppressMessages(library(GenomicRanges))
 library(optparse)
 library(edgeR)
+library(plyr)
 library(dplyr)
 library(ggplot2)
-library(data.table)
 library(tools)
+library(data.table)
+
+options(scipen = 999)
+options(datatable.fread.datatable=FALSE)
 
 # ggplot parameters
 FONTSIZE=18
@@ -348,17 +352,21 @@ ApplyEdgeR <- function(ALLLoopData, MainDir, CountData, CategoryList, ReplicaCou
 # AllRepLabels: labels of individual replicates of individual categories
 # CategoryList: two categories experimented
 #================================
-FillFeatureValues <- function(UnionLoopFile, AllLoopList, ChIPCovFileList, AllRepLabels, CategoryList) {
+FillFeatureValues <- function(UnionLoopFile, AllLoopList, BinSize, ChIPCovFileList, AllRepLabels, CategoryList) {
+	
+	# counter of chromosomes processed
+	valid_chr_count <- 0
 
+	# temporary loop + feature containing file used per iteration
 	temp_final_UnionLoopFile <- paste0(dirname(UnionLoopFile), '/temp_final_mastersheet.bed')
-	bool_chr_Specific_Write <- FALSE
+
+	UnionLoopTempFile1 <- paste0(dirname(UnionLoopFile), '/temp_CurrChr_Merged_Loops.bed')
 
 	for (chr_idx in (1:length(CHRLIST_NAMENUM))) {
 		chrName <- CHRLIST_NAMENUM[chr_idx]
 		cat(sprintf("\n ===>>> Within function FillFeatureValues --- processing chromosome : %s ", chrName))
 
-		# first extract the loops involving current chromosome
-		UnionLoopTempFile1 <- paste0(dirname(UnionLoopFile), '/temp_CurrChr_Merged_Loops.bed')
+		# first extract the loops involving current chromosome		
 		ExtractChrData(UnionLoopFile, chrName, UnionLoopTempFile1, header=FALSE)
 		nreadCurr <- GetNumLines(UnionLoopTempFile1)
 		if (nreadCurr == 0) {
@@ -368,7 +376,12 @@ FillFeatureValues <- function(UnionLoopFile, AllLoopList, ChIPCovFileList, AllRe
 		}
 		
 		# otherwise, read the loops for the current chromosome
-		MergedIntTempData <- read.table(UnionLoopTempFile1, header=F)
+		# MergedIntTempData <- read.table(UnionLoopTempFile1, header=F)
+		MergedIntTempData <- data.table::fread(UnionLoopTempFile1, header=F)
+
+		# also get the interacting bins (start position divided by the bin size)
+		AllLoop_BinDF <- cbind.data.frame((MergedIntTempData[,2] / BinSize), (MergedIntTempData[,5] / BinSize))
+		colnames(AllLoop_BinDF) <- c('B1', 'B2')
 
 		#=====================
 		# for the current chromosome, process loop files for different replicates and categories
@@ -392,22 +405,45 @@ FillFeatureValues <- function(UnionLoopFile, AllLoopList, ChIPCovFileList, AllRe
 			# input file containing FitHiChIP significance for all loops
 			inpfile <- AllLoopList[i]
 
-			# extract the input data for the current chromosome			
-			ExtractChrData(inpfile, chrName, InpTempFitHiChIPLoopFile, header=TRUE)
+			# extract the interacting bins
+			# and the raw contact count and the q-values
+			if (tools::file_ext(inpfile) == "gz") {
+				system(paste0("zcat ", inpfile, " | awk -v b=", BinSize, " \'{if ((NR>1) && ($1==\"", chrName, "\")) {print ($2/b)\"\t\"($5/b)\"\t\"$7\"\t\"$NF}}\' - > ", InpTempFitHiChIPLoopFile))
+			} else {
+				system(paste0("awk -v b=", BinSize, " \'{if ((NR>1) && ($1==\"", chrName, "\")) {print ($2/b)\"\t\"($5/b)\"\t\"$7\"\t\"$NF}}\' ", inpfile, " > ", InpTempFitHiChIPLoopFile))		
+			}
+
+			# # extract the input data for the current chromosome			
+			# ExtractChrData(inpfile, chrName, InpTempFitHiChIPLoopFile, header=TRUE)
 
 			# check the number of loops for the current chromosome 
 			# and for the current sample
 			nreadInp <- GetNumLines(InpTempFitHiChIPLoopFile)
 			if (nreadInp > 0) {
-				InpTempData <- read.table(InpTempFitHiChIPLoopFile, header=F, sep="\t", stringsAsFactors=F)
+				# InpTempData <- read.table(InpTempFitHiChIPLoopFile, header=F, sep="\t", stringsAsFactors=F)
+				InpTempData <- data.table::fread(InpTempFitHiChIPLoopFile, header=F, sep="\t", stringsAsFactors=F)
+				colnames(InpTempData) <- c('B1', 'B2', 'RawCC', 'qval')
 				cat(sprintf("\n ***** Computing overlap of merged loops with the FitHiChIP loop file index: %s  name: %s for the chromosome : %s ***** \n", i, inpfile, chrName))
 
-				# find the overlap between the merged loops and input sample FitHiChIP loops
-				CurrOv <- OverlapLoop(MergedIntTempData, InpTempData)
+				# get the matching row indices with respect to the master (union) set of loops
+				# i.e. which overlap with the current input file
+				m <- plyr::match_df(AllLoop_BinDF, InpTempData)
+				Match_RowIdx <- as.integer(rownames(m))
+				cat(sprintf("\n ----> number of master loops : %s  number of overlapping loops in input file : %s ", nrow(AllLoop_BinDF), length(Match_RowIdx)))
 
-				# dump the feature vectors
-				rawccvec[CurrOv$A_AND_B] <- InpTempData[CurrOv$B_AND_A, 7]				
-				qvec[CurrOv$A_AND_B] <- InpTempData[CurrOv$B_AND_A, ncol(InpTempData)]
+				# also merge the data frames
+				mergeDF <- dplyr::inner_join(AllLoop_BinDF, InpTempData)
+
+				# now store the feature values
+				rawccvec[Match_RowIdx] <- mergeDF$RawCC
+				qvec[Match_RowIdx] <- mergeDF$qval
+
+				# # find the overlap between the merged loops and input sample FitHiChIP loops
+				# CurrOv <- OverlapLoop(MergedIntTempData, InpTempData)
+
+				# # dump the feature vectors
+				# rawccvec[CurrOv$A_AND_B] <- InpTempData[CurrOv$B_AND_A, 7]				
+				# qvec[CurrOv$A_AND_B] <- InpTempData[CurrOv$B_AND_A, ncol(InpTempData)]
 			
 			}	# end number of reads condition
 
@@ -421,7 +457,9 @@ FillFeatureValues <- function(UnionLoopFile, AllLoopList, ChIPCovFileList, AllRe
 		}	# end loop FitHiChIP significance files
 
 		# delete the temporary file
-		system(paste("rm", InpTempFitHiChIPLoopFile))
+		if (file.exists(InpTempFitHiChIPLoopFile) == TRUE) {
+			system(paste("rm", InpTempFitHiChIPLoopFile))
+		}
 
 		#=====================
 		# process the ChIP-seq coverage files given for two input categories
@@ -444,45 +482,82 @@ FillFeatureValues <- function(UnionLoopFile, AllLoopList, ChIPCovFileList, AllRe
 			currcovfile <- ChIPCovFileList[i]
 			cat(sprintf("\n Merging reference ChIP-seq coverage values: file number : %s  file name : %s ", i, currcovfile))
 
+			# # extract the coverage information only for the current chromosome
+			# # check the first field of chromosome name
+			# # and second and third fields as integers
+			# system(paste0("awk \'(($1==\"", chrName, "\") && ($2 ~ /^[0-9]+$/) && ($3 ~ /^[0-9]+$/))\' ", currcovfile, " > ", InpTempChIPCoverageFile))
+
 			# extract the coverage information only for the current chromosome
 			# check the first field of chromosome name
 			# and second and third fields as integers
-			system(paste0("awk \'(($1==\"", chrName, "\") && ($2 ~ /^[0-9]+$/) && ($3 ~ /^[0-9]+$/))\' ", currcovfile, " > ", InpTempChIPCoverageFile))
+			# extract the bin number and the coverage information (assume 4th field)
+			system(paste0("awk -v b=", BinSize, " \'{if (($1==\"", chrName, "\") && ($2 ~ /^[0-9]+$/) && ($3 ~ /^[0-9]+$/)) {print ($2/b)\"\t\"$4}}\' ", currcovfile, " > ", InpTempChIPCoverageFile))
 
 			# read the ChIP coverage for the current sample and for the current chromosome
-			ChIPCoverageData <- read.table(InpTempChIPCoverageFile, header=F, sep="\t", stringsAsFactors=F)
+			# ChIPCoverageData <- read.table(InpTempChIPCoverageFile, header=F, sep="\t", stringsAsFactors=F)
+			ChIPCoverageData <- data.table::fread(InpTempChIPCoverageFile, header=F, sep="\t", stringsAsFactors=F)
 
-			# overlap of the current set of merged loops (for the current chromosome)
-			# and the 1D segments (for the current chromosome)
-			ov1 <- Overlap1D(MergedIntTempData[,1:3], ChIPCoverageData[,1:3], boundary=1, offset=0, uniqov=FALSE)
-			ov2 <- Overlap1D(MergedIntTempData[,4:6], ChIPCoverageData[,1:3], boundary=1, offset=0, uniqov=FALSE)
+			# *** Note: the below mentioned MATCH operation is only possible 
+			# since we perform exact overlap of the segments
+				
+			# get the overlap of the first interacting bin of AllLoop_BinDF
+			# with the bins in ChIPCoverageData
+			m <- match(AllLoop_BinDF[,1], ChIPCoverageData[,1])
+			idx_Loop <- which(!is.na(m))
+			idx_Cov <- m[idx_Loop]
+			# copy in the segment 1 ChIP coverage vector
+			seg1_chip_coverage_vec[idx_Loop] <- ChIPCoverageData[idx_Cov, 2]
+			if (i == 1) {
+				Seg1_ChIP_Label[idx_Loop] <- ChIPCoverageData[idx_Cov, ncol(ChIPCoverageData)]
+			}
 
-			# assign the ChIP coverage of overlapping bins 
-			# we assume that 4th field of ChIP coverage file stores the coverage information
-			seg1_chip_coverage_vec[ov1$A_AND_B] <- ChIPCoverageData[ov1$B_AND_A, 4]
-			seg2_chip_coverage_vec[ov2$A_AND_B] <- ChIPCoverageData[ov2$B_AND_A, 4]
+			# get the overlap of the second interacting bin of AllLoop_BinDF
+			# with the bins in ChIPCoverageData
+			m <- match(AllLoop_BinDF[,2], ChIPCoverageData[,1])
+			idx_Loop <- which(!is.na(m))
+			idx_Cov <- m[idx_Loop]
+			# copy in the segment 2 ChIP coverage vector
+			seg2_chip_coverage_vec[idx_Loop] <- ChIPCoverageData[idx_Cov, 2]
+			if (i == 1) {
+				Seg2_ChIP_Label[idx_Loop] <- ChIPCoverageData[idx_Cov, ncol(ChIPCoverageData)]
+			}
+
+			# # overlap of the current set of merged loops (for the current chromosome)
+			# # and the 1D segments (for the current chromosome)
+			# ov1 <- Overlap1D(MergedIntTempData[,1:3], ChIPCoverageData[,1:3], boundary=1, offset=0, uniqov=FALSE)
+			# ov2 <- Overlap1D(MergedIntTempData[,4:6], ChIPCoverageData[,1:3], boundary=1, offset=0, uniqov=FALSE)
+
+			# # assign the ChIP coverage of overlapping bins 
+			# # we assume that 4th field of ChIP coverage file stores the coverage information
+			# seg1_chip_coverage_vec[ov1$A_AND_B] <- ChIPCoverageData[ov1$B_AND_A, 4]
+			# seg2_chip_coverage_vec[ov2$A_AND_B] <- ChIPCoverageData[ov2$B_AND_A, 4]
 
 			# assign the feature vectors for the current input file
 			# into the final list of feature arrays
 			Seg1_ChIP_Coverage[[i]] <- seg1_chip_coverage_vec
 			Seg2_ChIP_Coverage[[i]] <- seg2_chip_coverage_vec
 
-			# assign the 1D label as well
-			if (i == 1) {
-				Seg1_ChIP_Label[ov1$A_AND_B] <- ChIPCoverageData[ov1$B_AND_A, ncol(ChIPCoverageData)]
-				Seg2_ChIP_Label[ov2$A_AND_B] <- ChIPCoverageData[ov2$B_AND_A, ncol(ChIPCoverageData)]
-			}
+			# # assign the 1D label as well
+			# if (i == 1) {
+			# 	Seg1_ChIP_Label[ov1$A_AND_B] <- ChIPCoverageData[ov1$B_AND_A, ncol(ChIPCoverageData)]
+			# 	Seg2_ChIP_Label[ov2$A_AND_B] <- ChIPCoverageData[ov2$B_AND_A, ncol(ChIPCoverageData)]
+			# }
 
 			cat(sprintf("\n ***** Assigned reference ChIP-seq coverage information for the file index: %s for the chromosome : %s ***** \n", i, chrName))
 		}
 
 		# delete the temporary file
-		# system(paste("rm", InpTempChIPCoverageFile))
+		if (file.exists(InpTempChIPCoverageFile) == TRUE) {
+			system(paste("rm", InpTempChIPCoverageFile))
+		}
 
 		#=======================
 		# now for the current chromosome
 		# merge the interacting regions along with the features accumulated
 		#=======================
+		# chromosome counter
+		valid_chr_count <- valid_chr_count + 1
+
 		namesvec <- c("chr1", "start1", "end1", "chr2", "start2", "end2")
 
 		# insert the ChIP-seq coverage information
@@ -519,11 +594,10 @@ FillFeatureValues <- function(UnionLoopFile, AllLoopList, ChIPCovFileList, AllRe
 		# sourya - should be modified - 
 		# we need to insert a boolean variable to see if chromosome specific writing is enabled or not
 		# if (chr_idx == 1) {
-		if (bool_chr_Specific_Write == FALSE) {
-			write.table(MergedIntTempData, temp_final_UnionLoopFile, row.names = FALSE, col.names = TRUE, sep = "\t", quote=FALSE, append=FALSE)
-			bool_chr_Specific_Write <- TRUE	
+		if (valid_chr_count == 1) {
+			write.table(MergedIntTempData, temp_final_UnionLoopFile, row.names=F, col.names=T, sep="\t", quote=F, append=F)
 		} else {
-			write.table(MergedIntTempData, temp_final_UnionLoopFile, row.names = FALSE, col.names = FALSE, sep = "\t", quote=FALSE, append=TRUE)		
+			write.table(MergedIntTempData, temp_final_UnionLoopFile, row.names=F, col.names=F, sep="\t", quote=F, append=T)
 		}
 
 	} 	# end chromosome index loop
@@ -531,12 +605,16 @@ FillFeatureValues <- function(UnionLoopFile, AllLoopList, ChIPCovFileList, AllRe
 	# rename the temporary master sheet file in the final file
 	system(paste("mv", temp_final_UnionLoopFile, UnionLoopFile))
 
+	if (file.exists(UnionLoopTempFile1) == TRUE) {
+		system(paste("rm", UnionLoopTempFile1))
+	}
+
 }	# end function
 
 #===========================================================
 option_list = list(
 
-	make_option(c("--AllLoopList"), type="character", default=NULL, help="Comma or colon separated list of FitHiChIP loops (without any significance thresholding) of all categories and all replicates. Check the file names $PREFIX$*.interactions.FitHiC.bed in the FitHiChIP output files. Loop files for the first category are to be mentioned first, followed by those of second category. For example, suppose there are two replicates for each category. Then, the file list would be like Cat1_Repl1_File:Cat1_Repl2_File:Cat2_Repl1_File:Cat2_Repl2_File where, Cat1 denotes input category 1, and Repl1 means replicate 1, and so on. Mandatory parameter."),
+	make_option(c("--AllLoopList"), type="character", default=NULL, help="Comma or colon separated list of FitHiChIP loops (without any significance thresholding) of all categories and all replicates. Check the file names $PREFIX$*.interactions.FitHiC.bed in the FitHiChIP output files. Loop files for the first category are to be mentioned first, followed by those of second category. For example, suppose there are two replicates for each category. Then, the file list would be like Cat1_Repl1_File:Cat1_Repl2_File:Cat2_Repl1_File:Cat2_Repl2_File where, Cat1 denotes input category 1, and Repl1 means replicate 1, and so on. Files can be gzipped as well. Mandatory parameter."),
 
 	make_option(c("--ChrSizeFile"), type="character", default=NULL, help="File containing size of chromosomes for reference genome. Mandatory parameter."),
 
@@ -544,7 +622,7 @@ option_list = list(
 
 	make_option(c("--CovThr"), type="integer", action="store", default=25, help="Threshold signifying the max allowed deviation of ChIP coverage between two categories, to consider those bins as ND (i.e. no difference). Default is 25, means 25% deviation of ChIP coverage is set as maximum, for a bin to be classified as ND. If user chooses 50, 50% maximum ChIP seq coverage deviation would be allowed."),
 
-	make_option(c("--ChIPAlignFileList"), type="character", default=NULL, help="Comma or colon separated list of ChIP-seq alignment files. Default is NULL. User can 1) either provide two files, one for each category, 2) or provide ChIP seq alignment files one for each sample. Mandatory parameter."),
+	make_option(c("--ChIPAlignFileList"), type="character", default=NULL, help="Comma or colon separated list of ChIP-seq files, either alignment (BAM) format, or in bedgraph (4 column) format. Default is NULL. User can 1) either provide two files, one for each input category, 2) or provide ChIP seq alignment / coverage files one for each input sample (i.e. for all input replicates). Mandatory parameter."),
 
 	make_option(c("--OutDir"), type="character", default=NULL, help="Base Output directory. Mandatory parameter."),
 
@@ -661,7 +739,11 @@ if (length(ChIPAlignFileList) == 2) {
 #=========================
 # get the bin size
 #=========================
-BinSize <- as.integer(system(paste("awk \'{if (NR==2) {print ($3-$2)}}\'", AllLoopList[1]), intern = TRUE))
+if (tools::file_ext(AllLoopList[1]) == "gz") {
+	BinSize <- as.integer(system(paste("zcat", AllLoopList[1], " | awk \'{if (NR==2) {print ($3-$2)}}\' - "), intern = TRUE))
+} else {
+	BinSize <- as.integer(system(paste("awk \'{if (NR==2) {print ($3-$2)}}\'", AllLoopList[1]), intern = TRUE))	
+}
 cat(sprintf("\n **** Bin size of FitHiChIP loops : %s \n", BinSize))
 
 #=========================
@@ -680,18 +762,38 @@ system(paste("bedtools makewindows -g", opt$ChrSizeFile, "-w", BinSize, ">", Tar
 # process individual alignment files and first get the ChIP seq coverage for those files
 # using the TargetBinnedChrFile
 for (i in (1:length(ChIPAlignFileList))) {
-	cat(sprintf("\n ===>> Merging ChIP coverage - processing ChIP-seq alignment file : %s ====>> \n", ChIPAlignFileList[i]))
-	if (i == 1) {			
-		system(paste("bedtools coverage -a", TargetBinnedChrFile, "-b", ChIPAlignFileList[i], "-counts >", MergedChIPCovFile))
+	if (tools::file_ext(ChIPAlignFileList[i]) == "bam") {
+		cat(sprintf("\n ===>> Merging ChIP coverage - processing ChIP-seq alignment file in BAM format : %s ====>> \n", ChIPAlignFileList[i]))
+	} else if (tools::file_ext(ChIPAlignFileList[i]) == "gz") {
+		cat(sprintf("\n ===>> Merging ChIP coverage - processing ChIP-seq alignment file in gzipped bedgraph (4 column) format : %s ====>> \n", ChIPAlignFileList[i]))
 	} else {
-		system(paste("bedtools coverage -a", TargetBinnedChrFile, "-b", ChIPAlignFileList[i], "-counts | cut -f4 >", tempfile1))
-		system(paste("paste", MergedChIPCovFile, tempfile1, ">", tempfile2))
-		system(paste("mv", tempfile2, MergedChIPCovFile))
+		cat(sprintf("\n ===>> Merging ChIP coverage - processing ChIP-seq alignment file in bedgraph (4 column) format : %s ====>> \n", ChIPAlignFileList[i]))
 	}
-}
+
+	if (tools::file_ext(ChIPAlignFileList[i]) == "gz") {
+		# gzipped bedgraph format
+		if (i == 1) {			
+			system(paste("zcat", ChIPAlignFileList[i], "| bedtools coverage -a", TargetBinnedChrFile, "-b stdin -counts >", MergedChIPCovFile))
+		} else {
+			system(paste("zcat", ChIPAlignFileList[i], "| bedtools coverage -a", TargetBinnedChrFile, "-b stdin -counts | cut -f4 >", tempfile1))
+			system(paste("paste", MergedChIPCovFile, tempfile1, ">", tempfile2))
+			system(paste("mv", tempfile2, MergedChIPCovFile))			
+		}
+	} else {
+		# either BAM file or plain bedgraph format
+		if (i == 1) {			
+			system(paste("bedtools coverage -a", TargetBinnedChrFile, "-b", ChIPAlignFileList[i], "-counts >", MergedChIPCovFile))
+		} else {			
+			system(paste("bedtools coverage -a", TargetBinnedChrFile, "-b", ChIPAlignFileList[i], "-counts | cut -f4 >", tempfile1))
+			system(paste("paste", MergedChIPCovFile, tempfile1, ">", tempfile2))
+			system(paste("mv", tempfile2, MergedChIPCovFile))
+		}		
+	}
+}	# end input file loop
 
 # now scale the ChIP coverages according to different categories
-Merged_ChIPCovData <- read.table(MergedChIPCovFile, header=F, sep="\t", stringsAsFactors=F)
+# Merged_ChIPCovData <- read.table(MergedChIPCovFile, header=F, sep="\t", stringsAsFactors=F)
+Merged_ChIPCovData <- data.table::fread(MergedChIPCovFile, header=F, sep="\t", stringsAsFactors=F)
 
 # ChIP coverage of the first category - row means operation
 if (ChIPAlignFileCountVec[1] > 1) {
@@ -722,10 +824,10 @@ colnames(Merged_ChIPCovData) <- c('chr', 'start', 'end', paste0(CategoryList[1],
 write.table(Merged_ChIPCovData, MergedChIPCovFile, row.names=F, col.names=T, sep="\t", quote=F, append=F)
 
 # now remove the temporary files
-if (file.exists(tempfile1) == FALSE) {
+if (file.exists(tempfile1) == TRUE) {
 	system(paste("rm", tempfile1))
 }
-if (file.exists(tempfile2) == FALSE) {
+if (file.exists(tempfile2) == TRUE) {
 	system(paste("rm", tempfile2))
 }	
 
@@ -757,7 +859,8 @@ ApplyEdgeR(Merged_ChIPCovData, ChIPEdgeRDir, CountData_1D[, 4:ncol(CountData_1D)
 
 # file containing non-differential ChIP-seq bins (EdgeR)
 ChIP_1D_EdgeR_NonSigFile <- paste0(ChIPEdgeRDir, '/ChIP_Coverage_EdgeR_Default_NonSIG.bed')
-ChIP_1D_EdgeR_NonSigData <- read.table(ChIP_1D_EdgeR_NonSigFile, header=T, sep="\t", stringsAsFactors=F)
+# ChIP_1D_EdgeR_NonSigData <- read.table(ChIP_1D_EdgeR_NonSigFile, header=T, sep="\t", stringsAsFactors=F)
+ChIP_1D_EdgeR_NonSigData <- data.table::fread(ChIP_1D_EdgeR_NonSigFile, header=T, sep="\t", stringsAsFactors=F)
 
 cat(sprintf("\n\n *** Performed EdgeR on ChIP coverage *** \n\n"))
 
@@ -800,7 +903,7 @@ UnionLoopFile <- paste0(opt$OutDir, '/MasterSheet_', CategoryList[1], '_', Categ
 	for (idx in (1:length(AllLoopList))) {
 		CurrLoopFile <- AllLoopList[idx]		
 		cat(sprintf("\n Creating master set of interactions - processing the loop file idx : %s  file name : %s ", idx, CurrLoopFile))
-		if (file_ext(CurrLoopFile) == "gz") {
+		if (tools::file_ext(CurrLoopFile) == "gz") {
 			if (idx == 1) {
 				system(paste0("zcat ", CurrLoopFile, " | awk \'(NR>1)\' - | cut -f1-6 > ", tempLoopFile1))
 			} else {
@@ -853,7 +956,7 @@ UnionLoopFile <- paste0(opt$OutDir, '/MasterSheet_', CategoryList[1], '_', Categ
 	write.table(covdf2, scaled_ChIPCovFile2, row.names=F, col.names=T, sep="\t", quote=F, append=F)
 
 	# now call the feature value function with the new set of ChIP coverage files
-	FillFeatureValues(UnionLoopFile, AllLoopList, c(scaled_ChIPCovFile1, scaled_ChIPCovFile2), AllRepLabels, CategoryList)
+	FillFeatureValues(UnionLoopFile, AllLoopList, BinSize, c(scaled_ChIPCovFile1, scaled_ChIPCovFile2), AllRepLabels, CategoryList)
 
 # }	# end if
 
@@ -863,7 +966,7 @@ cat(sprintf("\n\n *** Created master sheet of loops *** \n\n"))
 #=========================
 # paste the configuration options within this execution
 #=========================
-fp_out <- file(paste0(opt$OutDir, '/Input_Parameters', gsub("-","_",gsub(" ","_",format(Sys.time(), "%F %H-%M"))), '.log'), "w")
+fp_out <- file(paste0(opt$OutDir, '/Input_Parameters_', gsub("-","_",gsub(" ","_",format(Sys.time(), "%F %H-%M"))), '.log'), "w")
 
 outtext <- paste0("\n ********* Listing all the input parameters ****** ")
 writeLines(outtext, con=fp_out, sep="\n")
@@ -911,7 +1014,9 @@ close(fp_out)
 # read the master sheet for all loops  and their features
 # then apply EdgeR based differential loop analysis
 #===================
-MasterSheetData <- read.table(UnionLoopFile, header=T, sep="\t", stringsAsFactors=F)
+# MasterSheetData <- read.table(UnionLoopFile, header=T, sep="\t", stringsAsFactors=F)
+MasterSheetData <- data.table::fread(UnionLoopFile, header=T, sep="\t", stringsAsFactors=F)
+
 # re-initialize the column names
 CN <- colnames(MasterSheetData)
 colnames(MasterSheetData) <- c("chr1", "start1", "end1", "chr2", "start2", "end2", CN[7:ncol(MasterSheetData)])
@@ -941,7 +1046,8 @@ system(paste("awk \'{if (NR>1) {print $1\"\t\"$2\"\t\"$3; print $4\"\t\"$5\"\t\"
 CountDataFile <- paste0(DiffLoopDir, '/count_matrix.bed')
 
 # read the interacting bins
-IntervalData <- read.table(IntervalTextFile, header=F)
+# IntervalData <- read.table(IntervalTextFile, header=F)
+IntervalData <- data.table::fread(IntervalTextFile, header=F)
 colnames(IntervalData) <- c("Idx1", "chr1", "start1", "end1")
 
 # prepare a copy of this data frame
