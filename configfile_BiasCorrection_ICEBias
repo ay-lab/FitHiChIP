@@ -33,9 +33,6 @@ PeakFile=./TestData/Sample.Peaks.gz
 # Output base directory under which all results will be stored
 OutDir=./TestData/results/
 
-# Base directory of HiC-pro installation. mandatory parameter
-HiCProBasedir=/home/sourya/packages/HiCPro/HiC-Pro_2.9.0/
-
 #Interaction type - 1: peak to peak 2: peak to non peak 3: peak to all (default) 4: all to all 5: everything from 1 to 4.
 IntType=3
 
