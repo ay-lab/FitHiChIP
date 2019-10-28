@@ -10,6 +10,10 @@
 #===========================================================
 
 library(tools)
+library(data.table)
+
+options(scipen = 999)
+options(datatable.fread.datatable=FALSE)
 
 args <- commandArgs(TRUE)
 
@@ -35,18 +39,12 @@ InitialInteractionFile <- args[3]
 # # with the distance thresholds satisfied
 # FinalInteractionFile <- args[6]
 
-if (file_ext(IntervalFile) == "gz") {
-	IntervalMat <- read.table(gzfile(IntervalFile), header=F, sep="\t", stringsAsFactors=F)
-} else {
-	IntervalMat <- read.table(IntervalFile, header=F, sep="\t", stringsAsFactors=F)	
-}
+# IntervalMat <- read.table(IntervalFile, header=F, sep="\t", stringsAsFactors=F)	
+IntervalMat <- data.table::fread(IntervalFile, header=F, sep="\t", stringsAsFactors=F)	
 colnames(IntervalMat) <- c("chr1","s1","e1","idx")
 
-if (file_ext(MatrixFile) == "gz") {
-	InpInteraction <- read.table(gzfile(MatrixFile), header=F, sep="\t", stringsAsFactors=F)
-} else {
-	InpInteraction <- read.table(MatrixFile, header=F, sep="\t", stringsAsFactors=F)
-}
+# InpInteraction <- read.table(MatrixFile, header=F, sep="\t", stringsAsFactors=F)
+InpInteraction <- data.table::fread(MatrixFile, header=F, sep="\t", stringsAsFactors=F)
 colnames(InpInteraction) <- c("idx1","idx2","cc")
 
 # merge with respect to the index of 1st chromosome interval

@@ -22,6 +22,10 @@ library(fdrtool)
 library(parallel)	# library for parallel processing
 library(optparse)
 library(ggplot2)
+library(data.table)
+
+options(scipen = 999)
+options(datatable.fread.datatable=FALSE)
 
 #====================================================
 # function to compute the number of possible interacting pairs
@@ -216,6 +220,8 @@ option_list = list(
 	make_option(c("--P2P"), type="integer", action="store", default=0, help="Can be 0 or 1. If 1, spline fit is modeled using only peak to peak interactions. Default 0."),
 	
   	make_option(c("--BiasCorr"), type="integer", action="store", default=0, help="If 0, raw contact count is used. Else, bias corrected contact count is used before applying FitHiC. Default 0."),
+  	
+  	make_option(c("--BiasType"), type="integer", action="store", default=1, help="If 1, coverage bias is used. If 2, ICE bias is used. Default 1."),  	
 
 	make_option(c("--BiasLowThr"), type="numeric", default=0.2, help="Lower threshold of bias. Default 0.2. Used to model the bias specific regression, by filtering the training data with respect to this bias value. Optionally used for pre-filtering the interactions."),
 	make_option(c("--BiasHighThr"), type="numeric", default=5, help="Higher threshold of bias. Default 5. Used to model the bias specific regression, by filtering the training data with respect to this bias value. Optionally used for pre-filtering the interactions."),  	
@@ -297,7 +303,8 @@ if (opt$UseNonzeroContacts == 0) {
 			system(paste0("awk \'NR>1\' ", opt$CoverageFile, " | cut -f1 | uniq -c | awk \'{print $2\"\t\"$1}\' - > ", MappableBinCountChrFile))
 		}
 		# read the mappable bin count for individual chromosomes
-		MappableBinCount.df <- read.table(MappableBinCountChrFile, header=F, sep="\t", stringsAsFactors=F)
+		# MappableBinCount.df <- read.table(MappableBinCountChrFile, header=F, sep="\t", stringsAsFactors=F)
+		MappableBinCount.df <- data.table::fread(MappableBinCountChrFile, header=F, sep="\t", stringsAsFactors=F)
 	} else {
 		# dump individual chromosomes, their bins and corresponding peak information
 		if ((opt$BiasCorr == 1) & (opt$BiasFilt == 1)) {
@@ -306,14 +313,16 @@ if (opt$UseNonzeroContacts == 0) {
 			system(paste0("awk -v b=", opt$BinSize, " \'{if (NR>1) {print $1\"\t\"($2/b)\"\t\"$5}}\' ", opt$CoverageFile, " > ", MappableBinCountChrFile))
 		}
 		# read the chromosome specific bin information
-		ChrSpecBin.df <- read.table(MappableBinCountChrFile, header=F, sep="\t", stringsAsFactors=F)
+		# ChrSpecBin.df <- read.table(MappableBinCountChrFile, header=F, sep="\t", stringsAsFactors=F)
+		ChrSpecBin.df <- data.table::fread(MappableBinCountChrFile, header=F, sep="\t", stringsAsFactors=F)
 	}
 }
 #========================================================
 
 # load the interaction data matrix
 # Note: the data has a header information
-interaction.data <- read.table(opt$InpFile, header=opt$headerInp, sep="\t", stringsAsFactors=F)
+# interaction.data <- read.table(opt$InpFile, header=opt$headerInp, sep="\t", stringsAsFactors=F)
+interaction.data <- data.table::fread(opt$InpFile, header=opt$headerInp, sep="\t", stringsAsFactors=F)
 if (opt$headerInp == FALSE) {
 	colnames(interaction.data) <- c("chr1", "s1", "e1", "chr2", "s2", "e2", "cc", "d1", "isPeak1", "Bias1", "mapp1", "gc1", "cut1", "d2", "isPeak2", "Bias2", "mapp2", "gc2", "cut2")
 }
@@ -911,7 +920,7 @@ if (opt$BiasCorr == 0) {
 				BiasThrIdx <- which((Curr_Int_Data[,bias1.col] >= opt$BiasLowThr) & (Curr_Int_Data[,bias1.col] <= opt$BiasHighThr) & (Curr_Int_Data[,bias2.col] >= opt$BiasLowThr) & (Curr_Int_Data[,bias2.col] <= opt$BiasHighThr))
 				Curr_Int_Set_BiasThr <- Curr_Int_Data[BiasThrIdx, ]
 
-				if (0) {
+				if (1) {
 					cat(sprintf("\n === Regression model (training data) - average distance: %s number of interactions: %s  number of bias threshold satisfying interactions: %s \n", training_avg_int_dist, nrow(Curr_Int_Data), nrow(Curr_Int_Set_BiasThr)))
 				}
 
@@ -1139,8 +1148,8 @@ if (opt$BiasCorr == 0) {
 				pp_L2 <- predict(fit_spline_coeff_Logbias2_new, gene.dist[si])
 				coeff_LogBias2 <- pp_L2$y
 
-				if (0) {
-					cat(sprintf("\n *** Processing uniq distance idx: %s  si: %s  ei: %s num elem : %s  gene dist : %s  Spline prob: %s  coeff_Intcpt : %s coeff_LogBias1 : %s coeff_LogBias2 : %s ", k, si, ei, (ei-si+1), gene.dist[si], p, coeff_Intcpt, coeff_LogBias1, coeff_LogBias2))
+				if (1) {
+					cat(sprintf("\n *** Processing uniq distance idx: %s  si: %s  ei: %s num elem : %s  gene dist : %s  Spline prob (p): %s  coeff_Intcpt : %s coeff_LogBias1 : %s coeff_LogBias2 : %s ", k, si, ei, (ei-si+1), gene.dist[si], p, coeff_Intcpt, coeff_LogBias1, coeff_LogBias2))
 				}
 
 				# copy the spline based probability 
@@ -1176,7 +1185,7 @@ if (opt$BiasCorr == 0) {
 
 				# debug - sourya
 				# for ICE bias, don't allow bias > 1000
-				if (opt$BiasCorr == 1) {
+				if (opt$BiasType == 1) {
 					# coverage bias
 					nonzero_biasidx_set <- which((interaction.data[si:ei, bias1.col] > 0) & (interaction.data[si:ei, bias2.col] > 0)) + (si-1)
 				} else {
@@ -1188,7 +1197,7 @@ if (opt$BiasCorr == 0) {
 				# the zero bias values are those not in nonzero_biasidx_set
 				zero_biasidx_set <- setdiff(seq(si, ei), nonzero_biasidx_set)
 
-				if (0) {
+				if (1) {
 					cat(sprintf("\n\n ****** length nonzero_biasidx_set: %s  length zero_biasidx_set : %s  ", length(nonzero_biasidx_set), length(zero_biasidx_set)))
 				}
 
@@ -1196,6 +1205,7 @@ if (opt$BiasCorr == 0) {
 				# then just use the spline predicted probability as the estimated distance
 				if (length(zero_biasidx_set) > 0) {
 					Exp_CC_BiasRegr[zero_biasidx_set] <- (TotContact * p)	
+					cat(sprintf("\n *** processing zero_biasidx_set - assigning Exp_CC_BiasRegr : %s ", (TotContact * p)))
 				}
 				
 				# for non-zero bias values, use the bias regression predicted contact count
@@ -1206,6 +1216,21 @@ if (opt$BiasCorr == 0) {
 						# here residual contact count is predicted
 						# add the spline fit contact count to the predicted value
 						Exp_CC_BiasRegr[nonzero_biasidx_set] <- 10^(coeff_Intcpt + coeff_LogBias1 * log10(interaction.data[nonzero_biasidx_set, bias1.col]) + coeff_LogBias2 * log10(interaction.data[nonzero_biasidx_set, bias2.col]) + log10(TotContact * p))
+					}
+
+					# condition add - sourya
+					# for ICE bias, check if the expected contact count is going beyond a certain limit
+					if (opt$BiasType == 2) {						
+						limit_exceed_idx <- which(Exp_CC_BiasRegr > (2^15))
+						if (length(limit_exceed_idx) > 0) {
+							cat(sprintf("\n ***  Number of elements with very high expected CC : %s - to be trimmed ", length(limit_exceed_idx)))
+							Exp_CC_BiasRegr[limit_exceed_idx] <- (TotContact * p)
+						}
+					}
+					# end condition - sourya
+
+					if (1) {
+						cat(sprintf("\n *** processing nonzero_biasidx_set - maximum Exp_CC_BiasRegr in these elements : %s ", max(Exp_CC_BiasRegr[nonzero_biasidx_set])))
 					}
 				}
 				#================
@@ -1246,7 +1271,9 @@ if (opt$BiasCorr == 0) {
 			NumElem <- length(Exp_CC_BiasRegr)
 			non_NA_Exp_CC_BiasRegr <- which(!is.na(Exp_CC_BiasRegr))
 			ExpTotContact_1 <- sum(Exp_CC_BiasRegr)
+			# check the maximum integer range and trim the sum of expected contact count
 			ExpTotContact <- as.integer(sum(Exp_CC_BiasRegr))
+			# ExpTotContact <- as.integer(min(sum(Exp_CC_BiasRegr), as.integer(.Machine$integer.max)))
 
 			if (1) {
 				cat(sprintf("\n *** NumElem: %s  length non_NA_Exp_CC_BiasRegr : %s  ExpTotContact_1 : %s ExpTotContact : %s ", NumElem, length(non_NA_Exp_CC_BiasRegr), ExpTotContact_1, ExpTotContact))
@@ -1272,7 +1299,7 @@ if (opt$BiasCorr == 0) {
 					ei <- numPairs	# last read	
 				}
 
-				if (0) {
+				if (1) {
 					cat(sprintf("\n *** Modeling regression bias probability based P value --- uniq distance idx: %s  si: %s  ei: %s num elem : %s ", k, si, ei, (ei-si+1)))
 				}
 
@@ -1777,6 +1804,10 @@ if (timeprof == 1) {
 	starttime <- Sys.time()
 }
 
+
+# sourya - comment - sourya
+if (0) {
+
 # accumulate all results - also add header information
 if ((opt$BiasCorr == 0) | ((opt$BiasCorr == 1) & (opt$MultBias == 1))) {
 	# either there is no bias correction
@@ -1790,15 +1821,56 @@ if ((opt$BiasCorr == 0) | ((opt$BiasCorr == 1) & (opt$MultBias == 1))) {
 	# P and Q values are similar
 	FinalData <- cbind(interaction.data, Prob_Val, Exp_CC_BiasRegr, Prob_BiasRegr, Spline_Binom_Prob_CC, Spline_Binom_P_Val_CC, Spline_Binom_QVal)	
 	colnames(FinalData) <- c(colnames(interaction.data), "p", "exp_cc_Bias", "p_Bias", "dbinom_Bias", "P-Value_Bias", "Q-Value_Bias")	
-}
 
-# append the Spline distribution probability and corresponding P value as separate columns
-# and write in a separate text file
-temp_outfile <- paste0(OutIntDir, '/', 'temp_out.bed')
-write.table(FinalData, temp_outfile, row.names = FALSE, col.names = TRUE, sep = "\t", quote=FALSE, append=FALSE) 
+	# append the Spline distribution probability and corresponding P value as separate columns
+	# and write in a separate text file
+	temp_outfile <- paste0(OutIntDir, '/', 'temp_out.bed')
+	write.table(FinalData, temp_outfile, row.names = FALSE, col.names = TRUE, sep = "\t", quote=FALSE, append=FALSE)	
+}
 
 # now sort the file contents and write that in the final specified output file
 system(paste('sort -k1,1 -k2,2n -k5,5n', paste0('-k',opt$cccol,',',opt$cccol,'nr'), temp_outfile, '>', opt$OutFile))
+
+}	# end dummy if
+
+# add - sourya
+if (1) {
+
+if ((opt$BiasCorr == 0) | ((opt$BiasCorr == 1) & (opt$MultBias == 1))) {
+	FinalData <- cbind(Prob_Val, Spline_Binom_Prob_CC, Spline_Binom_P_Val_CC, Spline_Binom_QVal)
+	colnames(FinalData) <- c("p", "dbinom", "P-Value", "Q-Value")	
+} else {
+	FinalData <- cbind(Prob_Val, Exp_CC_BiasRegr, Prob_BiasRegr, Spline_Binom_Prob_CC, Spline_Binom_P_Val_CC, Spline_Binom_QVal)
+	colnames(FinalData) <- c("p", "exp_cc_Bias", "p_Bias", "dbinom_Bias", "P-Value_Bias", "Q-Value_Bias")
+}
+temp_outfile_2 <- paste0(OutIntDir, '/temp_out2.bed')
+write.table(FinalData, temp_outfile_2, row.names=F, col.names=T, sep = "\t", quote=F, append=F)
+
+temp_outfile <- paste0(OutIntDir, '/temp_out.bed')
+system(paste("paste", opt$InpFile, temp_outfile_2, ">", temp_outfile))
+
+# delete the temporary output file
+system(paste("rm", temp_outfile_2))
+
+# # copy the header in the output file
+# system(paste0("awk \'{if (NR==1) {print $0}}\' ", temp_outfile, " > ", opt$OutFile))
+
+# # now read chromosomes in this file
+# ChrData <- data.table::fread(opt$CoverageFile, header=T)
+# ChrNames <- unique(sort(ChrData[,1])))
+# for (i in (1:length(ChrNames))) {
+# 	currChr <- ChrNames[i]
+# 	cat(sprintf("\n Processing chromosome for finalizing significant interactions: %s ", currChr))
+# 	system(paste0("awk \'{if ((NR>1) && ($1==\"", currChr, "\") && ($4==\"", currChr, "\")) {print $0}}\' ", temp_outfile, " | sort -k2,2n -k5,5n -k", opt$cccol, ",", opt$cccol, "nr >> ", opt$OutFile))
+# }	# end chromosome loop
+
+# now sort the file contents and write that in the final specified output file
+system(paste('sort -k1,1 -k2,2n -k5,5n', paste0('-k',opt$cccol,',',opt$cccol,'nr'), temp_outfile, '>', opt$OutFile))
+
+}	# end dummy if
+
+# end add - sourya
+
 # delete the temporary output file
 system(paste('rm', temp_outfile))
 

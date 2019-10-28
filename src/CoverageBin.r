@@ -1,9 +1,12 @@
 #!/usr/bin/env Rscript
 
-options(scipen=999)
 library(optparse)
 library(GenomicRanges)
 library(tools)
+library(data.table)
+
+options(scipen = 999)
+options(datatable.fread.datatable=FALSE)
 
 #======================
 # script to compute 1D bin specific HiChIP coverage
@@ -43,48 +46,92 @@ opt = parse_args(opt_parser);
 
 OutDir <- dirname(opt$OutFile)
 
+# counter of valid chromosomes (containing one or more interactions)
+valid_chr_count <- 0
+
 # first use the reference chromosome size file and input bin size
 # to extract all distinct 1D bins
 temp_1D_binfile <- paste0(OutDir, '/temp_1D_ALLBins.bed')
 system(paste("bedtools makewindows -g", opt$ChrSizeFile, "-w", opt$BinSize, ">", temp_1D_binfile))
 
-temp_1D_bindata <- read.table(temp_1D_binfile, header=F, sep="\t", stringsAsFactors=F)
+# read the chromosomes of input ChrSizeFile
+ChrData <- read.table(opt$ChrSizeFile, header=F, sep="\t", stringsAsFactors=F)
+ChrNames <- sort(ChrData[,1])
 
-# now extract the HiChIP 1D coverage from the input locus pair and contact count file
-temp_1D_Coveragefile <- paste0(OutDir, '/temp_1D_coverage.bed')
-system(paste0("awk -F\'[\t]\' -v OFS=\"\t\" \'{if (NR>1) {a[$1\"\t\"$2\"\t\"$3]+=$7; a[$4\"\t\"$5\"\t\"$6]+=$7}} END {for (x in a) {print x,a[x]}}\' ", opt$InpFile, " | sort -k1,1 -k2,2n > ", temp_1D_Coveragefile))
+# files for processing one chromosome
+temp_1D_binfile_currChr <- paste0(OutDir, '/temp_1D_ALLBins_CurrChr.bed')
 
-temp_1D_CoverageData <- read.table(temp_1D_Coveragefile, header=F, sep="\t", stringsAsFactors=F)
+for (i in (1:length(ChrNames))) {
+	currChr <- ChrNames[i]
+	cat(sprintf("\n Processing chromosome for coverage computation: %s ", currChr))
 
-# append the coverage values of temp_1D_CoverageData 
-# into the bins in temp_1D_bindata
-coverageVec <- rep(0, nrow(temp_1D_bindata))
-ov <- Overlap1D(temp_1D_bindata, temp_1D_CoverageData, uniqov=FALSE)
-coverageVec[ov$A_AND_B] <- temp_1D_CoverageData[ov$B_AND_A, 4]
+	# get the bins for the current chromosome
+	system(paste0("awk \'{if ($1==\"", currChr, "\") {print $0}}\' ", temp_1D_binfile, " > ", temp_1D_binfile_currChr))
 
-# now read the peak file - supporting both gzipped and normal files
-temp_peakfile <- paste0(OutDir, '/temp_peaks.bed')
-if (tools::file_ext(opt$PeakFile) == "gz") {
-	system(paste0("zcat ", opt$PeakFile, " | awk \'{if (($2 ~ /^[0-9]+$/) && ($3 ~ /^[0-9]+$/)) {print $1\"\t\"$2\"\t\"$3}}\' - > ", temp_peakfile))
-} else {
-	system(paste0("cat ", opt$PeakFile, " | awk \'{if (($2 ~ /^[0-9]+$/) && ($3 ~ /^[0-9]+$/)) {print $1\"\t\"$2\"\t\"$3}}\' - > ", temp_peakfile))
-}
+	nline <- as.integer(system(paste("cat", temp_1D_binfile_currChr, "| wc -l"), intern = TRUE))
+	if (nline == 0) {
+		next
+	}
+	
+	# now extract the HiChIP 1D coverage from the input locus pair and contact count file
+	# and for the current chromosome
+	temp_1D_Coveragefile <- paste0(OutDir, '/temp_1D_coverage.bed')
+	system(paste0("awk -F\'[\t]\' -v OFS=\"\t\" \'{if ((NR>1) && ($1==\"", currChr, "\")) {a[$1\"\t\"$2\"\t\"$3]+=$7; a[$4\"\t\"$5\"\t\"$6]+=$7}} END {for (x in a) {print x,a[x]}}\' ", opt$InpFile, " | sort -k1,1 -k2,2n > ", temp_1D_Coveragefile))
 
-temp_PeakData <- read.table(temp_peakfile, header=F, sep="\t", stringsAsFactors=F)
+	nline <- as.integer(system(paste("cat", temp_1D_Coveragefile, "| wc -l"), intern = TRUE))
+	if (nline == 0) {
+		next
+	}
 
-# assign the peak information in the 1D bins
-peakvec <- rep(0, nrow(temp_1D_bindata))
-ov1 <- Overlap1D(temp_1D_bindata, temp_PeakData, boundary=0, offset=0, uniqov=FALSE)
-peakvec[ov1$A_AND_B] <- 1
+	# read the bins for the current chromosome
+	temp_1D_bindata <- data.table::fread(temp_1D_binfile_currChr, header=F, sep="\t", stringsAsFactors=F)	
+	
+	# read the HiChIP coverage values for the current chromosome
+	temp_1D_CoverageData <- data.table::fread(temp_1D_Coveragefile, header=F, sep="\t", stringsAsFactors=F)
 
-# now construct the final data frame
-FinalDF <- cbind.data.frame(temp_1D_bindata, coverageVec, peakvec)
-colnames(FinalDF) <- c('Chr', 'Start', 'End', 'Coverage', 'IsPeak')
+	# append the coverage values of temp_1D_CoverageData 
+	# into the bins in temp_1D_bindata
+	coverageVec <- rep(0, nrow(temp_1D_bindata))
+	ov <- Overlap1D(temp_1D_bindata, temp_1D_CoverageData, uniqov=FALSE)
+	coverageVec[ov$A_AND_B] <- temp_1D_CoverageData[ov$B_AND_A, 4]
 
-write.table(FinalDF, opt$OutFile, row.names=F, col.names=T, sep="\t", quote=F, append=F)
+	# assign the peak information in the 1D bins
+	peakvec <- rep(0, nrow(temp_1D_bindata))
+
+	if (!is.null(opt$PeakFile)) {	
+		# now read the peak file - supporting both gzipped and normal files
+		temp_peakfile <- paste0(OutDir, '/temp_peaks.bed')
+		if (tools::file_ext(opt$PeakFile) == "gz") {
+			system(paste0("zcat ", opt$PeakFile, " | awk \'{if (($1==\"", currChr, "\") && ($2 ~ /^[0-9]+$/) && ($3 ~ /^[0-9]+$/)) {print $1\"\t\"$2\"\t\"$3}}\' - > ", temp_peakfile))
+		} else {
+			system(paste0("cat ", opt$PeakFile, " | awk \'{if (($1==\"", currChr, "\") && ($2 ~ /^[0-9]+$/) && ($3 ~ /^[0-9]+$/)) {print $1\"\t\"$2\"\t\"$3}}\' - > ", temp_peakfile))
+		}
+		temp_PeakData <- data.table::fread(temp_peakfile, header=F, sep="\t", stringsAsFactors=F)
+		if (nrow(temp_PeakData) > 0) {
+			ov1 <- Overlap1D(temp_1D_bindata, temp_PeakData, boundary=0, offset=0, uniqov=FALSE)
+			peakvec[ov1$A_AND_B] <- 1		
+		}
+	}	# end peak file non-null condition
+
+	# now construct the final data frame
+	FinalDF <- cbind.data.frame(temp_1D_bindata, coverageVec, peakvec)
+	colnames(FinalDF) <- c('Chr', 'Start', 'End', 'Coverage', 'IsPeak')
+
+	# increment the valid chromosome counter
+	valid_chr_count <- valid_chr_count + 1
+	if (valid_chr_count == 1) {
+		write.table(FinalDF, opt$OutFile, row.names=F, col.names=T, sep="\t", quote=F, append=F)
+	} else {
+		write.table(FinalDF, opt$OutFile, row.names=F, col.names=F, sep="\t", quote=F, append=T)
+	}
+
+}	# end chromosome loop
 
 # remove temporary files
 system(paste("rm", temp_1D_binfile))
+system(paste("rm", temp_1D_binfile_currChr))
 system(paste("rm", temp_1D_Coveragefile))
-system(paste("rm", temp_peakfile))
+if (!is.null(opt$PeakFile)) {
+	system(paste("rm", temp_peakfile))
+}
 
