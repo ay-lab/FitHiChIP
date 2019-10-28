@@ -9,6 +9,11 @@
 # usage: Rscript ContactCountDistr.r $PeakFile $InteractionFile $PlotFile $OutText
 #===========================================================
 
+library(data.table)
+
+options(scipen = 999)
+options(datatable.fread.datatable=FALSE)
+
 args <- commandArgs(TRUE)
 
 PeakFile <- args[1]
@@ -17,10 +22,12 @@ PlotFile <- args[3]
 OutText <- args[4]
 
 # peaks in the input peak file (PD = PeakData)
-PD <- read.table(PeakFile, header=FALSE)
+# PD <- read.table(PeakFile, header=FALSE)
+PD <- data.table::fread(PeakFile, header=FALSE)
 
 # peaks from the interaction file (PI = peaks from interactions)
-PI <- read.table(InteractionFile, header=FALSE)
+# PI <- read.table(InteractionFile, header=FALSE)
+PI <- data.table::fread(InteractionFile, header=FALSE)
 
 # significant contact count (filtered according to Q value) for individual peaks
 count <- c()

@@ -10,6 +10,10 @@
 
 library(optparse)
 library(ggplot2)
+library(data.table)
+
+options(scipen = 999)
+options(datatable.fread.datatable=FALSE)
 
 #================================================
 option_list = list(
@@ -35,7 +39,8 @@ tempOutFile <- paste0(OutDir, '/temp_CC_Dist.bed')
 # where the first column is distance, and the second column is interaction count
 system(paste("awk \'function abs(v) {return v < 0 ? -v : v} {print abs($5-$2)}\'", opt$IntFile, "| sort -k1,1n | uniq -c | awk \'{if (NR>1) {print $2\"\t\"$1}}\' - > ", tempOutFile))
 
-InpData <- read.table(tempOutFile, header=F, sep="\t", stringsAsFactors=F)
+# InpData <- read.table(tempOutFile, header=F, sep="\t", stringsAsFactors=F)
+InpData <- data.table::fread(tempOutFile, header=F, sep="\t", stringsAsFactors=F)
 
 a <- data.frame(group = paste("Distance vs Interaction"), x = InpData[,1], y = InpData[,2])
 curr_plotA <- ggplot(a, aes(x=x, y=y, fill=group, colour=group)) + geom_line(color="blue") + xlab('Interaction Distance') + ylab('No of significant interactions')
@@ -50,7 +55,8 @@ system(paste("rm", tempOutFile))
 
 # provide mean and median distance statistics 
 # for these interactions
-InpLoopData <- read.table(opt$IntFile, header=T)
+# InpLoopData <- read.table(opt$IntFile, header=T)
+InpLoopData <- data.table::fread(opt$IntFile, header=T)
 DistVec <- abs(InpLoopData[,5] - InpLoopData[,2])
 median_dist <- median(DistVec)
 mean_dist <- mean(DistVec)

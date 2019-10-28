@@ -8,6 +8,10 @@
 #===========================================================
 library(optparse)
 library(ggplot2)
+library(data.table)
+
+options(scipen = 999)
+options(datatable.fread.datatable=FALSE)
 
 # variables depicting the dimension of plots
 PlotWidth <- 10
@@ -122,7 +126,8 @@ opt = parse_args(opt_parser);
 
 # read the genome bins and associated normalization features
 # Note: the file does not have header information
-InpData <- read.table(opt$GenomeBinFile, header=F, sep="\t", stringsAsFactors=F)	
+# InpData <- read.table(opt$GenomeBinFile, header=F, sep="\t", stringsAsFactors=F)	
+InpData <- data.table::fread(opt$GenomeBinFile, header=F, sep="\t", stringsAsFactors=F)	
 # colnames(InpData) <- c("chr1","s1","e1","coverage","isPeak", "Bias", "Mapp", "GCContent", "numREsites")
 
 system(paste('mkdir -p', opt$CommonDir))
