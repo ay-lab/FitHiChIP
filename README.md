@@ -32,6 +32,8 @@ Release notes corresponding to version 7.1 (24th October 2019)
 	Major changes: 
 
 	1. Updated differential analysis module - support processing ChIP-seq coverage files in BEDGraph format (in addition to process ChIP-seq alignment .bam files). Improved code with much lower running time. Improved documentation.
+		** Requires additional R libraries to be installed : 1) data.table, 2) plyr
+		** For details, please check the installation procedure in the main documentation
 	2. Thoroughly tested support of HiC data. User now can provide HiC contact matrices in either HiC-pro based validpairs / matrix format, or simple bed format (peak file is not required) and specify ALL-to-ALL (4) interaction type to obtain HiC data specific significant interactions.
 	3. Included code for simulating HiChIP data from input HiC and ChIP-seq (as published in our Nature Communication Paper). Note that this implementation is far from optimal, and was mainly to show the robustness of FitHiChIP. The simulation needs to be much improved.
 	3. Lower running time in finding statistically significant interactions, by faster data reading and processing.
