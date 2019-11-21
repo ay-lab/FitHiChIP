@@ -491,7 +491,7 @@ FillFeatureValues <- function(UnionLoopFile, AllLoopList, BinSize, ChIPCovFileLi
 			# check the first field of chromosome name
 			# and second and third fields as integers
 			# extract the bin number and the coverage information (assume 4th field)
-			system(paste0("awk -v b=", BinSize, " \'{if (($1==\"", chrName, "\") && ($2 ~ /^[0-9]+$/) && ($3 ~ /^[0-9]+$/)) {print ($2/b)\"\t\"$4}}\' ", currcovfile, " > ", InpTempChIPCoverageFile))
+			system(paste0("awk -v b=", BinSize, " \'{if (($1==\"", chrName, "\") && ($2 ~ /^[0-9]+$/) && ($3 ~ /^[0-9]+$/)) {print ($2/b)\"\t\"$4\"\t\"$5}}\' ", currcovfile, " > ", InpTempChIPCoverageFile))
 
 			# read the ChIP coverage for the current sample and for the current chromosome
 			# ChIPCoverageData <- read.table(InpTempChIPCoverageFile, header=F, sep="\t", stringsAsFactors=F)
