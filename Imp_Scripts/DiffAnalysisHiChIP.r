@@ -773,18 +773,18 @@ for (i in (1:length(ChIPAlignFileList))) {
 	if (tools::file_ext(ChIPAlignFileList[i]) == "gz") {
 		# gzipped bedgraph format
 		if (i == 1) {			
-			system(paste("zcat", ChIPAlignFileList[i], "| bedtools coverage -a", TargetBinnedChrFile, "-b stdin -counts >", MergedChIPCovFile))
+			system(paste("zcat", ChIPAlignFileList[i], "| bedtools coverage -a", TargetBinnedChrFile, "-b stdin -sorted -counts >", MergedChIPCovFile))
 		} else {
-			system(paste("zcat", ChIPAlignFileList[i], "| bedtools coverage -a", TargetBinnedChrFile, "-b stdin -counts | cut -f4 >", tempfile1))
+			system(paste("zcat", ChIPAlignFileList[i], "| bedtools coverage -a", TargetBinnedChrFile, "-b stdin -sorted -counts | cut -f4 >", tempfile1))
 			system(paste("paste", MergedChIPCovFile, tempfile1, ">", tempfile2))
 			system(paste("mv", tempfile2, MergedChIPCovFile))			
 		}
 	} else {
 		# either BAM file or plain bedgraph format
 		if (i == 1) {			
-			system(paste("bedtools coverage -a", TargetBinnedChrFile, "-b", ChIPAlignFileList[i], "-counts >", MergedChIPCovFile))
+			system(paste("bedtools coverage -a", TargetBinnedChrFile, "-b", ChIPAlignFileList[i], "-sorted -counts >", MergedChIPCovFile))
 		} else {			
-			system(paste("bedtools coverage -a", TargetBinnedChrFile, "-b", ChIPAlignFileList[i], "-counts | cut -f4 >", tempfile1))
+			system(paste("bedtools coverage -a", TargetBinnedChrFile, "-b", ChIPAlignFileList[i], "-sorted -counts | cut -f4 >", tempfile1))
 			system(paste("paste", MergedChIPCovFile, tempfile1, ">", tempfile2))
 			system(paste("mv", tempfile2, MergedChIPCovFile))
 		}		
