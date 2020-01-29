@@ -491,7 +491,8 @@ FillFeatureValues <- function(UnionLoopFile, AllLoopList, BinSize, ChIPCovFileLi
 			# check the first field of chromosome name
 			# and second and third fields as integers
 			# extract the bin number and the coverage information (assume 4th field)
-			system(paste0("awk -v b=", BinSize, " \'{if (($1==\"", chrName, "\") && ($2 ~ /^[0-9]+$/) && ($3 ~ /^[0-9]+$/)) {print ($2/b)\"\t\"$4}}\' ", currcovfile, " > ", InpTempChIPCoverageFile))
+			# also extract the 5th field (bin label; LD, HD or LD)
+			system(paste0("awk -v b=", BinSize, " \'{if (($1==\"", chrName, "\") && ($2 ~ /^[0-9]+$/) && ($3 ~ /^[0-9]+$/)) {print ($2/b)\"\t\"$4\"\t\"$5}}\' ", currcovfile, " > ", InpTempChIPCoverageFile))
 
 			# read the ChIP coverage for the current sample and for the current chromosome
 			# ChIPCoverageData <- read.table(InpTempChIPCoverageFile, header=F, sep="\t", stringsAsFactors=F)
@@ -499,7 +500,7 @@ FillFeatureValues <- function(UnionLoopFile, AllLoopList, BinSize, ChIPCovFileLi
 
 			# *** Note: the below mentioned MATCH operation is only possible 
 			# since we perform exact overlap of the segments
-				
+
 			# get the overlap of the first interacting bin of AllLoop_BinDF
 			# with the bins in ChIPCoverageData
 			m <- match(AllLoop_BinDF[,1], ChIPCoverageData[,1])
@@ -773,18 +774,18 @@ for (i in (1:length(ChIPAlignFileList))) {
 	if (tools::file_ext(ChIPAlignFileList[i]) == "gz") {
 		# gzipped bedgraph format
 		if (i == 1) {			
-			system(paste("zcat", ChIPAlignFileList[i], "| bedtools coverage -a", TargetBinnedChrFile, "-b stdin -sorted -counts >", MergedChIPCovFile))
+			system(paste("zcat", ChIPAlignFileList[i], "| bedtools coverage -a", TargetBinnedChrFile, "-b stdin -counts >", MergedChIPCovFile))
 		} else {
-			system(paste("zcat", ChIPAlignFileList[i], "| bedtools coverage -a", TargetBinnedChrFile, "-b stdin -sorted -counts | cut -f4 >", tempfile1))
+			system(paste("zcat", ChIPAlignFileList[i], "| bedtools coverage -a", TargetBinnedChrFile, "-b stdin -counts | cut -f4 >", tempfile1))
 			system(paste("paste", MergedChIPCovFile, tempfile1, ">", tempfile2))
 			system(paste("mv", tempfile2, MergedChIPCovFile))			
 		}
 	} else {
 		# either BAM file or plain bedgraph format
 		if (i == 1) {			
-			system(paste("bedtools coverage -a", TargetBinnedChrFile, "-b", ChIPAlignFileList[i], "-sorted -counts >", MergedChIPCovFile))
+			system(paste("bedtools coverage -a", TargetBinnedChrFile, "-b", ChIPAlignFileList[i], "-counts >", MergedChIPCovFile))
 		} else {			
-			system(paste("bedtools coverage -a", TargetBinnedChrFile, "-b", ChIPAlignFileList[i], "-sorted -counts | cut -f4 >", tempfile1))
+			system(paste("bedtools coverage -a", TargetBinnedChrFile, "-b", ChIPAlignFileList[i], "-counts | cut -f4 >", tempfile1))
 			system(paste("paste", MergedChIPCovFile, tempfile1, ">", tempfile2))
 			system(paste("mv", tempfile2, MergedChIPCovFile))
 		}		
