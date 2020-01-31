@@ -26,6 +26,12 @@ If you are using FitHiChIP, please cite:
 Sourya Bhattacharyya, Vivek Chandra, Pandurangan Vijayanand, and Ferhat Ay, *Identification of significant chromatin contacts from HiChIP data by FitHiChIP*, Nature Communications, Vol 10, No 4221, 2019, DOI: <https://doi.org/10.1038/s41467-019-11950-y>
 
 
+Release notes corresponding to version 8.0 (January 30, 2020)
+--------------------------------------------------------------
+
+	1. Minor bug fix in differential analysis module
+	2. Using ggplot2 for plotting spline fit and regression coefficients, in the significant interaction module. Useful for running in computational cluster environment.
+
 Release notes corresponding to version 7.1 (24th October 2019) 
 ------------------------------------------------------------------
 
