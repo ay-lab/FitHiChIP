@@ -1,6 +1,13 @@
 Release Notes for FitHiChIP
 ---------------------------
 
+Release 8.0 (January 30, 2020)
+------------------------------
+
+1. Minor bug fix in differential analysis module
+2. Using ggplot2 for plotting spline fit and regression coefficients, in the significant interaction module. Useful for running in computational cluster environment.
+
+
 Release 7.1 (October 24, 2019)
 ---------------------------------
 
