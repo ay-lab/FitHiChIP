@@ -26,6 +26,13 @@ If you are using FitHiChIP, please cite:
 Sourya Bhattacharyya, Vivek Chandra, Pandurangan Vijayanand, and Ferhat Ay, *Identification of significant chromatin contacts from HiChIP data by FitHiChIP*, Nature Communications, Vol 10, No 4221, 2019, DOI: <https://doi.org/10.1038/s41467-019-11950-y>
 
 
+Data repository
+-----------------
+
+All the results in FitHiChIP, like the significant loops, HiChIP peak calling, performance analysis is now available in Zenodo
+
+https://doi.org/10.5281/zenodo.3255048
+
 Release notes corresponding to version 8.0 (January 30, 2020)
 --------------------------------------------------------------
 
