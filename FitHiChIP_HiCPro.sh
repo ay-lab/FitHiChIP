@@ -464,14 +464,43 @@ if [[ -z "$HiCProVersion" ]]; then
 else
 	echo "HiC-pro is installed in the system"
 fi
-parsedVersion=$(echo "${HiCProVersion//./}")
-if [[ "$parsedVersion" -lt "290" ]]; then 
-    echo "ERROR ====>>> HiC-pro should have version >=  2.9.0 !!! FitHiChIP quits !!!"
-    errcond=1
-    # exit 1
+numfield=`echo $HiCProVersion | awk -F'[.]' '{print NF}' -`
+if [[ $numfield -ge 3 ]]; then
+	num1=`echo $HiCProVersion | awk -F'[.]' '{print $1}' -`
+	num2=`echo $HiCProVersion | awk -F'[.]' '{print $2}' -`
+	num3=`echo $HiCProVersion | awk -F'[.]' '{print $3}' -`
+	if [[ $num1 -gt 2 ]]; then
+		echo "Installed HiC-pro version: "${HiCProVersion}
+	elif [[ $num1 -eq 2 && $num2 -gt 11 ]]; then
+		echo "Installed HiC-pro version: "${HiCProVersion}
+	elif [[ $num1 -eq 2 && $num2 -eq 11 && $num3 -ge 4 ]]; then
+		echo "Installed HiC-pro version: "${HiCProVersion}
+	else 
+		echo "ERROR ====>>> HiC-pro should have version >= 2.11.4 !!! FitHiChIP quits !!!"
+		errcond=1
+	fi
 else
-	echo "Installed HiC-pro version: "${HiCProVersion}
+	num1=`echo $HiCProVersion | awk -F'[.]' '{print $1}' -`
+	num2=`echo $HiCProVersion | awk -F'[.]' '{print $2}' -`
+	if [[ $num1 -gt 2 ]]; then
+		echo "Installed HiC-pro version: "${HiCProVersion}
+	elif [[ $num1 -eq 2 && $num2 -gt 11 ]]; then
+		echo "Installed HiC-pro version: "${HiCProVersion}
+	else 
+		echo "ERROR ====>>> HiC-pro should have version >= 2.11.4 !!! FitHiChIP quits !!!"
+		errcond=1
+	fi	
 fi
+
+# parsedVersion=$(echo "${HiCProVersion//./}")
+# if [[ "$parsedVersion" -lt "290" ]]; then 
+#     echo "ERROR ====>>> HiC-pro should have version >=  2.9.0 !!! FitHiChIP quits !!!"
+#     errcond=1
+#     # exit 1
+# else
+# 	echo "Installed HiC-pro version: "${HiCProVersion}
+# fi
+
 
 # first check the python version
 # check if python is installed and its version is > 2.7.0
@@ -482,18 +511,46 @@ if [[ -z "$pythonversion" ]]; then
     errcond=1
     # exit 1
 fi
-parsedVersion=$(echo "${pythonversion//./}")
-# echo "parsedVersion : "$parsedVersion
-if [[ "$parsedVersion" -lt "300" && "$parsedVersion" -gt "270" ]]; then 
-    echo "*** Valid python version is detected - installed version: "$pythonversion
-elif [[ "$parsedVersion" -lt "3000" && "$parsedVersion" -gt "2700" ]]; then 
-	echo "*** Valid python version is detected - installed version: "$pythonversion
+numfield=`echo $pythonversion | awk -F'[.]' '{print NF}' -`
+if [[ $numfield -ge 3 ]]; then
+	num1=`echo $pythonversion | awk -F'[.]' '{print $1}' -`
+	num2=`echo $pythonversion | awk -F'[.]' '{print $2}' -`
+	num3=`echo $pythonversion | awk -F'[.]' '{print $3}' -`
+	if [[ $num1 -gt 2 ]]; then
+		echo "Installed python version: "${pythonversion}
+	elif [[ $num1 -eq 2 && $num2 -gt 7 ]]; then
+		echo "Installed python version: "${pythonversion}
+	elif [[ $num1 -eq 2 && $num2 -eq 7 && $num3 -ge 1 ]]; then
+		echo "Installed python version: "${pythonversion}
+	else 
+		echo " --- should be python 2 with version > 2.7.0 !!! FitHiChIP quits !!!"
+		errcond=1
+	fi
 else
-    echo "ERROR ====>>> Invalid python version : "$pythonversion
-    echo " --- should be python 2 with version > 2.7.0 !!! FitHiChIP quits !!!"
-    errcond=1
-    # exit 1
+	num1=`echo $pythonversion | awk -F'[.]' '{print $1}' -`
+	num2=`echo $pythonversion | awk -F'[.]' '{print $2}' -`
+	if [[ $num1 -gt 2 ]]; then
+		echo "Installed python version: "${pythonversion}
+	elif [[ $num1 -eq 2 && $num2 -gt 7 ]]; then
+		echo "Installed python version: "${pythonversion}
+	else 
+		echo " --- should be python 2 with version > 2.7.0 !!! FitHiChIP quits !!!"
+		errcond=1
+	fi	
 fi
+
+# parsedVersion=$(echo "${pythonversion//./}")
+# # echo "parsedVersion : "$parsedVersion
+# if [[ "$parsedVersion" -lt "300" && "$parsedVersion" -gt "270" ]]; then 
+#     echo "*** Valid python version is detected - installed version: "$pythonversion
+# elif [[ "$parsedVersion" -lt "3000" && "$parsedVersion" -gt "2700" ]]; then 
+# 	echo "*** Valid python version is detected - installed version: "$pythonversion
+# else
+#     echo "ERROR ====>>> Invalid python version : "$pythonversion
+#     echo " --- should be python 2 with version > 2.7.0 !!! FitHiChIP quits !!!"
+#     errcond=1
+#     # exit 1
+# fi
 
 # check if python libraries are also installed
 if python -c "import gzip"; then
@@ -535,19 +592,47 @@ if [[ -z "$Rversion" ]]; then
     errcond=1
     # exit 1
 fi
-parsedVersion=$(echo "${Rversion//./}")
-if [[ "$parsedVersion" -ge "330" && "$parsedVersion" -lt "1000" ]]; then 
-    echo "*** Valid R version is detected - installed R version: "$Rversion
-elif [[ "$parsedVersion" -ge "3300" && "$parsedVersion" -lt "10000" ]]; then 
-    echo "*** Valid R version is detected - installed R version: "$Rversion
-elif [[ "$parsedVersion" -ge "31000" ]]; then 
-    echo "*** Valid R version is detected - installed R version: "$Rversion      
+numfield=`echo $Rversion | awk -F'[.]' '{print NF}' -`
+if [[ $numfield -ge 3 ]]; then
+	num1=`echo $Rversion | awk -F'[.]' '{print $1}' -`
+	num2=`echo $Rversion | awk -F'[.]' '{print $2}' -`
+	num3=`echo $Rversion | awk -F'[.]' '{print $3}' -`
+	if [[ $num1 -gt 3 ]]; then
+		echo "Installed R version: "${Rversion}
+	elif [[ $num1 -eq 3 && $num2 -gt 3 ]]; then
+		echo "Installed R version: "${Rversion}
+	elif [[ $num1 -eq 3 && $num2 -eq 3 && $num3 -ge 0 ]]; then
+		echo "Installed R version: "${Rversion}
+	else 
+		echo " -- R version should be at least R 3.3 !!! FitHiChIP quits !!!"
+		errcond=1
+	fi
 else
-    echo "ERROR ====>>> Invalid R version: "$Rversion
-    echo " -- should be at least R 3.3 !!! FitHiChIP quits !!!"
-    errcond=1
-    # exit 1
+	num1=`echo $Rversion | awk -F'[.]' '{print $1}' -`
+	num2=`echo $Rversion | awk -F'[.]' '{print $2}' -`
+	if [[ $num1 -gt 3 ]]; then
+		echo "Installed R version: "${Rversion}
+	elif [[ $num1 -eq 3 && $num2 -gt 3 ]]; then
+		echo "Installed R version: "${Rversion}
+	else 
+		echo " -- R version should be at least R 3.3 !!! FitHiChIP quits !!!"
+		errcond=1
+	fi	
 fi
+
+# parsedVersion=$(echo "${Rversion//./}")
+# if [[ "$parsedVersion" -ge "330" && "$parsedVersion" -lt "1000" ]]; then 
+#     echo "*** Valid R version is detected - installed R version: "$Rversion
+# elif [[ "$parsedVersion" -ge "3300" && "$parsedVersion" -lt "10000" ]]; then 
+#     echo "*** Valid R version is detected - installed R version: "$Rversion
+# elif [[ "$parsedVersion" -ge "31000" ]]; then 
+#     echo "*** Valid R version is detected - installed R version: "$Rversion      
+# else
+#     echo "ERROR ====>>> Invalid R version: "$Rversion
+#     echo " -- should be at least R 3.3 !!! FitHiChIP quits !!!"
+#     errcond=1
+#     # exit 1
+# fi
 
 # check the samtools version
 samtoolsversion=$(samtools 2>&1 | grep "Version" | awk -F[" "] '{print $2}' -)
@@ -556,22 +641,52 @@ if [[ -z "$samtoolsversion" ]]; then
     errcond=1
     # exit 1
 fi
-parsedsamtoolsVersion=$(echo "${samtoolsversion//./}")
-if [[ ${samtoolsversion:0:1} == "0" ]]; then
-	# samtools version is 0.*
-	echo "ERROR ====>>> Invalid samtools version : "$samtoolsversion 
-	echo " - should be at least 1.6 !!! FitHiChIP quits !!!"
-	errcond=1
-elif [[ "$parsedsamtoolsVersion" -ge "16" && "$parsedsamtoolsVersion" -lt "99" ]]; then
-    echo "*** Valid samtools version is detected - installed version: "$samtoolsversion
-elif [[ "$parsedsamtoolsVersion" -ge "160" && "$parsedsamtoolsVersion" -lt "999" ]]; then
-	echo "*** Valid samtools version is detected - installed version: "$samtoolsversion
+numfield=`echo $samtoolsversion | awk -F'[.]' '{print NF}' -`
+if [[ $numfield -ge 3 ]]; then
+	num1=`echo $samtoolsversion | awk -F'[.]' '{print $1}' -`
+	num2=`echo $samtoolsversion | awk -F'[.]' '{print $2}' -`
+	num3=`echo $samtoolsversion | awk -F'[.]' '{print $3}' -`
+	if [[ $num1 -gt 1 ]]; then
+		echo "Installed samtools version: "${samtoolsversion}
+	elif [[ $num1 -eq 1 && $num2 -gt 6 ]]; then
+		echo "Installed samtools version: "${samtoolsversion}
+	elif [[ $num1 -eq 1 && $num2 -eq 6 && $num3 -ge 0 ]]; then
+		echo "Installed samtools version: "${samtoolsversion}
+	else 
+		echo " - Samtools version should be at least 1.6 !!! FitHiChIP quits !!!"
+		errcond=1
+	fi
 else
-    echo "ERROR ====>>> Invalid samtools version : "$samtoolsversion 
-    echo " - should be at least 1.6 !!! FitHiChIP quits !!!"
-    errcond=1
-    # exit 1
+	num1=`echo $samtoolsversion | awk -F'[.]' '{print $1}' -`
+	num2=`echo $samtoolsversion | awk -F'[.]' '{print $2}' -`
+	if [[ $num1 -gt 1 ]]; then
+		echo "Installed samtools version: "${samtoolsversion}
+	elif [[ $num1 -eq 1 && $num2 -gt 6 ]]; then
+		echo "Installed samtools version: "${samtoolsversion}
+	else 
+		echo " - Samtools version should be at least 1.6 !!! FitHiChIP quits !!!"
+		errcond=1
+	fi	
 fi
+
+
+# parsedsamtoolsVersion=$(echo "${samtoolsversion//./}")
+# if [[ ${samtoolsversion:0:1} == "0" ]]; then
+# 	# samtools version is 0.*
+# 	echo "ERROR ====>>> Invalid samtools version : "$samtoolsversion 
+# 	echo " - should be at least 1.6 !!! FitHiChIP quits !!!"
+# 	errcond=1
+# elif [[ "$parsedsamtoolsVersion" -ge "16" && "$parsedsamtoolsVersion" -lt "99" ]]; then
+#     echo "*** Valid samtools version is detected - installed version: "$samtoolsversion
+# elif [[ "$parsedsamtoolsVersion" -ge "160" && "$parsedsamtoolsVersion" -lt "999" ]]; then
+# 	echo "*** Valid samtools version is detected - installed version: "$samtoolsversion
+# else
+#     echo "ERROR ====>>> Invalid samtools version : "$samtoolsversion 
+#     echo " - should be at least 1.6 !!! FitHiChIP quits !!!"
+#     errcond=1
+#     # exit 1
+# fi
+
 
 # check if bgzip is installed in the system
 bgzipnum=`bgzip -h 2>&1 | wc -l`
@@ -607,30 +722,88 @@ if [[ -z "$bedtoolsversion1" && -z "$bedtoolsversion2" ]]; then
     # exit 1
 fi
 if [[ ! -z "$bedtoolsversion1" ]]; then
-    parsedbedtoolsVersion=$(echo "${bedtoolsversion1//./}")
-    if [[ "$parsedbedtoolsVersion" -ge "2260" && "$parsedbedtoolsVersion" -lt "9999" ]]; then 
-        echo "*** Valid bedtools version is detected - installed version: "$bedtoolsversion1
-    elif [[ "$parsedbedtoolsVersion" -ge "300" && "$parsedbedtoolsVersion" -lt "999" ]]; then
-        echo "*** Valid bedtools version is detected - installed version: "$bedtoolsversion1
-    else
-        echo "ERROR ====>>> Invalid bedtools version : "$bedtoolsversion1
-        echo " - should be at least 2.26.0 !!! FitHiChIP quits !!!"
-        errcond=1
-        # exit 1
-    fi
+
+	numfield=`echo $bedtoolsversion1 | awk -F'[.]' '{print NF}' -`
+	if [[ $numfield -ge 3 ]]; then
+		num1=`echo $bedtoolsversion1 | awk -F'[.]' '{print $1}' -`
+		num2=`echo $bedtoolsversion1 | awk -F'[.]' '{print $2}' -`
+		num3=`echo $bedtoolsversion1 | awk -F'[.]' '{print $3}' -`
+		if [[ $num1 -gt 2 ]]; then
+			echo "Installed bedtools version: "${bedtoolsversion1}
+		elif [[ $num1 -eq 2 && $num2 -gt 26 ]]; then
+			echo "Installed bedtools version: "${bedtoolsversion1}
+		elif [[ $num1 -eq 2 && $num2 -eq 26 && $num3 -ge 0 ]]; then
+			echo "Installed bedtools version: "${bedtoolsversion1}
+		else 
+			echo " - Samtools version should be at least 1.6 !!! FitHiChIP quits !!!"
+			errcond=1
+		fi
+	else
+		num1=`echo $bedtoolsversion1 | awk -F'[.]' '{print $1}' -`
+		num2=`echo $bedtoolsversion1 | awk -F'[.]' '{print $2}' -`
+		if [[ $num1 -gt 2 ]]; then
+			echo "Installed bedtools version: "${bedtoolsversion1}
+		elif [[ $num1 -eq 2 && $num2 -gt 26 ]]; then
+			echo "Installed bedtools version: "${bedtoolsversion1}
+		else 
+			echo " - should be at least 2.26.0 !!! FitHiChIP quits !!!"
+			errcond=1
+		fi	
+	fi
+
+    # parsedbedtoolsVersion=$(echo "${bedtoolsversion1//./}")
+    # if [[ "$parsedbedtoolsVersion" -ge "2260" && "$parsedbedtoolsVersion" -lt "9999" ]]; then 
+    #     echo "*** Valid bedtools version is detected - installed version: "$bedtoolsversion1
+    # elif [[ "$parsedbedtoolsVersion" -ge "300" && "$parsedbedtoolsVersion" -lt "999" ]]; then
+    #     echo "*** Valid bedtools version is detected - installed version: "$bedtoolsversion1
+    # else
+    #     echo "ERROR ====>>> Invalid bedtools version : "$bedtoolsversion1
+    #     echo " - should be at least 2.26.0 !!! FitHiChIP quits !!!"
+    #     errcond=1
+    #     # exit 1
+    # fi
 fi
 if [[ -z "$bedtoolsversion1" && ! -z "$bedtoolsversion2" ]]; then
-    parsedbedtoolsVersion=$(echo "${bedtoolsversion2//./}")
-    if [[ "$parsedbedtoolsVersion" -ge "2260" && "$parsedbedtoolsVersion" -lt "9999" ]]; then 
-        echo "*** Valid bedtools version is detected - installed version: "$bedtoolsversion2
-    elif [[ "$parsedbedtoolsVersion" -ge "300" && "$parsedbedtoolsVersion" -lt "999" ]]; then
-        echo "*** Valid bedtools version is detected - installed version: "$bedtoolsversion2
-    else
-        echo "ERROR ====>>> Invalid bedtools version : "$bedtoolsversion2
-        echo " - should be at least 2.26.0 !!! FitHiChIP quits !!!"
-        errcond=1
-        # exit 1
-    fi
+    
+	numfield=`echo $bedtoolsversion2 | awk -F'[.]' '{print NF}' -`
+	if [[ $numfield -ge 3 ]]; then
+		num1=`echo $bedtoolsversion2 | awk -F'[.]' '{print $1}' -`
+		num2=`echo $bedtoolsversion2 | awk -F'[.]' '{print $2}' -`
+		num3=`echo $bedtoolsversion2 | awk -F'[.]' '{print $3}' -`
+		if [[ $num1 -gt 2 ]]; then
+			echo "Installed bedtools version: "${bedtoolsversion2}
+		elif [[ $num1 -eq 2 && $num2 -gt 26 ]]; then
+			echo "Installed bedtools version: "${bedtoolsversion2}
+		elif [[ $num1 -eq 2 && $num2 -eq 26 && $num3 -ge 0 ]]; then
+			echo "Installed bedtools version: "${bedtoolsversion2}
+		else 
+			echo " - Samtools version should be at least 1.6 !!! FitHiChIP quits !!!"
+			errcond=1
+		fi
+	else
+		num1=`echo $bedtoolsversion2 | awk -F'[.]' '{print $1}' -`
+		num2=`echo $bedtoolsversion2 | awk -F'[.]' '{print $2}' -`
+		if [[ $num1 -gt 2 ]]; then
+			echo "Installed bedtools version: "${bedtoolsversion2}
+		elif [[ $num1 -eq 2 && $num2 -gt 26 ]]; then
+			echo "Installed bedtools version: "${bedtoolsversion2}
+		else 
+			echo " - should be at least 2.26.0 !!! FitHiChIP quits !!!"
+			errcond=1
+		fi	
+	fi
+
+    # parsedbedtoolsVersion=$(echo "${bedtoolsversion2//./}")
+    # if [[ "$parsedbedtoolsVersion" -ge "2260" && "$parsedbedtoolsVersion" -lt "9999" ]]; then 
+    #     echo "*** Valid bedtools version is detected - installed version: "$bedtoolsversion2
+    # elif [[ "$parsedbedtoolsVersion" -ge "300" && "$parsedbedtoolsVersion" -lt "999" ]]; then
+    #     echo "*** Valid bedtools version is detected - installed version: "$bedtoolsversion2
+    # else
+    #     echo "ERROR ====>>> Invalid bedtools version : "$bedtoolsversion2
+    #     echo " - should be at least 2.26.0 !!! FitHiChIP quits !!!"
+    #     errcond=1
+    #     # exit 1
+    # fi
 fi
 
 # final evaluation
@@ -1341,7 +1514,13 @@ if [[ ! -f $CoverageBiasFile || $OverWrite == 1 ]]; then
 	else
 		# here ICE specific bias is used
 		# compute the bias vector from the HiC-pro contact matrix
-		ICEExec=$HiCProBasedir'/scripts/ice'
+		
+		# change - since version 2.11.4, HiC-pro does not provide any executable of ICE
+		# rather ICE is installed in the /usr/local/bin environment
+		if [ 1 == 0 ]; then
+			ICEExec=$HiCProBasedir'/scripts/ice'
+		fi
+		ICEExec=`which ice`
 		echo -e '\n *** ICE computation Executable: '$ICEExec
 		echo '*** Computing ICE based bias vector from the HiC-pro contact matrix'
 
