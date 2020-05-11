@@ -33,6 +33,13 @@ All the results in FitHiChIP, like the significant loops, HiChIP peak calling, p
 
 https://doi.org/10.5281/zenodo.3255048
 
+Release notes corresponding to version 8.1 (May 10, 2020)
+--------------------------------------------------------------
+
+	1. Mandatory to use HiCPro version 2.11.4. This version automatically installs ICE via python package iced.
+	2. Minor bug fix in testing the installed packages and versions before running FitHiChIP.
+
+
 Release notes corresponding to version 8.0 (January 30, 2020)
 --------------------------------------------------------------
 
