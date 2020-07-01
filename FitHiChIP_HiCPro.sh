@@ -735,7 +735,7 @@ if [[ ! -z "$bedtoolsversion1" ]]; then
 		elif [[ $num1 -eq 2 && $num2 -eq 26 && $num3 -ge 0 ]]; then
 			echo "Installed bedtools version: "${bedtoolsversion1}
 		else 
-			echo " - Samtools version should be at least 1.6 !!! FitHiChIP quits !!!"
+			echo " - bedtools version should be at least 2.26.0 !!! FitHiChIP quits !!!"
 			errcond=1
 		fi
 	else
@@ -777,7 +777,7 @@ if [[ -z "$bedtoolsversion1" && ! -z "$bedtoolsversion2" ]]; then
 		elif [[ $num1 -eq 2 && $num2 -eq 26 && $num3 -ge 0 ]]; then
 			echo "Installed bedtools version: "${bedtoolsversion2}
 		else 
-			echo " - Samtools version should be at least 1.6 !!! FitHiChIP quits !!!"
+			echo " - bedtools version should be at least 2.26.0 !!! FitHiChIP quits !!!"
 			errcond=1
 		fi
 	else
