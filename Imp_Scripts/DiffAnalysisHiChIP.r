@@ -18,15 +18,13 @@ library(ggplot2)
 library(tools)
 library(data.table)
 
-options(scipen = 999)
+options(scipen = 10)
 options(datatable.fread.datatable=FALSE)
 
 # ggplot parameters
 FONTSIZE=18
 PLOTWIDTH=10
 PLOTHEIGHT=6
-
-CHRLIST_NAMENUM <- c(paste("chr", seq(1,22), sep=""), "chrX", "chrY")
 
 NUMFEAT <- 2
 NUMCOL_SEGMENT_UNIONLOOP <- 12
@@ -353,14 +351,20 @@ ApplyEdgeR <- function(ALLLoopData, MainDir, CountData, CategoryList, ReplicaCou
 # CategoryList: two categories experimented
 #================================
 FillFeatureValues <- function(UnionLoopFile, AllLoopList, BinSize, ChIPCovFileList, AllRepLabels, CategoryList) {
-	
+
 	# counter of chromosomes processed
 	valid_chr_count <- 0
-
+	
 	# temporary loop + feature containing file used per iteration
 	temp_final_UnionLoopFile <- paste0(dirname(UnionLoopFile), '/temp_final_mastersheet.bed')
-
 	UnionLoopTempFile1 <- paste0(dirname(UnionLoopFile), '/temp_CurrChr_Merged_Loops.bed')
+		
+	# first get the list of chromosomes
+	# this will help to process arbitrary genomes and corresponding chromosomes
+	system(paste0("awk -F\'[\t]\' \'{if (NR>1) {print $1}}\' ", UnionLoopFile, " | sort -k1,1 | uniq > ", UnionLoopTempFile1))
+	tempdata <- data.table::fread(UnionLoopTempFile1, header=F, sep="\t", stringsAsFactors=F)
+	CHRLIST_NAMENUM <- as.vector(tempdata[,1])
+	cat(sprintf("\n ===>>> Number of chromosomes for the current interaction file : %s ", length(CHRLIST_NAMENUM)))
 
 	for (chr_idx in (1:length(CHRLIST_NAMENUM))) {
 		chrName <- CHRLIST_NAMENUM[chr_idx]
@@ -376,8 +380,7 @@ FillFeatureValues <- function(UnionLoopFile, AllLoopList, BinSize, ChIPCovFileLi
 		}
 		
 		# otherwise, read the loops for the current chromosome
-		# MergedIntTempData <- read.table(UnionLoopTempFile1, header=F)
-		MergedIntTempData <- data.table::fread(UnionLoopTempFile1, header=F)
+		MergedIntTempData <- data.table::fread(UnionLoopTempFile1, header=F, sep="\t", stringsAsFactors=F)
 
 		# also get the interacting bins (start position divided by the bin size)
 		AllLoop_BinDF <- cbind.data.frame((MergedIntTempData[,2] / BinSize), (MergedIntTempData[,5] / BinSize))
@@ -793,7 +796,6 @@ for (i in (1:length(ChIPAlignFileList))) {
 }	# end input file loop
 
 # now scale the ChIP coverages according to different categories
-# Merged_ChIPCovData <- read.table(MergedChIPCovFile, header=F, sep="\t", stringsAsFactors=F)
 Merged_ChIPCovData <- data.table::fread(MergedChIPCovFile, header=F, sep="\t", stringsAsFactors=F)
 
 # ChIP coverage of the first category - row means operation
@@ -850,7 +852,7 @@ CountDataColNames_1D <- colnames(CountData_1D)
 
 # dump the count matrix 
 CountDataFile_1D <- paste0(ChIPEdgeRDir, '/count_matrix_1D.bed')
-write.table(CountData_1D, CountDataFile_1D, row.names=F, col.names=T, quote=F, sep="\t")
+write.table(CountData_1D, CountDataFile_1D, row.names=F, col.names=T, quote=F, sep="\t", append=F)
 
 # apply the EdgeR routine on the 1D bins
 # Note: here we supply the parameter ChIPAlignFileCountVec
@@ -860,7 +862,6 @@ ApplyEdgeR(Merged_ChIPCovData, ChIPEdgeRDir, CountData_1D[, 4:ncol(CountData_1D)
 
 # file containing non-differential ChIP-seq bins (EdgeR)
 ChIP_1D_EdgeR_NonSigFile <- paste0(ChIPEdgeRDir, '/ChIP_Coverage_EdgeR_Default_NonSIG.bed')
-# ChIP_1D_EdgeR_NonSigData <- read.table(ChIP_1D_EdgeR_NonSigFile, header=T, sep="\t", stringsAsFactors=F)
 ChIP_1D_EdgeR_NonSigData <- data.table::fread(ChIP_1D_EdgeR_NonSigFile, header=T, sep="\t", stringsAsFactors=F)
 
 cat(sprintf("\n\n *** Performed EdgeR on ChIP coverage *** \n\n"))
@@ -1015,7 +1016,6 @@ close(fp_out)
 # read the master sheet for all loops  and their features
 # then apply EdgeR based differential loop analysis
 #===================
-# MasterSheetData <- read.table(UnionLoopFile, header=T, sep="\t", stringsAsFactors=F)
 MasterSheetData <- data.table::fread(UnionLoopFile, header=T, sep="\t", stringsAsFactors=F)
 
 # re-initialize the column names
@@ -1048,7 +1048,7 @@ CountDataFile <- paste0(DiffLoopDir, '/count_matrix.bed')
 
 # read the interacting bins
 # IntervalData <- read.table(IntervalTextFile, header=F)
-IntervalData <- data.table::fread(IntervalTextFile, header=F)
+IntervalData <- data.table::fread(IntervalTextFile, header=F, sep="\t", stringsAsFactors=F)
 colnames(IntervalData) <- c("Idx1", "chr1", "start1", "end1")
 
 # prepare a copy of this data frame
