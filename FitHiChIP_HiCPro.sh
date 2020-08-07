@@ -48,57 +48,42 @@ InpValidPairsFile=""
 # option 2: provide the bin intervakl file and the matrix file generated from HiC pro pipeline
 InpBinIntervalFile=""
 InpMatrixFile=""
-# option 3: provide the set of locus pairs (6 columns storing the interacting bins and the 7th column storing the contact count)
+# option 3: provide the set of locus pairs 
+# (6 columns storing the interacting bins and the 7th column storing the contact count)
 InpInitialInteractionBedFile=""
-
 # reference ChIP-seq / HiChIP peak file
 PeakFILE=""
-
 # prefix string used for every output file
 PREFIX='FitHiChIP'
-
 # size of the chromosome that is to be provided
 ChrSizeFile=""
-
 # reference chromosome fasta file
 RefFastaFile=""
-
 # reference chromosome based mappability file
 # (may be downloaded from the site  http://hgdownload.cse.ucsc.edu/goldenPath/)
 MappabilityFile=""
-
 # restriction fragment file compatible with the reference chromosome
 REFragFile=""
-
 # window size used to compute GC content
 GCContentWindowSize=200
-
 # window size used to compute the mappability
 MappabilityWindowSize=500
-
 # 5 Kb resolution
 BIN_SIZE=5000
-
+# FDR threshold
 QVALUE=0.01
-
 # default value of output directory is the present working directory
 OutDir=`pwd`'/'
-
 # lower distance threshold for two cis interactions
 LowDistThres=20000	# 20 Kb
-
 # upper distance threshold for two cis interactions
 UppDistThres=2000000 # 2 Mb
-
-# number of bins employed for FitHiC
+# number of bins employed for FitHiChIP
 NBins=200
-
 # default value of plotting analysis figures
 DrawFig=0
-
 # option to note down the timing information
 TimeProf=0
-
 # boolean variable indicating that previous existing output files
 # will be overwritten (1) or not (0 - default)
 OverWrite=0
@@ -112,22 +97,18 @@ OverWrite=0
 # 3: peak to all (default) 4: all to all
 # 5: accounting for all of 1 to 4
 IntType=3
-
 # variable indicating bias correction (1: On, 0: off)
 # recommended = 1
 BiasCorr=1
-
 # type of bias vector (if bias correction is employed)
 # 1: coverage specific bias
 # 2: ICE specific bias (default)
 BiasType=1
-
 # temporary variable (binary)
 # used to model FitHiChIP peak to all interactions
 # using peak to peak background only
 # applicable for only peak to all interactions
 UseP2PBackgrnd=1
-
 # Merging interactions which are near to each other
 MergeInteraction=1
 
@@ -136,48 +117,28 @@ MergeInteraction=1
 # so keeping them in a default state
 # user cannot alter these values
 #========================
-
-# reference genome
-# RefGENOME='hg19'
-
-# # binning method for FitHiC technique
-# # 1 for equal occupancy bin (default)
-# FitHiCBinMethod=1
-
-# # type of distribution for modeling the P value of FitHiC
-# # 1: binomial distribution (employed in FitHiC - default)
-# # 2: negative binomial distribution
-# DistrType=1
-
 # default lower cutoff of bias value
 biaslowthr=0.2
-
 # default higher cutoff of bias value
 biashighthr=5
-
 # boolean variable for pre-filtering the interactions according to the bias value
 BeginBiasFilter=0
-
 # boolean variable for probability adjustment of the interactions according to the bias value
 EndBiasFilter=0
-
 # temporary variable (binary)
 # if 1, includes only nonzero contact based locus pairs for
 # FitHiC spline fit implementation
 # default : 0
 UseNonzeroContacts=0
-
 # two variables used for bias correction
 # modeling the regression between observed contact count
 # and the bias variables
 resid_biascorr=0
 eqocc_biascorr=1
-
 # boolean variable indicating whether for bias correction
 # multiplicative bias value would be used
 # defult 0
 MultBias=0
-
 #========================
 
 #==============================
@@ -222,12 +183,7 @@ do
 				ChrSizeFile=$paramval
 			fi
 
-			# these parameters are optional
-			# if [ $param == "RefGenome" ]; then
-			# 	if [[ ! -z $paramval ]]; then
-			# 		RefGENOME=$paramval
-			# 	fi
-			# fi			
+			# optional parameters
 			if [ $param == "MappabilityFile" ]; then
 				MappabilityFile=$paramval
 			fi
@@ -274,9 +230,6 @@ do
 					NBins=$paramval
 				fi
 			fi
-			# if [ $param == "HiCProBasedir" ]; then
-			# 	HiCProBasedir=$paramval
-			# fi
 			if [ $param == "PREFIX" ]; then
 				if [[ ! -z $paramval ]]; then
 					PREFIX=$paramval
@@ -314,11 +267,6 @@ do
 			# 		biashighthr=$paramval
 			# 	fi
 			# fi
-			# if [ $param == "DistrType" ]; then
-			# 	if [[ ! -z $paramval ]]; then
-			# 		DistrType=$paramval
-			# 	fi
-			# fi			
 			# if [ $param == "MultBias" ]; then
 			# 	if [[ ! -z $paramval ]]; then
 			# 		MultBias=$paramval
@@ -460,7 +408,6 @@ HiCProVersion=$(HiC-Pro -v | head -n 1 | awk -F[" "] '{print $3}' -)
 if [[ -z "$HiCProVersion" ]]; then
     echo "ERROR ====>>> HiC-pro is not installed in the system !!! FitHiChIP quits !!!" 
     errcond=1
-    # exit 1
 else
 	echo "HiC-pro is installed in the system"
 fi
@@ -470,37 +417,36 @@ if [[ $numfield -ge 3 ]]; then
 	num2=`echo $HiCProVersion | awk -F'[.]' '{print $2}' -`
 	num3=`echo $HiCProVersion | awk -F'[.]' '{print $3}' -`
 	if [[ $num1 -gt 2 ]]; then
-		echo "Installed HiC-pro version: "${HiCProVersion}
+		echo "Installed HiC-pro version: "${HiCProVersion}		
+		HiCPro_version_ge_2_11_4=1	# boolean indicator
 	elif [[ $num1 -eq 2 && $num2 -gt 11 ]]; then
 		echo "Installed HiC-pro version: "${HiCProVersion}
+		HiCPro_version_ge_2_11_4=1	# boolean indicator
 	elif [[ $num1 -eq 2 && $num2 -eq 11 && $num3 -ge 4 ]]; then
 		echo "Installed HiC-pro version: "${HiCProVersion}
+		HiCPro_version_ge_2_11_4=1	# boolean indicator
 	else 
-		echo "ERROR ====>>> HiC-pro should have version >= 2.11.4 !!! FitHiChIP quits !!!"
-		errcond=1
+		# echo "ERROR ====>>> HiC-pro should have version >= 2.11.4 !!! FitHiChIP quits !!!"
+		# errcond=1
+		echo "===>> installed HiC-pro version: "${HiCProVersion}
+		HiCPro_version_ge_2_11_4=0
 	fi
 else
 	num1=`echo $HiCProVersion | awk -F'[.]' '{print $1}' -`
 	num2=`echo $HiCProVersion | awk -F'[.]' '{print $2}' -`
 	if [[ $num1 -gt 2 ]]; then
 		echo "Installed HiC-pro version: "${HiCProVersion}
+		HiCPro_version_ge_2_11_4=1	# boolean indicator
 	elif [[ $num1 -eq 2 && $num2 -gt 11 ]]; then
 		echo "Installed HiC-pro version: "${HiCProVersion}
+		HiCPro_version_ge_2_11_4=1	# boolean indicator
 	else 
-		echo "ERROR ====>>> HiC-pro should have version >= 2.11.4 !!! FitHiChIP quits !!!"
-		errcond=1
+		# echo "ERROR ====>>> HiC-pro should have version >= 2.11.4 !!! FitHiChIP quits !!!"
+		# errcond=1
+		echo "===>> installed HiC-pro version: "${HiCProVersion}
+		HiCPro_version_ge_2_11_4=0		
 	fi	
 fi
-
-# parsedVersion=$(echo "${HiCProVersion//./}")
-# if [[ "$parsedVersion" -lt "290" ]]; then 
-#     echo "ERROR ====>>> HiC-pro should have version >=  2.9.0 !!! FitHiChIP quits !!!"
-#     errcond=1
-#     # exit 1
-# else
-# 	echo "Installed HiC-pro version: "${HiCProVersion}
-# fi
-
 
 # first check the python version
 # check if python is installed and its version is > 2.7.0
@@ -509,7 +455,6 @@ pythonversion=$(python --version 2>&1 | head -n 1 | awk '{print $2}' -)
 if [[ -z "$pythonversion" ]]; then
     echo "ERROR ====>>> No Python installation is detected in the system !!! FitHiChIP quits !!!" 
     errcond=1
-    # exit 1
 fi
 numfield=`echo $pythonversion | awk -F'[.]' '{print NF}' -`
 if [[ $numfield -ge 3 ]]; then
@@ -539,40 +484,24 @@ else
 	fi	
 fi
 
-# parsedVersion=$(echo "${pythonversion//./}")
-# # echo "parsedVersion : "$parsedVersion
-# if [[ "$parsedVersion" -lt "300" && "$parsedVersion" -gt "270" ]]; then 
-#     echo "*** Valid python version is detected - installed version: "$pythonversion
-# elif [[ "$parsedVersion" -lt "3000" && "$parsedVersion" -gt "2700" ]]; then 
-# 	echo "*** Valid python version is detected - installed version: "$pythonversion
-# else
-#     echo "ERROR ====>>> Invalid python version : "$pythonversion
-#     echo " --- should be python 2 with version > 2.7.0 !!! FitHiChIP quits !!!"
-#     errcond=1
-#     # exit 1
-# fi
-
 # check if python libraries are also installed
 if python -c "import gzip"; then
     echo '*** Python library gzip is installed'
 else
     echo 'ERROR ====>>> Python library gzip is not installed !!! FitHiChIP quits !!!'
     errcond=1
-    # exit 1
 fi
 if python -c "from optparse import OptionParser"; then
     echo '*** Python module OptionParser (from the package optparse) is installed'
 else
     echo 'ERROR ====>>> Python module OptionParser (from the package optparse) is not installed !!! FitHiChIP quits !!!'
     errcond=1
-    # exit 1
 fi
 if python -c "import networkx"; then
     echo '*** Python package networkx is installed'
 else
     echo 'ERROR ====>>> Python package networkx is not installed !!! FitHiChIP quits !!!'
     errcond=1
-    # exit 1
 fi
 
 # check if MACS2 package is installed
@@ -580,7 +509,6 @@ macs2version=$(macs2 --version 2>&1 |  head -n 1 | awk -F[" "] '{print $2 }' -)
 if [[ -z "$macs2version" ]]; then
     echo "ERROR ====>>> MACS2 peak calling package is not detected in the system !!! FitHiChIP quits !!!" 
     errcond=1
-    # exit 1
 else
 	echo "*** Found MACS2 package (for peak calling) installed in the system -  "$macs2version
 fi
@@ -590,7 +518,6 @@ Rversion=$(R --version | head -n 1 | awk -F[" "] '{print $3}' -)
 if [[ -z "$Rversion" ]]; then
     echo "ERROR ====>>> No R installation is detected in the system !!! FitHiChIP quits !!!" 
     errcond=1
-    # exit 1
 fi
 numfield=`echo $Rversion | awk -F'[.]' '{print NF}' -`
 if [[ $numfield -ge 3 ]]; then
@@ -619,20 +546,6 @@ else
 		errcond=1
 	fi	
 fi
-
-# parsedVersion=$(echo "${Rversion//./}")
-# if [[ "$parsedVersion" -ge "330" && "$parsedVersion" -lt "1000" ]]; then 
-#     echo "*** Valid R version is detected - installed R version: "$Rversion
-# elif [[ "$parsedVersion" -ge "3300" && "$parsedVersion" -lt "10000" ]]; then 
-#     echo "*** Valid R version is detected - installed R version: "$Rversion
-# elif [[ "$parsedVersion" -ge "31000" ]]; then 
-#     echo "*** Valid R version is detected - installed R version: "$Rversion      
-# else
-#     echo "ERROR ====>>> Invalid R version: "$Rversion
-#     echo " -- should be at least R 3.3 !!! FitHiChIP quits !!!"
-#     errcond=1
-#     # exit 1
-# fi
 
 # check the samtools version
 samtoolsversion=$(samtools 2>&1 | grep "Version" | awk -F[" "] '{print $2}' -)
@@ -669,25 +582,6 @@ else
 	fi	
 fi
 
-
-# parsedsamtoolsVersion=$(echo "${samtoolsversion//./}")
-# if [[ ${samtoolsversion:0:1} == "0" ]]; then
-# 	# samtools version is 0.*
-# 	echo "ERROR ====>>> Invalid samtools version : "$samtoolsversion 
-# 	echo " - should be at least 1.6 !!! FitHiChIP quits !!!"
-# 	errcond=1
-# elif [[ "$parsedsamtoolsVersion" -ge "16" && "$parsedsamtoolsVersion" -lt "99" ]]; then
-#     echo "*** Valid samtools version is detected - installed version: "$samtoolsversion
-# elif [[ "$parsedsamtoolsVersion" -ge "160" && "$parsedsamtoolsVersion" -lt "999" ]]; then
-# 	echo "*** Valid samtools version is detected - installed version: "$samtoolsversion
-# else
-#     echo "ERROR ====>>> Invalid samtools version : "$samtoolsversion 
-#     echo " - should be at least 1.6 !!! FitHiChIP quits !!!"
-#     errcond=1
-#     # exit 1
-# fi
-
-
 # check if bgzip is installed in the system
 bgzipnum=`bgzip -h 2>&1 | wc -l`
 if [[ $bgzipnum -gt 5 ]]; then
@@ -695,7 +589,6 @@ if [[ $bgzipnum -gt 5 ]]; then
 else
 	echo "ERROR =====>> bgzip utility is NOT installed in the system -- please install it from htslib (associated with samtools) version >= 1.6"
 	errcond=1
-	# exit 1
 fi
 
 # check if tabix is installed in the system
@@ -705,7 +598,6 @@ if [[ $tabixnum -gt 5 ]]; then
 else
 	echo "ERROR =====>> tabix utility is NOT installed in the system -- please install it from htslib (associated with samtools) version >= 1.6"
 	errcond=1
-	# exit 1
 fi
 
 # check the bedtools version
@@ -719,7 +611,6 @@ bedtoolsversion2=$(bedtools 2>&1 | grep "Version" | awk -F[" "] '{print substr($
 if [[ -z "$bedtoolsversion1" && -z "$bedtoolsversion2" ]]; then
     echo "ERROR ====>>> No bedtools installation is detected in the system !!! FitHiChIP quits !!!" 
     errcond=1
-    # exit 1
 fi
 if [[ ! -z "$bedtoolsversion1" ]]; then
 
@@ -746,23 +637,12 @@ if [[ ! -z "$bedtoolsversion1" ]]; then
 		elif [[ $num1 -eq 2 && $num2 -gt 26 ]]; then
 			echo "Installed bedtools version: "${bedtoolsversion1}
 		else 
-			echo " - should be at least 2.26.0 !!! FitHiChIP quits !!!"
+			echo " - bedtools version should be at least 2.26.0 !!! FitHiChIP quits !!!"
 			errcond=1
 		fi	
 	fi
-
-    # parsedbedtoolsVersion=$(echo "${bedtoolsversion1//./}")
-    # if [[ "$parsedbedtoolsVersion" -ge "2260" && "$parsedbedtoolsVersion" -lt "9999" ]]; then 
-    #     echo "*** Valid bedtools version is detected - installed version: "$bedtoolsversion1
-    # elif [[ "$parsedbedtoolsVersion" -ge "300" && "$parsedbedtoolsVersion" -lt "999" ]]; then
-    #     echo "*** Valid bedtools version is detected - installed version: "$bedtoolsversion1
-    # else
-    #     echo "ERROR ====>>> Invalid bedtools version : "$bedtoolsversion1
-    #     echo " - should be at least 2.26.0 !!! FitHiChIP quits !!!"
-    #     errcond=1
-    #     # exit 1
-    # fi
 fi
+
 if [[ -z "$bedtoolsversion1" && ! -z "$bedtoolsversion2" ]]; then
     
 	numfield=`echo $bedtoolsversion2 | awk -F'[.]' '{print NF}' -`
@@ -788,22 +668,10 @@ if [[ -z "$bedtoolsversion1" && ! -z "$bedtoolsversion2" ]]; then
 		elif [[ $num1 -eq 2 && $num2 -gt 26 ]]; then
 			echo "Installed bedtools version: "${bedtoolsversion2}
 		else 
-			echo " - should be at least 2.26.0 !!! FitHiChIP quits !!!"
+			echo " - bedtools version should be at least 2.26.0 !!! FitHiChIP quits !!!"
 			errcond=1
 		fi	
 	fi
-
-    # parsedbedtoolsVersion=$(echo "${bedtoolsversion2//./}")
-    # if [[ "$parsedbedtoolsVersion" -ge "2260" && "$parsedbedtoolsVersion" -lt "9999" ]]; then 
-    #     echo "*** Valid bedtools version is detected - installed version: "$bedtoolsversion2
-    # elif [[ "$parsedbedtoolsVersion" -ge "300" && "$parsedbedtoolsVersion" -lt "999" ]]; then
-    #     echo "*** Valid bedtools version is detected - installed version: "$bedtoolsversion2
-    # else
-    #     echo "ERROR ====>>> Invalid bedtools version : "$bedtoolsversion2
-    #     echo " - should be at least 2.26.0 !!! FitHiChIP quits !!!"
-    #     errcond=1
-    #     # exit 1
-    # fi
 fi
 
 # final evaluation
@@ -1077,9 +945,6 @@ if [[ ! -f $ConfFile || $OverWrite == 1 ]]; then
 
 	echo "Low distance threshold: $LowDistThres " >> $ConfFile
 	echo "Higher distance threshold: $UppDistThres " >> $ConfFile
-
-	# echo "Genome specific parameters: " >> $ConfFile
-	# echo "RefGENOME: $RefGENOME " >> $ConfFile
 	
 	if [[ ! -z $MappabilityFile && ! -z $RefFastaFile && ! -z $REFragFile ]]; then
 		echo "GCContentWindowSize: $GCContentWindowSize " >> $ConfFile
@@ -1104,7 +969,6 @@ if [ $TimeProf == 1 ]; then
 	fi
 	start=$(date +%s.%N)
 fi
-
 
 #==============================
 # important - sourya
@@ -1140,12 +1004,12 @@ mkdir -p $HiCProMatrixDir
 # then use this interaction file
 if [[ ! -z $InpInitialInteractionBedFile ]]; then
 
-	echo -e "\n ================ Processing input pre-computed locus pairs along with the contact count ================="
+	echo -e "\n ================ Processing input pre-computed locus pairs along with the contact count : ${InpInitialInteractionBedFile} ================="
 
 	# check whether the file is gzipped or not
 	if [[ $InpInitialInteractionBedFile == *.gz ]]; then
 		gzipInt=1
-		echo -e "\n The input locus pair file is in gzipped format --- "
+		echo -e "\n ====>> The input locus pair file is in gzipped format --- "
 	else
 		gzipInt=0
 	fi
@@ -1162,6 +1026,8 @@ if [[ ! -z $InpInitialInteractionBedFile ]]; then
 	# insert a header line
 	sed -i '1ichr\ts1\te1\tchr2\ts2\te2\tcc' $Interaction_Initial_File
 
+	echo -e "\n ===>> Dumped interactions among bin pairs in file : ${Interaction_Initial_File} "
+
 	# also create two files: 
 	# 1) bin interval file, containing the bins with respect to the specified bin size, and bin numbers
 	# 2) matrix file, containing the contact counts for individual bins
@@ -1173,7 +1039,8 @@ if [[ ! -z $InpInitialInteractionBedFile ]]; then
 		$RScriptExec ./src/CreateBinMatrixFromBed.r --BinSize $BIN_SIZE --ChrSizeFile $ChrSizeFile --InpFile $Interaction_Initial_File --Interval $InpBinIntervalFile --Matrix $InpMatrixFile
 	fi
 
-	echo -e "\n Dumped the set of input interactions along with the header --- "
+	echo -e "\n ===>> Created HiC-pro format compatible interval file : ${InpBinIntervalFile} "
+	echo -e "\n ===>> Created HiC-pro format compatible matrix file : ${InpMatrixFile} "
 
 else 
 
@@ -1181,39 +1048,23 @@ else
 	# if the matrices are not provided and the validpairs text file is provided
 	# then compute the interaction matrices using the HiC-pro utility
 	#=================
-	echo -e "\n ================ Processing HiC-pro contact matrices ================="
+	echo -e "\n ================ Processing HiC-pro generated output ================="
 
 	if [[ -z $InpBinIntervalFile || -z $InpMatrixFile ]]; then
 
-		# this is an executable which builds matrix from the input valid pairs file
-		# thats why we require the HiC pro executable directory as a command line option
+		echo -e '\n ====>> Computing HiC-pro matrices from the input valid pairs file'
 
-		# executable of matrix building is to be obtained from the HiC-pro base directory
-		# provided as the input
+		# executable to generate matrix from the input valid pairs file
 		MatrixBuildExec=$HiCProBasedir'/scripts/build_matrix'
-		# MatrixBuildExecSet=( $(find $HiCProBasedir -type f -name 'build_matrix') )
-		# len=${#MatrixBuildExecSet[@]}
-		# echo 'len: '$len		
-		#==========================
-		# error in the reference HiC-pro package
-		# if such script is not found
-		# if [[ $len == 0 ]]; then		
 		if [[ ! -f $MatrixBuildExec ]]; then
 			echo 'ERROR ===>>>> could not find the executable ** build_matrix ** within HiC-pro installed package ----'
 			echo '**** Make sure you have installed HiCPro using its makefile and make install command ****'
-			echo 'Also, please check the directory of HiC-pro Package or check its version (recommended >= 2.9.0)'
-			echo 'Matrix from the input valid pairs file could not be generated - FitHiChIP is quiting !!!'			
+			# echo 'Also, please check the directory of HiC-pro Package or check its version (recommended >= 2.11.4)'
+			echo 'Matrix from the input valid pairs file could not be generated - FitHiChIP is quiting !!!'
 			exit 1
-		fi
-		#==========================
-	
-		# idx=`expr $len - 1`
-		# echo 'idx: '$idx
-		# MatrixBuildExec=${MatrixBuildExecSet[$idx]}
-		echo -e '\n *** MatrixBuildExec: '$MatrixBuildExec
-
-		echo '*** Computing HiC-pro matrices from the input valid pairs file'
-
+		fi	
+		echo -e '\n ====>> Executable to generate contact matrix from valid pairs: '$MatrixBuildExec
+		
 		# This directory and prefix is used to denote the generated matrices
 		# using the HiC pro routine
 		OutPrefix=$HiCProMatrixDir'/MatrixHiCPro'
@@ -1234,11 +1085,12 @@ else
 				start=$(date +%s.%N)
 			fi		
 		fi
-
 		# now assign the matrix names to the designated variables
 		InpBinIntervalFile=$OutPrefix'_abs.bed'
 		InpMatrixFile=$OutPrefix'.matrix'
 
+		echo -e "\n ====>> Created file : ${InpBinIntervalFile} "
+		echo -e "\n ====>> Created file : ${InpMatrixFile} "
 	fi
 
 	#=======================
@@ -1249,29 +1101,28 @@ else
 	# Interaction format:
 	# chr1	start1	end1	chr2	start2	end2	cc
 	#=======================
-	echo -e "\n ================ Creating input interactions ================="
+	echo -e "\n ================ Creating input interactions (bin pairs + CC) ================="
 
 	Interaction_Initial_File=$HiCProMatrixDir/$PREFIX.interactions.initial.bed
 
 	if [[ ! -f $Interaction_Initial_File || $OverWrite == 1 ]]; then
-		$RScriptExec ./src/InteractionHicPro.r $InpBinIntervalFile $InpMatrixFile $Interaction_Initial_File
-		
+		$RScriptExec ./src/InteractionHicPro.r $InpBinIntervalFile $InpMatrixFile $Interaction_Initial_File	
 		if [ $TimeProf == 1 ]; then
 			duration=$(echo "$(date +%s.%N) - $start" | bc)
 			echo " ++++ Time (in seconds) for getting CIS interactions: $duration" >> $OutTimeFile
 			start=$(date +%s.%N)
 		fi
 	fi
+	echo -e "\n ======= Generated interaction file : ${Interaction_Initial_File} "
 fi
 
 # check the number of interactions
 numLoop=`cat $Interaction_Initial_File | wc -l`
-echo 'Number of locus pairs with nonzero contact count (without any distance thresholding): '$numLoop
+echo '==>>> Number of locus pairs with nonzero contact count (without any distance thresholding): '$numLoop
 if [ $numLoop == 0 ]; then
-	echo 'Number of locus pairs with nonzero contact count is zero - FitHiChIP is quiting !!!'			
+	echo '********** Number of locus pairs with nonzero contact count is zero - FitHiChIP is quiting !!!'
 	exit 1
 fi
-
 
 #=======================
 # generate filtered cis interactions 
@@ -1298,9 +1149,9 @@ fi
 
 # check the number of interactions
 numLoop=`cat $Interaction_File | wc -l`
-echo 'Number of locus pairs with nonzero contact count (after distance thresholding): '$numLoop
+echo '===>> Number of cis pairs with nonzero contact count (after distance thresholding): '$numLoop
 if [ $numLoop == 0 ]; then
-	echo 'Number of locus pairs with nonzero contact count (after distance thresholding) is zero - FitHiChIP is quiting !!!'			
+	echo '****** Number of cis pairs with nonzero contact count (after distance thresholding) is zero - FitHiChIP is quiting !!!'
 	exit 1
 fi
 
@@ -1451,17 +1302,17 @@ fi 	# end if mappability, GC content and RE frag files exist
 # from the generated initial CIS interaction file (without distance thresholding)
 # get the HiChIP 1D bin coverage values, and also whether those bins overlap with
 # input peak segments (either ChIP peaks or HiChIP peaks)
-
 # previously a python script was used
 # now a better optimized R script is used
 #=================
-echo -e "\n ================ Generating coverage statistics for individual bins ================="
+echo -e "\n ================ Generating coverage statistics and bias for individual bins ================="
 
 CoverageFile=$FeatureDir'/'$PREFIX'.coverage.bed'
 
 if [[ ! -f $CoverageFile || $OverWrite == 1 ]]; then
 
 	# comment - sourya
+	# previous python script
 	# $PythonExec ./src/CoverageBin.py -i $InpValidPairsFile -p $PeakFILE -b $BIN_SIZE -o $CoverageFile -c $ChrSizeFile
 
 	# add - sourya
@@ -1471,7 +1322,7 @@ if [[ ! -f $CoverageFile || $OverWrite == 1 ]]; then
 		$RScriptExec ./src/CoverageBin.r --InpFile $Interaction_Initial_File --BinSize $BIN_SIZE --ChrSizeFile $ChrSizeFile --OutFile $CoverageFile
 	fi
 
-	echo '======== Computed initial coverage information for individual genomic bins'
+	echo '======== Computed initial coverage information for individual genomic bins - file : '$CoverageFile
 	
 	if [ $TimeProf == 1 ]; then
 		duration=$(echo "$(date +%s.%N) - $start" | bc)
@@ -1480,24 +1331,20 @@ if [[ ! -f $CoverageFile || $OverWrite == 1 ]]; then
 	fi
 fi
 
-
-
 #=======================================
-# condition: value of BiasType - 1 means coverage specific bias
-# and 2 means ICE specific bias
 # if BiasType = 1, bias is computed solely from the coverage. 
 # peaks and non-peaks are analyzed separately to compute the bias
 # if BiasType = 2, ICE routine from the HiC-pro pipeline is used to compute the ICE bias
 # bias information is appended to the coverage and peak information for individual bins
 # =======================================
 
-echo -e "\n ================ Merging coverage with bias statistics ================="
-
 if [ $BiasType == 2 ]; then
+	echo -e "\n ================ Computing bias statistics - ICE bias will be employed ================="
 	AllFeatureDir=$FeatureDir'/ICE_Bias'
 	mkdir -p $AllFeatureDir
 	CoverageBiasFile=$AllFeatureDir'/'$PREFIX'.coverage_ICE_Bias.bed'
 else
+	echo -e "\n ================ Computing bias statistics - coverage bias will be employed ================="
 	AllFeatureDir=$FeatureDir'/Coverage_Bias'
 	mkdir -p $AllFeatureDir
 	CoverageBiasFile=$AllFeatureDir'/'$PREFIX'.coverage_Bias.bed'
@@ -1514,13 +1361,15 @@ if [[ ! -f $CoverageBiasFile || $OverWrite == 1 ]]; then
 	else
 		# here ICE specific bias is used
 		# compute the bias vector from the HiC-pro contact matrix
-		
-		# change - since version 2.11.4, HiC-pro does not provide any executable of ICE
+
+		# Note - if HiC-pro version >= 2.11.4, ICE is not a part of HiC-pro as an executable
 		# rather ICE is installed in the /usr/local/bin environment
-		if [ 1 == 0 ]; then
+		# for older version of HiC-pro, ICE is a part of HiC-pro as an executable
+		if [ -f $HiCProBasedir'/scripts/ice' ]; then
 			ICEExec=$HiCProBasedir'/scripts/ice'
-		fi
-		ICEExec=`which ice`
+		else
+			ICEExec=`which ice`
+		fi		
 		echo -e '\n *** ICE computation Executable: '$ICEExec
 		echo '*** Computing ICE based bias vector from the HiC-pro contact matrix'
 
@@ -1565,14 +1414,12 @@ if [[ ! -f $CoverageBiasFile || $OverWrite == 1 ]]; then
 		echo " ++++ Time (in seconds) for computing bias of individual bins: $duration" >> $OutTimeFile
 		start=$(date +%s.%N)
 	fi	
+	echo '======== Computed bias statistics - file : '$CoverageBiasFile
 fi
-
 
 #==================================
 # merge the bin specific coverage, peak, bias values 
-# with the mappability and GC content values
-# Note: provided if these mappability, GC content, and RE sites
-# are computed (and the corresponding input files are provided as the inputs)
+# with the mappability and GC content values (provided they are computed)
 
 # here the RE fragment file (file b) has mappability information in 4th column 
 # and GC content information in 5th column
@@ -1587,7 +1434,7 @@ fi
 # before applying bedtools map, check whether the input is sorted by position
 #==================================
 
-echo -e "\n ================ Merging coverage + bias with mappability, GC content, and number of cut sites - creating all feature file ================="
+echo -e "\n ================ creating full feature file for FitHiChIP ================="
 
 # Use of ICE / coverage bias results in different feature files
 if [ $BiasType == 2 ]; then
@@ -1640,9 +1487,9 @@ if [[ ! -f $AllFeatFile || $OverWrite == 1 ]]; then
 		duration=$(echo "$(date +%s.%N) - $start" | bc)
 		echo " ++++ Time (in seconds) for computing bin specific features: $duration" >> $OutTimeFile
 		start=$(date +%s.%N)
-	fi		
+	fi	
+	echo '======== Created full feature file : '$AllFeatFile	
 fi
-
 
 #=================
 # now we plot various features for individual genomic bins
@@ -1682,7 +1529,7 @@ InteractionSortedDistFileName='Interactions.sortedGenDist.bed'
 # depending on the bias type, two different directories are created 
 # for each category of interactions
 #============================
-echo -e "\n ================ Generating interactions + features ================="
+echo -e "\n ================ Generating interactions + features for significance estimation ================="
 
 DirALLtoALLBase=$OutDir'/FitHiChIP_ALL2ALL_b'$BIN_SIZE'_L'$LowDistThres'_U'$UppDistThres
 if [ $BiasType == 2 ]; then
@@ -1762,8 +1609,6 @@ echo "Derived IntHigh: "$IntHigh
 #===============
 # loop through different types of interactions specified in the input parameters
 #===============
-# for CurrIntType in $(seq $IntLow $IntHigh); do
-
 CurrIntType=$IntLow
 while [[ $CurrIntType -le $IntHigh ]]; do
 
@@ -1853,72 +1698,33 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 	fi
 
 	#==============
-	# now apply FitHiC on the sorted gene distance based interaction matrix
-	# create folders based on the use of bias correction method (or not)
-	# and also the use of binomial / negative binomial distribution
-	# there are two different modeling used - FitHiC
-	# 1) when every candidate interaction is used for spline fitting
-	# 2) when only peak to peak interactions are used for spline fitting
-	# different output directories are created to contain the results
+	# statistical significance estimation
 	#==============
 	GenFitHiCDir=$currdirname'/FitHiC'
-	# if [[ $UseNonzeroContacts == 1 ]]; then
-	# 	GenFitHiCDir=$GenFitHiCDir'_NonZeroCnt'
-	# fi
-
 	if [ $BiasCorr == 1 ]; then
 		GenFitHiCDir=$GenFitHiCDir'_BiasCorr'
-		# if [[ $BeginBiasFilter == 1 ]]; then
-		# 	GenFitHiCDir=$GenFitHiCDir'_'$biaslowthr'_'$biashighthr'_b'$BeginBiasFilter
-		# fi
-		# if [[ $MultBias == 1 ]]; then
-		# 	GenFitHiCDir=$GenFitHiCDir'_Mult_'$MultBias
-		# else 
-		# 	# name is appended with the bias correction regression parameters
-		#   GenFitHiCDir=$GenFitHiCDir'_Resid_'$resid_biascorr'_EqOcc_'$eqocc_biascorr
-		# fi
 	fi
-
-	# if [[ $DistrType == 2 ]]; then
-	# 	GenFitHiCDir=$GenFitHiCDir'/NegBinomDistr'
-	# else
-	# 	GenFitHiCDir=$GenFitHiCDir'/BinomDistr'
-	# fi
-	echo '============== ************* Current directory for FitHiChIP significant interaction calling: '$GenFitHiCDir
+	echo '============== directory for FitHiChIP significant interaction calling: '$GenFitHiCDir
 	mkdir -p $GenFitHiCDir
 
 	#====================================
 	# write the configuration in a text file
 	outtext=$GenFitHiCDir'/configuration.txt'
 
-	echo "Configurations used for FitHiC execution: " > $outtext	
+	echo "Configurations used for FitHiChIP execution: " > $outtext	
 	echo "Interaction type (1: peak to peak, 2: peak to non peak, 3: peak to all, 4: all to all, 5: all of 1 to 4): $IntType " >> $outtext
 	echo "Current interaction type: $CurrIntType " >> $outtext
-	# if [[ $DistrType == 1 ]]; then
-	# 	echo "Binomial distribution is employed" >> $outtext
-	# else
-	# 	echo "Negative Binomial distribution is employed" >> $outtext
-	# fi
-	echo "FitHiC with equal occupancy binning" >> $outtext
+	echo "FitHiChIP with equal occupancy binning" >> $outtext
 	# echo "Using non zero contacts only: $UseNonzeroContacts " >> $outtext
 	echo "Lower distance threshold (for significant interaction calling): $LowDistThres " >> $outtext
 	echo "Upper distance threshold (for significant interaction calling): $UppDistThres " >> $outtext
 	echo "FDR threshold: $QVALUE " >> $outtext
-	echo "Number of bins for FitHiC spline modeling: $NBins " >> $outtext
+	echo "Number of bins for FitHiChIP spline modeling: $NBins " >> $outtext
 	echo "Bias correction ? (1: yes, 0: no) : $BiasCorr " >> $outtext
 	echo "Bias type employed (1: coverage specific, 2: ICE bias): $BiasType " >> $outtext
 	
 	if [ $BiasCorr == 1 ]; then
-		# if [ $BeginBiasFilter == 1 ]; then
-		# 	echo "Filtering interactions at beginning based on bias values: bias low threshold: "$biaslowthr"  bias high threshold: "$biashighthr >> $outtext
-		# fi
-		# if [ $MultBias == 1 ]; then
-		# 	echo "Bias correction - Multiplying the probabilities with the bias values " >> $outtext
-		# else
 		echo "Bias correction - Regression model using the observed contact count and the bias values " >> $outtext
-		# echo "Modeling residual contacts for regression: $resid_biascorr" >> $outtext
-		# echo "Modeling equal occupancy bins for regression: $eqocc_biascorr" >> $outtext
-		# fi
 	fi
 	if [ $UseP2PBackgrnd == 1 ]; then
 		if [[ $currdirname == $DirPeaktoALL ]]; then
@@ -1928,14 +1734,11 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 	echo "Merging nearby interactions (1: yes, 0: no): $MergeInteraction " >> $outtext
 
 	#====================================
-
-	# files storing FitHiC interactions (significant + all)
-	# along with the WashU compatible interactions
+	# files storing FitHiChIP interactions (significant + all)
+	# along with the WashU browser compatible interactions
 	FitHiC_Pass1_outfile=$GenFitHiCDir'/'$PREFIX'.interactions_FitHiC.bed'
 	FitHiC_Pass1_Filtfile=$GenFitHiCDir'/'$PREFIX'.interactions_FitHiC_Q'${QVALUE}'.bed'	
 	FitHiC_Pass1_LogQ_file=$GenFitHiCDir'/'$PREFIX'.interactions_FitHiC_Q'${QVALUE}'_WashU.bed'
-	# FitHiC_Pass1_Filt_PeakCountfile=$GenFitHiCDir'/'$PREFIX'.interactions_FitHiC_Q'${QVALUE}'.PeakSpecificContact.bed'
-	# FitHiC_Pass1_PeakCCDistr_Text=$GenFitHiCDir/$PREFIX.anchorPeakCCDistr.bed
 
 	# directory containing the interactions created by merging close contacts
 	MergeIntDir=$GenFitHiCDir'/Merge_Nearby_Interactions'
@@ -1944,47 +1747,12 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 	FitHiC_Pass1_Filt_MergedIntfile=$MergeIntDir'/'$PREFIX'.interactions_FitHiC_Q'${QVALUE}'_MergeNearContacts.bed'
 	FitHiC_Pass1_Filt_MergedInt_LogQ_file=$MergeIntDir'/'$PREFIX'.interactions_FitHiC_Q'${QVALUE}'_MergeNearContacts_WashU.bed'
 
-	# Modeling the statistical significance by FitHiC - main function
-	# depending on whether using zero contacts and corresponding pairs of loci
-	# two different FitHiC versions are used
-	if [[ ! -f $FitHiC_Pass1_outfile || $OverWrite == 1 ]]; then
-		
-		#===========================
-		# comment - sourya
-		#===========================
-		# if [ $UseZeroCount == 0 ]; then
-		# 	$RScriptExec ./src/Interaction.r --InpFile $CurrIntFileSortDist --headerInp --OutFile $FitHiC_Pass1_outfile --BiasCorr $BiasCorr --Draw --cccol $cccol --BiasLowThr $biaslowthr --BiasHighThr $biashighthr --BiasFilt $BeginBiasFilter --ProbBias $EndBiasFilter --P2P $UseP2PBackgrnd
-		# else
-		# 	# only for peak to all interactions
-		# 	# consider peak to peak background option
-		# 	# for all other interaction type, use 0 for this option
-		# 	if [ $currdirname == $DirPeaktoALL ]; then
-		# 		# comment - sourya
-		# 		# $RScriptExec ./src/FitHiC_new.r --InpFile $CurrIntFileSortDist --headerInp --OutFile $FitHiC_Pass1_outfile --CoverageFile $CoverageBiasFile --BinSize $BIN_SIZE --P2P $UseP2PBackgrnd --BiasCorr $BiasCorr --Draw --cccol $cccol --BiasLowThr $biaslowthr --BiasHighThr $biashighthr --BiasFilt $BeginBiasFilter --ProbBias $EndBiasFilter --IntType $CurrIntType
-
-		# 		# add - sourya
-		# 		$RScriptExec ./src/FitHiC_new2.r --InpFile $CurrIntFileSortDist --headerInp --OutFile $FitHiC_Pass1_outfile --CoverageFile $CoverageBiasFile --BinSize $BIN_SIZE --P2P $UseP2PBackgrnd --BiasCorr $BiasCorr --Draw --cccol $cccol --BiasLowThr $biaslowthr --BiasHighThr $biashighthr --BiasFilt $BeginBiasFilter --ProbBias $EndBiasFilter --IntType $CurrIntType --Resid $resid_biascorr --EqOcc $eqocc_biascorr
-		# 	else
-		# 		# comment - sourya
-		# 		# $RScriptExec ./src/FitHiC_new.r --InpFile $CurrIntFileSortDist --headerInp --OutFile $FitHiC_Pass1_outfile --CoverageFile $CoverageBiasFile --BinSize $BIN_SIZE --P2P 0 --BiasCorr $BiasCorr --Draw --cccol $cccol --BiasLowThr $biaslowthr --BiasHighThr $biashighthr --BiasFilt $BeginBiasFilter --ProbBias $EndBiasFilter --IntType $CurrIntType
-
-		# 		# add - sourya
-		# 		$RScriptExec ./src/FitHiC_new2.r --InpFile $CurrIntFileSortDist --headerInp --OutFile $FitHiC_Pass1_outfile --CoverageFile $CoverageBiasFile --BinSize $BIN_SIZE --P2P 0 --BiasCorr $BiasCorr --Draw --cccol $cccol --BiasLowThr $biaslowthr --BiasHighThr $biashighthr --BiasFilt $BeginBiasFilter --ProbBias $EndBiasFilter --IntType $CurrIntType --Resid $resid_biascorr --EqOcc $eqocc_biascorr
-		# 	fi
-		# fi
-		#===========================
-		# end comment - sourya
-		#===========================
-
-		#===========================
-		# add - sourya
+	if [[ ! -f $FitHiC_Pass1_outfile || $OverWrite == 1 ]]; then		
 		if [[ $currdirname == $DirPeaktoALL ]]; then			
 			$RScriptExec ./src/FitHiC_SigInt.r --InpFile $CurrIntFileSortDist --headerInp --OutFile $FitHiC_Pass1_outfile --CoverageFile $CoverageBiasFile --BinSize $BIN_SIZE --P2P $UseP2PBackgrnd --IntType $CurrIntType --UseNonzeroContacts $UseNonzeroContacts --BiasCorr $BiasCorr --BiasType $BiasType --BiasLowThr $biaslowthr --BiasHighThr $biashighthr --Draw --cccol $cccol --BiasFilt $BeginBiasFilter --MultBias $MultBias --Resid $resid_biascorr --EqOcc $eqocc_biascorr
 		else
 			$RScriptExec ./src/FitHiC_SigInt.r --InpFile $CurrIntFileSortDist --headerInp --OutFile $FitHiC_Pass1_outfile --CoverageFile $CoverageBiasFile --BinSize $BIN_SIZE --P2P 0 --IntType $CurrIntType --UseNonzeroContacts $UseNonzeroContacts --BiasCorr $BiasCorr --BiasType $BiasType --BiasLowThr $biaslowthr --BiasHighThr $biashighthr --Draw --cccol $cccol --BiasFilt $BeginBiasFilter --MultBias $MultBias --Resid $resid_biascorr --EqOcc $eqocc_biascorr
 		fi
-		# end add - sourya
-		#===========================
 		echo '******** FINISHED calling significant interactions'
 	fi
 
@@ -1994,30 +1762,23 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 		echo "ERROR !!!!!!!! FitHiChIP could not compute the statistical significance of input interactions"
 		echo "Check the input parameters, or check if the number of input nonzero contact locus pairs are too few !!!"
 		echo "If you are using peak to peak background only (UseP2PBackgrnd=1 or stringent background), check the number of nonzero peak-to-peak locus pairs (peak-to-peak) !!! In such a case, you should go for loose background (UseP2PBackgrnd=0) for modeling interaction significance!!! Specially, if the sequencing depth of your data is very low...."
-
 		errcond=1	# indicating errors
-		# exit 1
 	fi
 
 	# Filter the interaction file with respect to significance (Q value < $QVALUE)
 	# also print the header line
-	# if [[ ! -f $FitHiC_Pass1_Filtfile || $OverWrite == 1 ]]; then
-		# comment - sourya
-		# awk -v q="$QVALUE" '{if ((NR==1) || ($NF < q)) {print $0}}' $FitHiC_Pass1_outfile > $FitHiC_Pass1_Filtfile
-		# add - sourya
-		# due to strange awk error - possibly due to format conversion error between awk and R
-		# also we check whether the field is not NA
-		awk -F['\t'] -v q="$QVALUE" '{if ((NR==1) || (($NF != "NA") && (sprintf("%0.400f",$NF) < q))) {print $0}}' $FitHiC_Pass1_outfile > $FitHiC_Pass1_Filtfile
-		echo '----- Extracted significant interactions ---- FDR threshold lower than: '$QVALUE
-	# fi
+	# due to strange awk error - possibly due to format conversion error between awk and R
+	# also we check whether the field is not NA
+	awk -F['\t'] -v q="$QVALUE" '{if ((NR==1) || (($NF != "NA") && (sprintf("%0.400f",$NF) < q))) {print $0}}' $FitHiC_Pass1_outfile > $FitHiC_Pass1_Filtfile
+	echo '----- Extracted significant interactions ---- FDR threshold lower than: '$QVALUE
 
 	if [ $TimeProf == 1 ]; then
 		duration=$(echo "$(date +%s.%N) - $start" | bc)
-		echo " ++++ Time (in seconds) for applying FitHiC (significant interactions): $duration" >> $OutTimeFile
+		echo " ++++ Time (in seconds) for applying FitHiChIP (significant interactions): $duration" >> $OutTimeFile
 		start=$(date +%s.%N)
 	fi		
 
-	# no of significant interactions (FitHiC)
+	# no of significant interactions (FitHiChIP)
 	nsigFitHiC=`cat $FitHiC_Pass1_Filtfile | wc -l`
 
 	# error checking condition - 
@@ -2026,9 +1787,7 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 		echo "SORRY !!!!!!!! FitHiChIP could not find any statistically significant interactions"
 		echo "Check the input parameters, or check if the number of input nonzero contact locus pairs are too few !!!"
 		echo "If you are using peak to peak background only (UseP2PBackgrnd=1 or stringent background), check the number of nonzero peak-to-peak locus pairs (peak-to-peak) !!! In such a case, you should go for loose background (UseP2PBackgrnd=0) for modeling interaction significance!!! Specially, if the sequencing depth of your data is very low...."
-
 		errcond=1	# indicating errors
-		# exit 1
 	fi
 
 	# generate distance vs CC plots
@@ -2036,22 +1795,6 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 		DistPlotfile=$GenFitHiCDir'/'$PREFIX'.interactions_FitHiC_Q'${QVALUE}'_Dist_CC.png'	
 		$RScriptExec ./Analysis/Distance_vs_CC.r --IntFile $FitHiC_Pass1_Filtfile --OutFile $DistPlotfile	
 	fi
-
-	# # Check the no of significant contacts associated with each peak segment
-	# # except all to all interactions
-	# if [ $currdirname != $DirALLtoALL ]; then		
-	# 	if [[ ! -f $FitHiC_Pass1_Filt_PeakCountfile || $OverWrite == 1 ]]; then
-	# 		# At least 10 significant interactions are required (empirical threshold)
-	# 		# considering the 1st line as header
-	# 		if [[ $nsigFitHiC -gt 11 ]]; then
-	# 			# skip the 1st header line
-	# 			awk -F['\t'] 'NR>1' $FitHiC_Pass1_Filtfile | cut -f1-3,${cccol} | sort -k1,1 -k2,2n -k3,3n | awk -F['\t'] -v OFS='\t' '{a[$1" "$2" "$3]+=$4}END{for (i in a){print i,a[i]}}' - > $FitHiC_Pass1_Filt_PeakCountfile
-	# 			echo 'Extracted significant interactions associated with each peak segment'
-	# 		else
-	# 			echo 'number of significant interactions for spline distribution < 10 - skip the peak count distribution function'
-	# 		fi
-	# 	fi
-	# fi
 
 	if [ $DrawFig == 1 ]; then
 		# the R file takes the spline fitted interaction file (without q-value based filtering)
@@ -2066,70 +1809,44 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 		fi
 	fi
 
-	# the filtered interaction (with respect to the spline) file is used to create a session file
-	# for applying in WashU epigenome browser
-	# for that, a special file containing only the interacting chromosome intervals 
-	# and the log of Q value is created
-
-	# comment - sourya
-	# if [[ ! -f $FitHiC_Pass1_LogQ_file || $OverWrite == 1 ]]; then
-		
-		# check for non empty interactions file
-		if [[ $nsigFitHiC -gt 1 ]]; then
-			# print the midpoints of the interactions
-		    # for better display in the WashU genome browser
-		    # check: if Q score is 0, we replace the log of Q score by a default value of 100
-
-		    # old code - sourya
-		    # compatible with the old WashU browser 
-		    # awk -F['\t'] '{if (NR > 1) {if ($NF > 0) {print $1","(($2+$3)/2-1)","(($2+$3)/2+1)"\t"$4","(($5+$6)/2-1)","(($5+$6)/2+1)"\t"(-log($NF)/log(10))} else {print $1","(($2+$3)/2-1)","(($2+$3)/2+1)"\t"$4","(($5+$6)/2-1)","(($5+$6)/2+1)"\t500"}}}' $FitHiC_Pass1_Filtfile > $FitHiC_Pass1_LogQ_file
-
-		    # new code - sourya
-		    # compatible with the new WashU browser (or generally applicable)
-		    # converts into a tabix formatted gzipped file
-		    awk -F['\t'] '{if (NR > 1) {if ($NF > 0) {print $1"\t"(($2+$3)/2-1)"\t"(($2+$3)/2+1)"\t"$4":"(($5+$6)/2-1)"-"(($5+$6)/2+1)","(-log($NF)/log(10))"\t"(NR-1)"\t."} else {print $1"\t"(($2+$3)/2-1)"\t"(($2+$3)/2+1)"\t"$4":"(($5+$6)/2-1)"-"(($5+$6)/2+1)",500\t"(NR-1)"\t."}}}' $FitHiC_Pass1_Filtfile | sort -k1,1 -k2,2n > $FitHiC_Pass1_LogQ_file
-		    if [ -f $FitHiC_Pass1_LogQ_file'.gz' ]; then
-		    	rm $FitHiC_Pass1_LogQ_file'.gz'
-	    	fi
-		    bgzip $FitHiC_Pass1_LogQ_file
-		    tabix -f -p bed $FitHiC_Pass1_LogQ_file'.gz'
-			echo 'generated WashU epigenome browser compatible significant interactions'
-		else
-			echo 'There is no significant interaction - so no WashU specific session file is created !!'
-		fi
-
-	# comment - sourya
-	# fi
-
-	# if [[ $DrawFig == 1 && $currdirname != $DirALLtoALL ]]; then
-	# 	res_outdir=$GenFitHiCDir'/Results'
-	# 	mkdir -p $res_outdir
-	# 	if [ -f $FitHiC_Pass1_Filt_PeakCountfile ]; then
-	# 		# Distribution of significant contact counts (FitHiC) for individual peaks
-	# 		if [ ! -f $res_outdir/$PREFIX.PeakCCDistr_FiltSpline.pdf ] || [ ! -f $FitHiC_Pass1_PeakCCDistr_Text ]; then
-	# 			$RScriptExec ./Analysis/ContactCountDistr.r $PeakFILE $FitHiC_Pass1_Filt_PeakCountfile $res_outdir/$PREFIX.PeakCCDistr_FiltSpline.pdf $FitHiC_Pass1_PeakCCDistr_Text
-	# 		fi
-	# 	fi
-	# fi
+	# create WashU epigenome browser compatible session file for FitHiChIP significant interactions
+	if [[ $nsigFitHiC -gt 1 ]]; then
+	    # compatible with the new WashU browser (or generally applicable)
+	    # converts into a tabix formatted gzipped file
+	    awk -F['\t'] '{if (NR > 1) {if ($NF > 0) {print $1"\t"(($2+$3)/2-1)"\t"(($2+$3)/2+1)"\t"$4":"(($5+$6)/2-1)"-"(($5+$6)/2+1)","(-log($NF)/log(10))"\t"(NR-1)"\t."} else {print $1"\t"(($2+$3)/2-1)"\t"(($2+$3)/2+1)"\t"$4":"(($5+$6)/2-1)"-"(($5+$6)/2+1)",500\t"(NR-1)"\t."}}}' $FitHiC_Pass1_Filtfile | sort -k1,1 -k2,2n > $FitHiC_Pass1_LogQ_file
+	    if [ -f $FitHiC_Pass1_LogQ_file'.gz' ]; then
+	    	rm $FitHiC_Pass1_LogQ_file'.gz'
+    	fi
+	    if [ -f $FitHiC_Pass1_LogQ_file'.gz.tbi' ]; then
+	    	rm $FitHiC_Pass1_LogQ_file'.gz.tbi'
+    	fi    	
+	    bgzip $FitHiC_Pass1_LogQ_file
+	    tabix -f -p bed $FitHiC_Pass1_LogQ_file'.gz'
+		echo 'generated WashU epigenome browser compatible significant interactions'
+	else
+		echo 'There is no significant interaction - so no WashU specific session file is created !!'
+	fi
 
 	if [ $TimeProf == 1 ]; then
 		duration=$(echo "$(date +%s.%N) - $start" | bc)
-		echo " ++++ Time (in seconds) for post processing FitHiC results: $duration" >> $OutTimeFile
+		echo " ++++ Time (in seconds) for post processing FitHiChIP results: $duration" >> $OutTimeFile
 		start=$(date +%s.%N)
 	fi
 
-	# if merging nearby interactions are enabled
-	# then we merge the nearby interactions from the earlier generated significant interactions
+	#========================
+	# if merge filtering is enabled, we apply on the FitHiChIP significant interactions
 	# and also create a washu browser generated compatible file
+	#========================
 
 	if [[ $MergeInteraction == 1 && $nsigFitHiC -gt 1 ]]; then
+		echo '********** Merged filtering option is true ************'		
 		if [[ ! -f $FitHiC_Pass1_Filt_MergedIntfile || $OverWrite == 1 ]]; then
+			echo '******** applying merge filtering on the FitHiChIP significant interactions ******'
 			# create merged interactions - connected component based analysis
-			$PythonExec ./src/CombineNearbyInteraction.py --InpFile $FitHiC_Pass1_Filtfile --OutFile $FitHiC_Pass1_Filt_MergedIntfile --headerInp 1 --binsize $BIN_SIZE --percent 100 --Neigh 2
-			echo '-------- *** Merged filtering option is true'
+			$PythonExec ./src/CombineNearbyInteraction.py --InpFile $FitHiC_Pass1_Filtfile --OutFile $FitHiC_Pass1_Filt_MergedIntfile --headerInp 1 --binsize $BIN_SIZE --percent 100 --Neigh 2		
 			echo '----- Applied merged filtering (connected component model) on the adjacent loops of FitHiChIP'
 
-			nint=`cat $FitHiC_Pass1_Filt_MergedIntfile | wc -l`
+			nint=`cat $FitHiC_Pass1_Filt_MergedIntfile | wc -l`			
 
 			# error checking condition - 
 			# check if there is no significant loops at all
@@ -2140,20 +1857,10 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 				echo "If you are using peak to peak background only (UseP2PBackgrnd=1 or stringent background), check the number of nonzero peak-to-peak locus pairs (peak-to-peak) !!! In such a case, you should go for loose background (UseP2PBackgrnd=0) for modeling interaction significance!!! Specially, if the sequencing depth of your data is very low...."
 
 				errcond=1	# indicating errors
-				# exit 1
 			fi
 
 			if [[ $nint -gt 1 ]]; then
 				# 9th field stores the Q value
-				# print the midpoints of the interactions
-			    # for better display in the WashU genome browser
-			    # check: if Q score is 0, we replace the log of Q score by a default value of 100
-
-			    # old code - sourya
-		    	# compatible with the old WashU browser
-			    # awk -F['\t'] '{if (NR > 1) {if ($9 > 0) {print $1","(($2+$3)/2-1)","(($2+$3)/2+1)"\t"$4","(($5+$6)/2-1)","(($5+$6)/2+1)"\t"(-log($9)/log(10))} else {print $1","(($2+$3)/2-1)","(($2+$3)/2+1)"\t"$4","(($5+$6)/2-1)","(($5+$6)/2+1)"\t500"}}}' $FitHiC_Pass1_Filt_MergedIntfile > $FitHiC_Pass1_Filt_MergedInt_LogQ_file
-
-			    # new code - sourya
 			    # compatible with the new WashU browser (or generally applicable)
 			    # converts into a tabix formatted gzipped file
 			    awk -F['\t'] '{if (NR > 1) {if ($9 > 0) {print $1"\t"(($2+$3)/2-1)"\t"(($2+$3)/2+1)"\t"$4":"(($5+$6)/2-1)"-"(($5+$6)/2+1)","(-log($9)/log(10))"\t"(NR-1)"\t."} else {print $1"\t"(($2+$3)/2-1)"\t"(($2+$3)/2+1)"\t"$4":"(($5+$6)/2-1)"-"(($5+$6)/2+1)",500\t"(NR-1)"\t."}}}' $FitHiC_Pass1_Filt_MergedIntfile | sort -k1,1 -k2,2n > $FitHiC_Pass1_Filt_MergedInt_LogQ_file
@@ -2168,7 +1875,7 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 				$RScriptExec ./Analysis/Distance_vs_CC.r --IntFile $FitHiC_Pass1_Filt_MergedIntfile --OutFile $DistPlotfile	
 
 			else
-				echo 'There is no significant interaction - so no WashU specific session file is created !!'
+				echo 'Merge filtering could not produce any significant interactions - so no WashU specific session file is created !!'
 			fi
 			echo 'Merged filtering significant interactions - created washu browser compatible file for these interactions!!!'
 		fi
