@@ -7,12 +7,20 @@ by a connected component labeling algorithm
 
 Timeline
 ----------
-November 2017: Creation of the first draft
-Feb 2018: Modification to incorporate window size and top K% filtering
-July 2018: Fixed the K (=100) and window size (2X2), for 5 Kb bin size
-Nov 2018: Added support for different columns of q-value, p-value, contact count, and also provided support for 
-            increasing or decreasing order of sorting, to make it applicable for a wide range of significance values.
+November 2017: 
+Creation of the first draft
 
+Feb 2018: 
+Modification to incorporate window size and top K% filtering
+
+July 2018: 
+Fixed the K (=100) and window size (2X2), for 5 Kb bin size
+
+Nov 2018: 
+Added support for different columns of q-value, p-value, contact count, and also provided support for increasing or decreasing order of sorting, to make it applicable for a wide range of significance values.
+
+August 2020:
+Added support for any reference genome
 
 Author: Sourya Bhattacharyya
 Vijay-Ay lab, LJI
@@ -148,6 +156,11 @@ def main():
         print '*** PValCol: ', PValCol
         print '*** SortOrder: ', SortOrder
 
+    # output directory
+    OutDir = os.path.dirname(os.path.realpath(OutFile))
+    if 1:
+        print 'OutDir: ', str(OutDir)
+
     # open the output file
     # if input interaction file has header information, 
     # then dump the header in the output file as well
@@ -164,17 +177,29 @@ def main():
         fp_outInt.write('chr1' + '\t' + 'start1' + '\t' + 'end1' + '\t' + 'chr2' + '\t' + 'start2' + '\t' + 'end2' + '\t' + 'CC' + '\t' + 'p' + '\t' + 'fdr' + '\t' + 'bin1_low' + '\t' + 'bin1_high' + '\t' + 'bin2_low' + '\t' + 'bin2_high' + '\t' + 'sumCC' + '\t' + 'StrongConn')        
 
     # list of chromosomes to be experimented
-    TargetChrList = []
-    for i in range(1, 23):
-        curr_chr = 'chr' + str(i)
-        TargetChrList.append(curr_chr)
-    TargetChrList.append('chrX')
-    TargetChrList.append('chrY')
+    # comment - sourya - old code -
+    if 0:
+        TargetChrList = []
+        for i in range(1, 23):
+            curr_chr = 'chr' + str(i)
+            TargetChrList.append(curr_chr)
+        TargetChrList.append('chrX')
+        TargetChrList.append('chrY')
 
-    # output directory
-    OutDir = os.path.dirname(os.path.realpath(OutFile))
-    if 1:
-        print 'OutDir: ', str(OutDir)
+    # add - sourya - support for arbitrary genome and chromosomes
+    # get the chromosome list
+    TargetChrList = []
+    temp_chr_log_file = OutDir + '/Temp_chromosome_list.log'
+    sys_cmd = "awk -F\'[\t]\' \'{if (NR > 1) {print $1}}\' " + str(InpFile) + " | sort -k1,1 | uniq > " + str(temp_chr_log_file)
+    os.system(sys_cmd)
+    with open(temp_chr_log_file, 'r') as fp_in:
+        l = fp_in.readline()
+        currchrname = (l.rstrip()).split()[0]
+        TargetChrList.append(currchrname)
+    print 'list of chromosomes: ', str(TargetChrList)
+    # remove temporary files
+    sys_cmd = "rm " + temp_chr_log_file
+    os.system(sys_cmd)
 
     #=========================================
     # loop to process individual chromosomes and corresponding data
@@ -523,7 +548,7 @@ def main():
                     pval = CurrChrDict[rep_bin_key]._GetPVal()
                     qval = CurrChrDict[rep_bin_key]._GetQVal()
 
-                    if 1:
+                    if 0:
                         print '**** Selected bin key: ', rep_bin_key, ' start bin mid: ', (rep_bin1_low + rep_bin1_high)/2,  ' end bin mid: ', (rep_bin2_low + rep_bin2_high) / 2, ' cc: ', cc, ' pval: ', pval, ' qval: ', qval
 
                     # write the interaction in the specified output file
