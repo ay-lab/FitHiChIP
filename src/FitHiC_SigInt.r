@@ -1,7 +1,9 @@
 #!/usr/bin/env Rscript
 
 #===========================================================
-# R code for FitHiC implementation Ay et. al. Genome Research 2014 
+# R code for FitHiChIP implementation 
+# Uses spine fit (equal occupancy binning) as implemented in FitHiC paper Ay et. al. Genome Research 2014 
+# then uses novel bias regression mechanism
 # supports all of the following parameters:
 # 1) zero contact count based locus pair use / only non zero contact based  locus pair use 
 # 2) Using either all background or only peak to peak background
@@ -10,8 +12,6 @@
 # 		A) For bias correction, either multiply the probabilities or
 # 		B) Use regression model
 # 			B.1) Residual = 0, and Equal occupancy binning is either 0 or 1
-
-# Fitting of spline uses equal occupancy binning
 
 #Author: Sourya Bhattacharyya
 #Vijay-Ay lab, LJI
@@ -24,108 +24,41 @@ library(optparse)
 library(ggplot2)
 library(data.table)
 
-options(scipen = 999)
+options(scipen = 10)
 options(datatable.fread.datatable=FALSE)
 
 #====================================================
-# function to compute the number of possible interacting pairs
-# (including zero contacts)
+# function to compute the number of possible interacting pairs (including zero contacts)
 # given a particular genomic distance
 # applicable for interactions involving peak segments
+# parameters:
+# 1) InpDistSet: set of input genomic distance values for any locus pairs
+# 2) binsize
+# 3) ChrSpecBin.df: chromosome specific bins and peak information
 AllPossibleContacts <- function(InpDistSet, binsize, ChrSpecBin.df, IntType) {	
 
-	ChrList_NameNum <- c(paste("chr", seq(1,22), sep=""), "chrX", "chrY")
+	# list of all chromosomes
+	# ChrList_NameNum <- c(paste("chr", seq(1,22), sep=""), "chrX", "chrY")
+	ChrList_NameNum <- as.vector(unique(ChrSpecBin.df[,1]))
+	# cat(sprintf("\n ===>>> within function AllPossibleContacts -- checking all possible locus pairs for these chromosomes : %s ", paste(ChrList_NameNum, collapse=" ")))
 
-	# first allocate array of 0's, having length of InpDistSet
+	# this vector stores number of locus pairs for individual genomic distance
 	CountLocusPairDist <- rep(0, length(InpDistSet))
 
-	# #======================
-	# # comment - sourya
-	# # sequential program
-	# #======================
-	# for (chr_idx in (1:length(ChrList_NameNum))) {
-	# 	chrName <- ChrList_NameNum[chr_idx]
-
-	# 	cat(sprintf("\n AllPossibleContacts - processing chromosome: %s ", chrName))
-		
-	# 	# extract the peak bins for this chromosome
-	# 	PeakBin <- ChrSpecBin.df[which((ChrSpecBin.df[,1] == chrName) & (ChrSpecBin.df[,3] == 1)), 2]
-		
-	# 	# extract the non-peak bins for this chromosome
-	# 	NonPeakBin <- ChrSpecBin.df[which((ChrSpecBin.df[,1] == chrName) & (ChrSpecBin.df[,3] == 0)), 2]
-
-	# 	cat(sprintf("\n Num PeakBin : %s Num NonPeakBin : %s ", length(PeakBin), length(NonPeakBin)))
-
-	# 	# now find the locus pairs having the particular distance
-	# 	# and of the current interaction type
-
-	# 	Sort_PeakBin <- sort(PeakBin)
-	# 	Sort_NonPeakBin <- sort(NonPeakBin)
-	# 	if ((length(Sort_PeakBin) >= 2) & (length(Sort_NonPeakBin) >= 2)) {
-			
-	# 		# peak to peak or peak to all interactions
-	# 		if ((IntType == 1) | (IntType == 3)) {
-	# 			# process individual distance values
-	# 			for (dist_idx in (1:length(InpDistSet))) {
-	# 				inpdist <- InpDistSet[dist_idx]
-	# 				nbins_thr <- (inpdist / binsize)
-
-	# 				# for peak to peak interactions, the other peak 
-	# 				# should have a distance of "nbins_thr" from the first peak (+ve distance)
-	# 				other_peak_bin <- Sort_PeakBin + nbins_thr
-
-	# 				# check which of these other end bins are actually peak bins
-	# 				# those correspond to the peak to peak interactions
-	# 				CountLocusPairDist[dist_idx] <- CountLocusPairDist[dist_idx] + length(intersect(other_peak_bin, Sort_PeakBin))
-
-	# 			}	# end distance loop
-	# 		}	# end peak to peak or peak to all interactions
-
-	# 		# peak to non-peak or peak to all interactions
-	# 		if ((IntType == 2) | (IntType == 3)) {
-	# 			# process individual distance values
-	# 			for (dist_idx in (1:length(InpDistSet))) {
-	# 				inpdist <- InpDistSet[dist_idx]
-	# 				nbins_thr <- (inpdist / binsize)
-
-	# 				# for peak to peak interactions, the other peak 
-	# 				# should have a distance of "nbins_thr" from the first peak 
-
-	# 				# first explore the +ve distance
-	# 				other_peak_bin <- Sort_PeakBin + nbins_thr
-	# 				# check which of these other end bins are actually non-peak bins
-	# 				# those correspond to the peak to non-peak interactions
-	# 				CountLocusPairDist[dist_idx] <- CountLocusPairDist[dist_idx] + length(intersect(other_peak_bin, Sort_NonPeakBin))
-
-	# 				# then explore the -ve distance
-	# 				other_peak_bin <- Sort_PeakBin - nbins_thr
-	# 				# check which of these other end bins are actually non-peak bins
-	# 				# those correspond to the peak to non-peak interactions
-	# 				CountLocusPairDist[dist_idx] <- CountLocusPairDist[dist_idx] + length(intersect(other_peak_bin, Sort_NonPeakBin))
-
-	# 			}	# end distance loop
-	# 		}	# end peak to non peak or peak to all interactions
-	# 	}	# end error check condition
-	# }	# loop through individual chromosomes
-
-	#======================
-	# add - sourya 
-	# parallel programming
-	#======================
-	# input is the chromosome index
+	# compute all possible locus pairs for individual chromosomes
 	res_chrCntLocPair <- as.data.frame(parallel:::mclapply( 1:length(ChrList_NameNum) , mc.cores = ncore , function(chr_idx){
-		# first allocate array of 0's, having length of InpDistSet
-		ChrCountLocusPairDist <- rep(0, length(InpDistSet))
+
 		# current chromosome name
 		chrName <- ChrList_NameNum[chr_idx]
 		if (0) {
 			cat(sprintf("\n AllPossibleContacts - processing chromosome: %s ", chrName))	
-		}
+		}		
+		# vector stores the number of locus pairs for individual genomic distance 
+		ChrCountLocusPairDist <- rep(0, length(InpDistSet))
 		# extract the peak bins for this chromosome
 		PeakBin <- ChrSpecBin.df[which((ChrSpecBin.df[,1] == chrName) & (ChrSpecBin.df[,3] == 1)), 2]
 		# extract the non-peak bins for this chromosome
 		NonPeakBin <- ChrSpecBin.df[which((ChrSpecBin.df[,1] == chrName) & (ChrSpecBin.df[,3] == 0)), 2]
-
 		if (0) {
 			cat(sprintf("\n Num PeakBin : %s Num NonPeakBin : %s ", length(PeakBin), length(NonPeakBin)))
 		}
@@ -134,7 +67,7 @@ AllPossibleContacts <- function(InpDistSet, binsize, ChrSpecBin.df, IntType) {
 		# and of the current interaction type
 		Sort_PeakBin <- sort(PeakBin)
 		Sort_NonPeakBin <- sort(NonPeakBin)
-		if ((length(Sort_PeakBin) >= 2) & (length(Sort_NonPeakBin) >= 2)) {
+		if (length(Sort_PeakBin) > 1) {
 			# peak to peak or peak to all interactions
 			if ((IntType == 1) | (IntType == 3)) {
 				# process individual distance values
@@ -149,6 +82,9 @@ AllPossibleContacts <- function(InpDistSet, binsize, ChrSpecBin.df, IntType) {
 					ChrCountLocusPairDist[dist_idx] <- ChrCountLocusPairDist[dist_idx] + length(intersect(other_peak_bin, Sort_PeakBin))
 				}	# end distance loop
 			}	# end peak to peak or peak to all interactions
+		}	# end condition - presence of peak bins
+
+		if ((length(Sort_PeakBin) > 0) & (length(Sort_NonPeakBin) > 0)) {
 			# peak to non-peak or peak to all interactions
 			if ((IntType == 2) | (IntType == 3)) {
 				# process individual distance values
@@ -169,7 +105,7 @@ AllPossibleContacts <- function(InpDistSet, binsize, ChrSpecBin.df, IntType) {
 					ChrCountLocusPairDist[dist_idx] <- ChrCountLocusPairDist[dist_idx] + length(intersect(other_peak_bin, Sort_NonPeakBin))
 				}	# end distance loop
 			}	# end peak to non peak or peak to all interactions
-		}	# end error check condition
+		}	# end condition - presence of peak and non-peak bins
 		
 		# we return the chromosome index 
 		# and the distance specific peak and non peak count distribution
@@ -182,9 +118,6 @@ AllPossibleContacts <- function(InpDistSet, binsize, ChrSpecBin.df, IntType) {
 	for (dist_idx in (1:length(InpDistSet))) {
 		CountLocusPairDist[dist_idx] <- sum(as.integer(res_chrCntLocPair[dist_idx + 1, 1:ncol(res_chrCntLocPair)]))
 	}
-
-	# end add - sourya
-	# parallel processing
 
 	return(CountLocusPairDist)
 }
@@ -276,52 +209,43 @@ if (timeprof == 1) {
 	starttime <- Sys.time()
 }
 
+# list of parameters
+if (0) {
+	cat(sprintf("\n\n ******* list of parameters - \n BinSize : %s \n IntType : %s \n UseNonzeroContacts : %s \n P2P : %s \n BiasCorr : %s \n BiasType : %s \n BiasLowThr : %s \n BiasHighThr : %s \n nbins : %s \n BiasFilt : %s \n MultBias : %s \n Resid : %s \n EqOcc : %s \n\n", opt$BinSize, opt$IntType, opt$UseNonzeroContacts, opt$P2P, opt$BiasCorr, opt$BiasType, opt$BiasLowThr, opt$BiasHighThr, opt$nbins, opt$BiasFilt, opt$MultBias, opt$Resid, opt$EqOcc))
+}
+
 #========================================================
-# applicable if the spline fitting is performed with all possible locus pairs
-# including zero contacts
-
-# get the number of bins for individual chromosomes
-# according to the bin size employed
-# obtained from the input coverage file
-# two cases: 1) consider only mappable bins: which have non-zero coverage
-# 2) consider all bins within that chromosome (zero or nonzero coverage)
-# currently we consider all bins (results similar to FitHiC)
-# check whether the bias correction and bias filtering is enabled
-# in such a case, we only check those bins which satisfy the bias thresholds
-
-# for all to all interactions, create a text file
-# with the following format
-# chromosome 	no_of_bins
+# applicable if the spline fitting is performed with all possible locus pairs (including zero contacts)
+# input: coverage file 
+# case 1: if all-to-all interactions are considered (IntType == 4), all bins are counted
+# here the output: chromosome specific bin count - a table with 2 columns: chromosome, no_of_bins
+# case 2: for other interaction types (involving peaks)
+# output: chromosome specific bin and peak information
+# also check for bias fltering, bias thresholds
 
 if (opt$UseNonzeroContacts == 0) {
 	MappableBinCountChrFile <- paste0(OutIntDir, '/MappableBinCountChr.bed')
-
 	if (IntType == 4) {
+		# all to all interactions
 		if ((opt$BiasCorr == 1) & (opt$BiasFilt == 1)) {
-			system(paste0("awk -v l=", opt$BiasLowThr, " -v h=", opt$BiasHighThr, " \'NR>1 && $6>=l && $6<=h\' ", opt$CoverageFile, " | cut -f1 | uniq -c | awk \'{print $2\"\t\"$1}\' - > ", MappableBinCountChrFile))
+			system(paste0("awk -F\'[\t]\' -v l=", opt$BiasLowThr, " -v h=", opt$BiasHighThr, " \'((NR>1) && ($6>=l) && ($6<=h))\' ", opt$CoverageFile, " | cut -f1 | uniq -c | awk \'{print $2\"\t\"$1}\' - > ", MappableBinCountChrFile))
 		} else {
-			system(paste0("awk \'NR>1\' ", opt$CoverageFile, " | cut -f1 | uniq -c | awk \'{print $2\"\t\"$1}\' - > ", MappableBinCountChrFile))
+			system(paste0("awk -F\'[\t]\' \'(NR>1)\' ", opt$CoverageFile, " | cut -f1 | uniq -c | awk \'{print $2\"\t\"$1}\' - > ", MappableBinCountChrFile))
 		}
-		# read the mappable bin count for individual chromosomes
-		# MappableBinCount.df <- read.table(MappableBinCountChrFile, header=F, sep="\t", stringsAsFactors=F)
 		MappableBinCount.df <- data.table::fread(MappableBinCountChrFile, header=F, sep="\t", stringsAsFactors=F)
 	} else {
 		# dump individual chromosomes, their bins and corresponding peak information
 		if ((opt$BiasCorr == 1) & (opt$BiasFilt == 1)) {
-			system(paste0("awk -v b=", opt$BinSize, " -v l=", opt$BiasLowThr, " -v h=", opt$BiasHighThr, " \'{if (NR>1 && $6>=l && $6<=h) {print $1\"\t\"($2/b)\"\t\"$5}}\' ", opt$CoverageFile, " > ", MappableBinCountChrFile))
+			system(paste0("awk -F\'[\t]\' -v b=", opt$BinSize, " -v l=", opt$BiasLowThr, " -v h=", opt$BiasHighThr, " \'{if ((NR>1) && ($6>=l) && ($6<=h)) {print $1\"\t\"($2/b)\"\t\"$5}}\' ", opt$CoverageFile, " > ", MappableBinCountChrFile))
 		} else {
-			system(paste0("awk -v b=", opt$BinSize, " \'{if (NR>1) {print $1\"\t\"($2/b)\"\t\"$5}}\' ", opt$CoverageFile, " > ", MappableBinCountChrFile))
+			system(paste0("awk -F\'[\t]\' -v b=", opt$BinSize, " \'{if (NR>1) {print $1\"\t\"($2/b)\"\t\"$5}}\' ", opt$CoverageFile, " > ", MappableBinCountChrFile))
 		}
 		# read the chromosome specific bin information
-		# ChrSpecBin.df <- read.table(MappableBinCountChrFile, header=F, sep="\t", stringsAsFactors=F)
 		ChrSpecBin.df <- data.table::fread(MappableBinCountChrFile, header=F, sep="\t", stringsAsFactors=F)
 	}
 }
 #========================================================
-
-# load the interaction data matrix
-# Note: the data has a header information
-# interaction.data <- read.table(opt$InpFile, header=opt$headerInp, sep="\t", stringsAsFactors=F)
+# load the interaction data matrix (its header information is provided in opt$headerInp)
 interaction.data <- data.table::fread(opt$InpFile, header=opt$headerInp, sep="\t", stringsAsFactors=F)
 if (opt$headerInp == FALSE) {
 	colnames(interaction.data) <- c("chr1", "s1", "e1", "chr2", "s2", "e2", "cc", "d1", "isPeak1", "Bias1", "mapp1", "gc1", "cut1", "d2", "isPeak2", "Bias2", "mapp2", "gc2", "cut2")
@@ -335,65 +259,51 @@ if (timeprof == 1) {
 	close(fp)
 }
 
-cat(sprintf("\n Total Number of interactions: %s ", nrow(interaction.data)))
-
+cat(sprintf("\n ===>> Total Number of input interactions (locus pairs): %s ", nrow(interaction.data)))
 # return if the number of interaction is 0
 if (nrow(interaction.data) == 0) {
-	cat(sprintf("\n No of interactions : 0 - exit !!!"))
+	cat(sprintf("\n ****** No of input interactions : 0 - exit !!!"))
 	return()
 }
-
 if (ncol(interaction.data) < opt$cccol) {
-	cat(sprintf("\n There is no contact count column or the formatting of the input file has problems - exit !!!"))
+	cat(sprintf("\n ****** There is no contact count column or the formatting of the input file has problems - exit !!!"))
 	return()
 }
 
 # vector of initial (prior) probabilities for contact counts
 Prob_Val <- c()
-
 # probability of the observed contact count for a single locus pair, from the spline fit
 Spline_Binom_Prob_CC <- c()
-
 # P-value of the observed contact count for a single locus pair
 # binomial distribution + spline based estimation
 Spline_Binom_P_Val_CC <- c()
-
 # for each bin, count the no of distinct locus pairs (having nonzero contacts)
 no_distinct_loci <- c()
-
 # for each bin, count the no of all possible locus pairs (including zero contacts)
 no_possible_pair_loci <- c()
-
 # for each bin, no of observed contact count
 NumContact <- c()
-
 # for each bin, stores the average contact count per interaction
 avg_contact <- c()
-
 # prior contact probability for a specific locus pair falling within a bin
 prior_contact_prob <- c()
-
 # average interaction distance for all locus pairs falling within a bin
 avg_int_dist <- c()
-
 # specifying the columns in the interaction data 
 # where the bias information is provided
 bias1.col <- 10
 bias2.col <- 16
-
 # few other vectors specifically employed for bias correction
 Prob_BiasRegr <- c()
 Exp_CC_BiasRegr <- c()
-# Binom_Prob_BiasRegr <- c()
-# Binom_PVal_BiasRegr <- c()
 
 #======================================================
-# if normalization using bias values is enabled 
-# then discard the interactions where either loci has bias values outside specified thresholds
+# if bias specific filtering is enabled, 
+# discard the interactions where either loci has bias values outside specified thresholds
 if ((opt$BiasCorr == 1) & (opt$BiasFilt == 1)) {
 	if (ncol(interaction.data) >= bias2.col) {
 		interaction.data <- interaction.data[which((interaction.data[,bias1.col] >= opt$BiasLowThr) & (interaction.data[,bias1.col] <= opt$BiasHighThr) & (interaction.data[,bias2.col] >= opt$BiasLowThr) & (interaction.data[,bias2.col] <= opt$BiasHighThr)), ]
-		cat(sprintf("\n Bias specific filtering is enabled - Number of interactions where both loci satisfy bias criterion: %s ", nrow(interaction.data)))
+		cat(sprintf("\n ===>> Bias specific filtering is enabled - Number of interactions where both loci satisfy bias criterion (within low and high limits): %s ", nrow(interaction.data)))
 	}
 }
 
@@ -411,16 +321,14 @@ if (timeprof == 1) {
 	starttime <- Sys.time()
 }
 
-# check if the interaction file is not sorted
-# return
+# check if the interaction file is not sorted - return
 if (is.unsorted(gene.dist) == TRUE) {
-	cat(sprintf("\n **** The interaction file is unsorted --- check ****"))
+	cat(sprintf("\n **** The interaction file is unsorted --- check - FitHiChIP quits !!!! ****"))
 	return()
 }
 	
 #======================================================
-# add - sourya
-# we form the training data out of the total number of interactions
+# form the training data out of the total number of interactions
 # if --P2P is enabled, training data consists of only peak to peak interactions
 # else training data consists of the complete interaction set
 if ((Peak2PeakBackg == 1) & (ncol(interaction.data) >= 15)) {
@@ -437,7 +345,7 @@ if ((Peak2PeakBackg == 1) & (ncol(interaction.data) >= 15)) {
 
 numTrainingPairs <- nrow(TrainingData)
 if (numTrainingPairs == 0) {
-	cat(sprintf("\n No training data for FitHiC spline fit - error - return !!! "))
+	cat(sprintf("\n ********* No training data for FitHiChIP spline fit - error - FitHiChIP quits !!! "))
 	return()
 }
 
@@ -451,7 +359,7 @@ TotTrainingDataContact <- sum(TrainingData[,opt$cccol])
 
 #=====================================================
 # divide the genomic distance into b equal occupancy bins
-# (approximately same contact count, but variable number of contacts per bins)
+# (approximately same sum of contact count, but variable number of contacts per bins)
 
 # error condition - sourya
 # for very small number of contact count, enforce only a small number of bins
@@ -459,7 +367,6 @@ if (TotTrainingDataContact < nbins) {
 	nbins <- numTrainingPairs
 }
 ncontactbin <- floor(TotTrainingDataContact / nbins)
-
 cat(sprintf("\n ****** Number of contacts per bin (allowed for equal occupancy binning): %s ******** \n", ncontactbin))
 
 #=====================================================
@@ -467,10 +374,8 @@ cat(sprintf("\n ****** Number of contacts per bin (allowed for equal occupancy b
 # including zero contacts
 if (opt$UseNonzeroContacts == 0) {
 
-	# debug - sourya
 	time_start <- Sys.time()
 
-	# add - sourya
 	# if interaction type is not all to all
 	# then pre-compute the number of locus pairs (including zero contacts)
 	# for each of different distance values considered
@@ -482,7 +387,6 @@ if (opt$UseNonzeroContacts == 0) {
 			cat(sprintf("\n ******** Unique_GeneDist_TrainingData : %s ", paste(as.vector(Unique_GeneDist_TrainingData))))
 			cat(sprintf("\n ********** length Unique_GeneDist_TrainingData: %s ", length(Unique_GeneDist_TrainingData)))		
 		}
-
 		# get the vector containing number of locus pairs
 		# for each specific distance
 		if ((Peak2PeakBackg == 1) & (ncol(interaction.data) >= 15)) {
@@ -490,21 +394,16 @@ if (opt$UseNonzeroContacts == 0) {
 		} else {
 			LocusPairCountGeneDist <- AllPossibleContacts(Unique_GeneDist_TrainingData, opt$BinSize, ChrSpecBin.df, IntType)
 		}
-
 		if (0) {
 			cat(sprintf("\n ******** LocusPairCountGeneDist : %s ", paste(as.vector(LocusPairCountGeneDist))))
 		}
 	}
 
-	# debug - sourya
 	time_end <- Sys.time()
-
 	if (0) {
 		cat(sprintf("\n\n ==>>> Parallel processing --- time taken for AllPossibleContacts --- %s \n\n", (time_end - time_start)))
 	}
-
 }
-# end add - sourya
 # #=====================================================
 
 #==============================================
@@ -576,21 +475,29 @@ while (ei < numTrainingPairs) {
 		# and also, all the contacts with this specified genomic distance is covered
 		# so, we fix this bin 
 		bin_idx <- bin_idx + 1
-		cat(sprintf("\n processing bin_idx : %s ", bin_idx))
+		if (0) {
+			cat(sprintf("\n processing bin_idx : %s ", bin_idx))
+		}
 		
 		# number of interacting pairs having nonzero contact, for this particular bin
 		no_distinct_loci[bin_idx] <- nelem
-		cat(sprintf("\n no_distinct_loci[bin_idx] : %s ", no_distinct_loci[bin_idx]))
+		if (0) {
+			cat(sprintf("\n no_distinct_loci[bin_idx] : %s ", no_distinct_loci[bin_idx]))
+		}
 		
 		if (opt$UseNonzeroContacts == 0) {
 			# number of all possible interacting pairs (including zero contact) for this particular bin
 			no_possible_pair_loci[bin_idx] <- nelem_all_possble
-			cat(sprintf("\n no_possible_pair_loci[bin_idx] : %s ", no_possible_pair_loci[bin_idx]))
+			if (0) {
+				cat(sprintf("\n no_possible_pair_loci[bin_idx] : %s ", no_possible_pair_loci[bin_idx]))
+			}
 		}
 		
 		# total number of observed contact count for this particular bin
 		NumContact[bin_idx] <- cumContactCount
-		cat(sprintf("\n NumContact[bin_idx] : %s ", NumContact[bin_idx]))
+		if (0) {
+			cat(sprintf("\n NumContact[bin_idx] : %s ", NumContact[bin_idx]))
+		}
 		
 		# average contact count for this particular bin
 		# modification - sourya
@@ -600,20 +507,28 @@ while (ei < numTrainingPairs) {
 		# all possible interacting pairs (including zero contacts) are also accounted
 		if (opt$UseNonzeroContacts == 0) {
 			avg_contact[bin_idx] <- NumContact[bin_idx] / no_possible_pair_loci[bin_idx]
-			cat(sprintf("\n no_possible_pair_loci[bin_idx] : %s ", no_possible_pair_loci[bin_idx]))
+			if (0) {
+				cat(sprintf("\n no_possible_pair_loci[bin_idx] : %s ", no_possible_pair_loci[bin_idx]))
+			}
 		} else {
 			avg_contact[bin_idx] <- NumContact[bin_idx] / no_distinct_loci[bin_idx]
-			cat(sprintf("\n no_distinct_loci[bin_idx] : %s ", no_distinct_loci[bin_idx]))
+			if (0) {
+				cat(sprintf("\n no_distinct_loci[bin_idx] : %s ", no_distinct_loci[bin_idx]))
+			}
 		}
-		cat(sprintf("\n avg_contact[bin_idx] : %s ", avg_contact[bin_idx]))
+		if (0) {
+			cat(sprintf("\n avg_contact[bin_idx] : %s ", avg_contact[bin_idx]))
+		}
 
 		# prior probability with respect to a particular bin
 		# is computed by normalizing the average contact count 
 		# (contact for individual interacting pair)
 		# with the total contact count for all the interactions of all the bins
 		prior_contact_prob[bin_idx] <- (avg_contact[bin_idx] / TotTrainingDataContact)
-		cat(sprintf("\n TotTrainingDataContact : %s ", TotTrainingDataContact))
-		cat(sprintf("\n prior_contact_prob[bin_idx] : %s ", prior_contact_prob[bin_idx]))
+		if (0) {
+			cat(sprintf("\n TotTrainingDataContact : %s ", TotTrainingDataContact))
+			cat(sprintf("\n prior_contact_prob[bin_idx] : %s ", prior_contact_prob[bin_idx]))
+		}
 
 		# computing the average interaction distance for this particular bin		
 		temp_sum <- 0
@@ -624,11 +539,15 @@ while (ei < numTrainingPairs) {
 		if (opt$UseNonzeroContacts == 0) {
 			# considering all locus pairs (including zero contact)
 			avg_int_dist[bin_idx] <- as.integer(temp_sum / nelem_all_possble)
-			cat(sprintf("\n temp_sum : %s nelem_all_possble : %s avg_int_dist[bin_idx] : %s ", temp_sum, nelem_all_possble, avg_int_dist[bin_idx]))
+			if (0) {
+				cat(sprintf("\n temp_sum : %s nelem_all_possble : %s avg_int_dist[bin_idx] : %s ", temp_sum, nelem_all_possble, avg_int_dist[bin_idx]))
+			}
 		} else {
 			# considering only nonzero contact based locus pairs
 			avg_int_dist[bin_idx] <- as.integer(temp_sum / nelem)
-			cat(sprintf("\n temp_sum : %s nelem : %s avg_int_dist[bin_idx] : %s ", temp_sum, nelem, avg_int_dist[bin_idx]))
+			if (0) {
+				cat(sprintf("\n temp_sum : %s nelem : %s avg_int_dist[bin_idx] : %s ", temp_sum, nelem, avg_int_dist[bin_idx]))
+			}
 		}
 
 		# reset the couners
@@ -646,10 +565,16 @@ while (ei < numTrainingPairs) {
 # bin specific statistics
 OutBinfile <- paste0(OutIntDir, '/Bin_Info.log')
 if (opt$UseNonzeroContacts == 0) {
-	write.table(cbind(avg_int_dist, no_distinct_loci, no_possible_pair_loci, NumContact, avg_contact, prior_contact_prob), OutBinfile, row.names = FALSE, col.names = c("AvgIntDist", "NumLociNonZeroContact", "NumLoci_AllPossible", "NumContact","AvgContact","PriorProb"), sep = "\t", quote=FALSE, append=FALSE) 
+	outBinInfoDF <- cbind.data.frame(avg_int_dist, no_distinct_loci, no_possible_pair_loci, NumContact, avg_contact, prior_contact_prob)
+	colnames(outBinInfoDF) <- c("AvgIntDist", "NumLociNonZeroContact", "NumLoci_AllPossible", "NumContact","AvgContact","PriorProb")
+	write.table(outBinInfoDF, OutBinfile, row.names=F, col.names=T, sep="\t", quote=F, append=F) 
 } else {
-	write.table(cbind(avg_int_dist, no_distinct_loci, NumContact, avg_contact, prior_contact_prob), OutBinfile, row.names = FALSE, col.names = c("AvgIntDist", "NumLociNonZeroContact", "NumContact","AvgContact","PriorProb"), sep = "\t", quote=FALSE, append=FALSE)
+	outBinInfoDF <- cbind.data.frame(avg_int_dist, no_distinct_loci, NumContact, avg_contact, prior_contact_prob)
+	colnames(outBinInfoDF) <- c("AvgIntDist", "NumLociNonZeroContact", "NumContact","AvgContact","PriorProb")
+	write.table(outBinInfoDF, OutBinfile, row.names=F, col.names=T, sep="\t", quote=F, append=F)
 }
+
+cat(sprintf("\n ****** WRITTEN BIN INFORMATION in file : %s ****\n", OutBinfile))
 
 #===============================
 # now prepare a spline fit where x axis is the 'avg_int_dist'
@@ -658,9 +583,19 @@ if (opt$UseNonzeroContacts == 0) {
 # for peak to peak background, the training data is a subset of the original interactions
 #===============================
 
+# add - sourya
+# check non-NA elements from "avg_int_dist" and "prior_contact_prob"
+# and use them for spline fitting
+non_NA_idx <- which((!is.na(avg_int_dist)) & (!is.na(prior_contact_prob)) & (is.finite(avg_int_dist)) & (is.finite(prior_contact_prob)))
+if (length(non_NA_idx) <= 2) {
+	cat(sprintf("\n\n ********* all NA entries in average interaction distance AND / OR prior contact probability -- spline fit is not possible - FitHiChIP quits !!!  **** \n\n "))
+	return()
+}
+
 # the second spline works according to the cross validation principle
-fit2 <- smooth.spline(avg_int_dist, prior_contact_prob, cv=TRUE)
-	
+# fit2 <- smooth.spline(avg_int_dist, prior_contact_prob, cv=TRUE)
+fit2 <- smooth.spline(avg_int_dist[non_NA_idx], prior_contact_prob[non_NA_idx], cv=TRUE)
+cat(sprintf("\n ****** After fit2 smooth.spline ****\n")) 	
 if (timeprof == 1) {
 	endtime <- Sys.time()
 	fp <- file(opt$TimeFile, open="a")
@@ -672,7 +607,7 @@ if (timeprof == 1) {
 
 # perform anti-tonic regression on the second spline
 fit2.mr <- monoreg(fit2$x, fit2$y, type="antitonic")
-
+cat(sprintf("\n ****** After fit2.mr monoreg ****\n")) 
 if (timeprof == 1) {
 	endtime <- Sys.time()
 	fp <- file(opt$TimeFile, open="a")
@@ -696,39 +631,30 @@ pp.fit2 <- predict(fit2, TestDistVal)
 
 # use this computed probability and the input distance to fit a spline again
 fit2_new <- smooth.spline(pp.fit2$x, pp.fit2$y, cv=TRUE)
+cat(sprintf("\n ****** After fit2_new smooth.spline ****\n")) 
 
 # perform antitonic regression on this spline
 fit2_new.mr <- monoreg(fit2_new$x, fit2_new$y, type="antitonic")
+cat(sprintf("\n ****** After fit2_new.mr monoreg ****\n")) 
 
 # plot the fitted spline and the smoothing regression
 # if (opt$Draw) {
 if (1) {
-
 	plotfile1 <- paste0(outdir,'/EqOccBin_SplinePass1.png')
-	a <- data.frame(group = paste("Original points"), x = avg_int_dist, y = prior_contact_prob)
+	# a <- data.frame(group = paste("Original points"), x = avg_int_dist, y = prior_contact_prob)
+	a <- data.frame(group = paste("Original points"), x = avg_int_dist[non_NA_idx], y = prior_contact_prob[non_NA_idx])
 	b <- data.frame(group = paste("Fitted spline"), x = fit2_new.mr$x, y = fit2_new.mr$yf)
 	curr_plotA <- ggplot(rbind(a, b), aes(x=x, y=y, color=group, fill=group)) + geom_point(size=0.1) + geom_line(size=0.3) + xlab('Average interaction distance') + ylab('Prior contact probability') + scale_colour_manual(values = c("blue", "red"))
 	curr_plotA + ggtitle("Spline fit")
-	ggsave(plotfile1, plot = curr_plotA, width=5, height=5)		
-
-	# plotfile1 <- paste0(outdir,'/','EqOccBin_SplinePass1.pdf')	
-	# pdf(plotfile1, width=8, height=6)
-	# # par(mar=c(5,5,2,2)+0.1)
-	# plot(avg_int_dist, prior_contact_prob, cex=0.5, col="black", xlab="Average interaction distance", ylab="Prior contact probability", xlim=c(0, max(gene.dist)))
-	# lines(fit2$x, fit2$y, col="yellow", lwd=0.5)
-	# lines(fit2.mr$x, fit2.mr$yf, col="blue", lwd=0.5)
-	# lines(fit2_new$x, fit2_new$y, col="green", lwd=0.5)
-	# lines(fit2_new.mr$x, fit2_new.mr$yf, col="red", lwd=0.5)
-	# legend("topright",legend=c(paste("spline (fit2) - ", as.integer(fit2$df), "df (cv)"), "MR on spline (fit2.mr)", paste("5 Kb uniform spline (fit2_new) - ", as.integer(fit2_new$df), "df (cv)"), "MR on 5 Kb uniform spline (fit2_new.mr)"), col=c("yellow", "blue", "green", "red"), lty=1, lwd=1, cex=0.8)
-	# title("Smooth spline - antitonic regression - pass 1")
-	# dev.off()
+	ggsave(plotfile1, plot = curr_plotA, width=5, height=5)
+	cat(sprintf("\n ****** After plotting file : %s ****\n", plotfile1)) 
 }
 
-# plot the fitted spline and the smoothing regression
-# in log scale
-if (1) {	#(opt$Draw) {
+# plot the fitted spline and the smoothing regression (in log scale)
+if (1) {	
 	plotfile1 <- paste0(outdir,'/EqOccBin_SplinePass1_LOGScale.pdf')	
-	a <- data.frame(group = paste("Original"), x = log10(avg_int_dist), y = log10(prior_contact_prob))
+	# a <- data.frame(group = paste("Original"), x = log10(avg_int_dist), y = log10(prior_contact_prob))
+	a <- data.frame(group = paste("Original"), x = log10(avg_int_dist[non_NA_idx]), y = log10(prior_contact_prob[non_NA_idx]))
 	b <- data.frame(group = paste("spline (fit2) - ", as.integer(fit2$df), "df (cv)"), x = log10(fit2$x), y = log10(fit2$y))
 	c <- data.frame(group = paste("MR on spline (fit2.mr)"), x = log10(fit2.mr$x), y = log10(fit2.mr$yf))
 	d <- data.frame(group = paste("5 Kb uniform spline (fit2_new) - ", as.integer(fit2_new$df), "df (cv)"), x = log10(fit2_new$x), y = log10(fit2_new$y))
@@ -736,19 +662,7 @@ if (1) {	#(opt$Draw) {
 	curr_plotA <- ggplot(rbind(a, b, c, d, e), aes(x=x, y=y, color=group, fill=group)) + geom_point(size=0.1) + geom_line(size=0.3) + xlab('Average interaction distance (log)') + ylab('Prior contact probability (log)') + scale_colour_manual(values = c("black", "yellow", "blue", "green", "red"))
 	curr_plotA + ggtitle("Smooth spline - antitonic regression - pass 1 - log scale")
 	ggsave(plotfile1, plot = curr_plotA, width=8, height=6)
-
-	# curr_plotA <- ggplot(a, aes(x,y)) + geom_point(size=0.1, aes(color=paste("Original"))) + geom_line(data=b, aes(color=paste("spline (fit2) - ", as.integer(fit2$df), "df (cv)"))) + geom_line(data=c, aes(color=paste("MR on spline (fit2.mr)"))) + geom_line(data=d, aes(color=paste("5 Kb uniform spline (fit2_new) - ", as.integer(fit2_new$df), "df (cv)"))) + geom_line(data=e, aes(color=paste("MR on 5 Kb uniform spline (fit2_new.mr)"))) + labs(color="Legend text")
-
-	# pdf(plotfile1, width=8, height=6)
-	# par(mar=c(5,5,2,2)+0.1)
-	# plot(log10(avg_int_dist), log10(prior_contact_prob), cex=0.5, col="black", xlab="Average interaction distance (log)", ylab="Prior contact probability (log)", xlim=c(0, log10(max(gene.dist))))
-	# lines(log10(fit2$x), log10(fit2$y), col="yellow", lwd=0.5)
-	# lines(log10(fit2.mr$x), log10(fit2.mr$yf), col="blue", lwd=0.5)
-	# lines(log10(fit2_new$x), log10(fit2_new$y), col="green", lwd=0.5)
-	# lines(log10(fit2_new.mr$x), log10(fit2_new.mr$yf), col="red", lwd=0.5)
-	# legend("topright",legend=c(paste("spline (fit2) - ", as.integer(fit2$df), "df (cv)"), "MR on spline (fit2.mr)", paste("5 Kb uniform spline (fit2_new) - ", as.integer(fit2_new$df), "df (cv)"), "MR on 5 Kb uniform spline (fit2_new.mr)"), col=c("yellow", "blue", "green", "red"), lty=1, lwd=1, cex=0.8)
-	# title("Smooth spline - antitonic regression - pass 1 - log scale")
-	# dev.off()
+	cat(sprintf("\n ****** After plotting file : %s ****\n", plotfile1)) 
 }
 
 if (0) {
@@ -789,6 +703,7 @@ if (timeprof == 1) {
 if (opt$BiasCorr == 0) {
 	#======================
 	# bias correction is not enabled
+	# same as FitHiC output
 	#======================
 	for (k in (1:length(uniq.idx))) {
 		# all the locations from si to ei will have the same probability 
@@ -826,15 +741,11 @@ if (opt$BiasCorr == 0) {
 	
 	if (opt$MultBias == 1) {
 
-		# case 1 - multiply the probabilities with the bias values 
-		# provided that the MultBias option is 1
-	
-		# we analyze the full set of input data
-		# even if peak to peak background is used
-
-		# here also, spline based probability for individual distance 
-		# values is sufficient to begin with
-
+		#===========================
+		# case 1 - multiply the probabilities with the bias values, to assess the statistical significance
+		# Note: we analyze the full set of input data even if peak to peak background is used
+		# we start with spline based probability for individual distance values 
+		#===========================
 		for (k in (1:length(uniq.idx))) {
 			# all the locations from si to ei will have the same probability 
 			# since the gene distance value is the same
@@ -845,15 +756,12 @@ if (opt$BiasCorr == 0) {
 				ei <- numPairs	# last read	
 			}
 
-			# compute the probability according to the genomic distance (of the start location - single element)
+			# compute the probability according to the genomic distance 
 			# this probability value will be used for all the values within the interval (si to ei)
 			# predict from the new spline fit - sourya
 			pp <- predict(fit2_new, gene.dist[si])
 			p <- pp$y		
 
-			# now apply this matrix on the parallel version of binomial distribution computation
-			# the second argument 1 means that individual rows of matrix is processed 
-			# in the parallel computation
 			result_binomdistr <- as.data.frame(parallel:::mclapply( si:ei , mc.cores = ncore , function(idx){
 				cc <- interaction.data[idx, opt$cccol]
 				# probability by multiplying the bias values
@@ -871,29 +779,23 @@ if (opt$BiasCorr == 0) {
 
 	} else {
 
-		# Case 2: regression model 
-		# between the bias values and the observed contact count
-
-		# Note: here we use the training data since the spline fit 
-		# and the bin log was performed on the training data
+		#===========================
+		# Case 2: linear regression between the bias values and the observed contact count
+		# Note: here we use the training data 
+		# since the spline fit and the bin log was performed on the training data
 		# for peak to peak background, the training data is a subset of the total input set of interactions
+		#===========================
 
-		# ******* condition for using either equal occupancy binning or equal distance binning
+		# ******* condition for using either equal occupancy binning (recommended) 
+		# or equal distance binning **********
 
 		if (opt$EqOcc == 1) {
+			cat(sprintf("\n ****** Start regression - Equal Occupancy binning ****\n")) 
 			#====================
 			# case 2.1: equal occupancy binning
-			# We scan the average interaction distance and the prior probability
-			# computed from the training data
 			#====================
 
-			# comment - sourya
-			# sequential processing - loop
-			# for (rownum in 1:length(avg_int_dist)) {
-
-			# add - sourya
-			# parallel processing - sourya
-			time_start <- Sys.time()	# debug - souya
+			time_start <- Sys.time()
 
 			res_Row_Training <- as.data.frame(parallel:::mclapply( 1:length(avg_int_dist) , mc.cores = ncore , function(rownum){
 
@@ -919,35 +821,32 @@ if (opt$BiasCorr == 0) {
 				curr_si <- training_si
 				while (curr_si <= training_ei) {
 					curr_dist <- curr_training_data_gene_dist[curr_si - training_si + 1]
-					idx_list <- which(curr_training_data_gene_dist == curr_dist)
-					
+					idx_list <- which(curr_training_data_gene_dist == curr_dist)					
 					if (0) {
 						cat(sprintf("\n curr_si : %s curr_dist: %s  length idx_list : %s ", curr_si, curr_dist, length(idx_list)))
 					}
-
 					# estimate spline based probability for the current distance
 					pp <- predict(fit2_new, curr_dist)
 					prob_curr_dist <- pp$y
-
 					if (0) {
 						cat(sprintf("   prob_curr_dist: %s ", prob_curr_dist))
 					}
-
 					Prob_Vec_Curr_Row <- c(Prob_Vec_Curr_Row, rep(prob_curr_dist, length(idx_list)))
 					curr_si <- curr_si + length(idx_list)
 				}
 
 				# filter some interactions (training data) according to the bias thresholds
 				Curr_Int_Data <- TrainingData[training_si:training_ei, ]
-				BiasThrIdx <- which((Curr_Int_Data[,bias1.col] >= opt$BiasLowThr) & (Curr_Int_Data[,bias1.col] <= opt$BiasHighThr) & (Curr_Int_Data[,bias2.col] >= opt$BiasLowThr) & (Curr_Int_Data[,bias2.col] <= opt$BiasHighThr))
+				bias1_val_vec <- as.numeric(Curr_Int_Data[,bias1.col])
+				bias2_val_vec <- as.numeric(Curr_Int_Data[,bias2.col])
+				BiasThrIdx <- which((bias1_val_vec >= opt$BiasLowThr) & (bias1_val_vec <= opt$BiasHighThr) & (bias2_val_vec >= opt$BiasLowThr) & (bias2_val_vec <= opt$BiasHighThr))
 				Curr_Int_Set_BiasThr <- Curr_Int_Data[BiasThrIdx, ]
 
-				if (1) {
-					cat(sprintf("\n === Regression model (training data) - average distance: %s number of interactions: %s  number of bias threshold satisfying interactions: %s \n", training_avg_int_dist, nrow(Curr_Int_Data), nrow(Curr_Int_Set_BiasThr)))
+				if (0) {
+					cat(sprintf("\n === Regression model (training data) - rownum: %s   training_si: %s  training_ei: %s  training_prior_prob: %s  average distance: %s number of interactions: %s  number of bias threshold satisfying interactions: %s \n", rownum, training_si, training_ei, training_prior_prob, training_avg_int_dist, nrow(Curr_Int_Data), nrow(Curr_Int_Set_BiasThr)))
 				}
 
-				# subset of the probability vector
-				# according to the bias threshold pass
+				# subset of the probability vector, which pass the bias threshold 
 				Prob_Vec_Curr_Row_BiasFilt <- Prob_Vec_Curr_Row[BiasThrIdx]
 
 				# variance within the contact count
@@ -958,37 +857,40 @@ if (opt$BiasCorr == 0) {
 				distCCVec <- TotTrainingDataContact * Prob_Vec_Curr_Row_BiasFilt
 				logdistCCVec <- log10(distCCVec)
 
-				if (opt$Resid == 0) {
-					# if residual option is 0, model the regression 
-					# between the observed contact count  
-					# and the bias values
-					bias_regression_data <- cbind.data.frame(log10(Curr_Int_Set_BiasThr[, bias1.col]), log10(Curr_Int_Set_BiasThr[, bias2.col]), log10(Curr_Int_Set_BiasThr[, opt$cccol]))
-					colnames(bias_regression_data) <- c('logbias1', 'logbias2', 'logCC')
+				# debug - sourya
+				if (0) {
+					tempoutfile <- paste0(outdir, '/', rownum, '_', training_si, '_', training_ei, '_', training_avg_int_dist, '_', nrow(Curr_Int_Data), '_', nrow(Curr_Int_Set_BiasThr), '.txt')
+					cat(sprintf("\n before writing regression data in file : %s ", tempoutfile))			
+					bias_regression_data_temp <- data.frame(bias1=Curr_Int_Set_BiasThr[, bias1.col], bias2=Curr_Int_Set_BiasThr[, bias2.col], CC=Curr_Int_Set_BiasThr[, opt$cccol])
+					write.table(bias_regression_data_temp, tempoutfile, row.names=F, col.names=T, sep="\t", quote=F, append=F)
+					cat(sprintf("\n wrote regression data in file : %s  - waiting for linear regression ", tempoutfile))
+				}
+				# end debug - sourya
 
+				if (opt$Resid == 0) {
+					#=====================
+					# case 2.1.1
+					# model the regression between the observed contact count and the bias values
+					#=====================
+					bias_regression_data <- data.frame(logbias1=log10(as.numeric(Curr_Int_Set_BiasThr[, bias1.col])), logbias2=log10(as.numeric(Curr_Int_Set_BiasThr[, bias2.col])), logCC=log10(as.numeric(Curr_Int_Set_BiasThr[, opt$cccol])))
 					# model the regression
 					Linear_logbias_logCC <- lm(logCC ~ logbias1 + logbias2, data=bias_regression_data)
-
 					if (0) {
-						cat(sprintf("\n modeled linear regression of bias"))
-					}
-				
+						cat(sprintf("\n ~~~ modeled linear regression of bias"))
+					}				
 					# the model has three coefficients: 1) intercept, 2) for logbias1, 3) for logbias2
 					coeff_intercept <- Linear_logbias_logCC$coefficients[1]
 					coeff_logbias1 <- Linear_logbias_logCC$coefficients[2]
 					coeff_logbias2 <- Linear_logbias_logCC$coefficients[3]
 
 				} else {
-					# here model the regression with respect to the 
-					# (observed contact count - spline fitted contact count)
-					# and the bias values
-					# modification - sourya
-					# previously the expression was wrong as : log10((Curr_Int_Set_BiasThr[, opt$cccol] - distCCVec)))
-					bias_regression_data <- cbind.data.frame(log10(Curr_Int_Set_BiasThr[, bias1.col]), log10(Curr_Int_Set_BiasThr[, bias2.col]), (log10(Curr_Int_Set_BiasThr[, opt$cccol]) - logdistCCVec))		
-					colnames(bias_regression_data) <- c('logbias1', 'logbias2', 'logResidCC')
-
+					#=====================
+					# case 2.1.2
+					# model the regression with respect to the (observed contact count - spline fitted contact count) and the bias values
+					#=====================
+					bias_regression_data <- data.frame(logbias1=log10(as.numeric(Curr_Int_Set_BiasThr[, bias1.col])), logbias2=log10(as.numeric(Curr_Int_Set_BiasThr[, bias2.col])), logCC=(log10(as.numeric(Curr_Int_Set_BiasThr[, opt$cccol]) - logdistCCVec)))
 					# model the regression
 					Linear_logbias_logCC <- lm(logResidCC ~ logbias1 + logbias2, data=bias_regression_data)
-
 					# the model has three coefficients: 1) intercept, 2) for logbias1, 3) for logbias2
 					coeff_intercept <- Linear_logbias_logCC$coefficients[1]
 					coeff_logbias1 <- Linear_logbias_logCC$coefficients[2]
@@ -998,54 +900,37 @@ if (opt$BiasCorr == 0) {
 				# get the performance statistics of the regression model
 				RSS_LM <- sum((10^residuals(Linear_logbias_logCC))^2)
 				R.square_LM <- 1 - ((RSS_LM * 1.0) / TSS_CC)
-				AIC_LM <- AIC(Linear_logbias_logCC)		
+				AIC_LM <- AIC(Linear_logbias_logCC)	
+
+				# debug - sourya
+				if (0) {
+					cat(sprintf("\n ===>> rownum : %s coeff_intercept : %s coeff_logbias1 : %s coeff_logbias2 : %s RSS_LM : %s R.square_LM : %s AIC_LM : %s ", rownum, coeff_intercept, coeff_logbias1, coeff_logbias2, RSS_LM, R.square_LM, AIC_LM))
+				}
 
 				# form a vector of the current distance and regression model cofficients
 				# currently the vector content is same for both residual and non-residual model
 				currvec <- c(training_avg_int_dist, coeff_intercept, coeff_logbias1, coeff_logbias2, RSS_LM, R.square_LM, AIC_LM)
 
-				# # comment - sourya
-				# # was used in sequential processing - sourya
-				# # append the vector to an existing (or new) data frame
-				# if (rownum == 1) {
-				# 	Regression_model_coeff.df <- currvec
-				# } else {
-				# 	Regression_model_coeff.df <- rbind(Regression_model_coeff.df, currvec)
-				# }
-
-				# add - sourya
-				# for parallel processing
-				# we return the row number
-				# and the regression model vectors
+				# return the row number and the regression model vectors
 				return(c(rownum, currvec))
 			
-			# add - sourya
-			# for parallel processing
 			} ))
 
-			# # comment - sourya
-			# # was used in sequential processing - sourya
-			# }	# end row number processing loop from the bin file
-
-			# add - sourya
-			# for parallel processing
-			# now form a data frame with transpose of the contents of res_Row_Training
+			# form a data frame with transpose of the contents of res_Row_Training
 			# from row 2 to last row, and for all columns (transpose)
 			# since the row 1 contains the row number values
-			# t() function returns the transpose
 			Regression_model_coeff.df <- t(res_Row_Training[2:nrow(res_Row_Training), 1:ncol(res_Row_Training)])
+			colnames(Regression_model_coeff.df) <- c("Dist", "Intercept", "LogBias1", "LogBias2", "RSS_LM", "R.square_LM", "AIC_LM")
 
 			# write the training data specific regression model 
-			# coefficients for individual distance values
-			# currently the vector content is same for both residual and non-residual model
-			Estimated_Model_Coeff_File <- paste0(outdir,'/Regression_Model_Coeff.log')	
-			write.table(Regression_model_coeff.df, Estimated_Model_Coeff_File, row.names = FALSE, col.names = c("Dist", "Intercept", "LogBias1", "LogBias2", "RSS_LM", "R.square_LM", "AIC_LM"), sep = "\t", quote=FALSE, append=FALSE)
+			Estimated_Model_Coeff_File <- paste0(outdir, '/Regression_Model_Coeff.log')	
+			write.table(Regression_model_coeff.df, Estimated_Model_Coeff_File, row.names=F, col.names=T, sep="\t", quote=F, append=F)
 
-			# debug - sourya
 			time_end <- Sys.time()
 			if (0) {
 				cat(sprintf("\n\n\n ==>>> Processing bin rows - res_Row_Training - parallel optimization - new time: %s \n\n", (time_end - time_start)))
 			}
+			cat(sprintf("\n ****** Written regression model coefficients in the file : %s ****\n", Estimated_Model_Coeff_File)) 
 
 			#============================
 			# fit spline for individual distance values
@@ -1055,140 +940,125 @@ if (opt$BiasCorr == 0) {
 			# 3) coefficient of logbias2
 			# first model the spline with respect to the available binned data
 			# next extend the spline with all possible distance values (in the vector TestDistVal)
-			fit_spline_coeff_Intercept <- smooth.spline(Regression_model_coeff.df[,1], Regression_model_coeff.df[,2], cv=TRUE)
+			#============================
+
+			# add - sourya
+			# check non-NA elements from average interaction distance and bias regression model coefficient intercept, and use them for spline fitting
+			non_NA_idx <- which((!is.na(Regression_model_coeff.df[,1])) & (!is.na(Regression_model_coeff.df[,2])) & (is.finite(Regression_model_coeff.df[,1])) & (is.finite(Regression_model_coeff.df[,2])))
+			if (length(non_NA_idx) <= 2) {
+				cat(sprintf("\n\n ********* all NA entries in average interaction distance AND / OR bias regression model coefficient intercept -- spline fit is not possible - FitHiChIP quits !!!  **** \n\n "))
+				return()
+			}
+
+			# fit_spline_coeff_Intercept <- smooth.spline(Regression_model_coeff.df[,1], Regression_model_coeff.df[,2], cv=TRUE)
+			fit_spline_coeff_Intercept <- smooth.spline(Regression_model_coeff.df[non_NA_idx, 1], Regression_model_coeff.df[non_NA_idx, 2], cv=TRUE)
 			pp.fit_spline_coeff_Intercept <- predict(fit_spline_coeff_Intercept, TestDistVal)
 			fit_spline_coeff_Intercept_new <- smooth.spline(pp.fit_spline_coeff_Intercept$x, pp.fit_spline_coeff_Intercept$y, cv=TRUE)
 
-			cat(sprintf("\n modeled fit_spline_coeff_Intercept"))
+			cat(sprintf("\n ===>>> using bias regression --- modeled fit_spline_coeff_Intercept"))
 
-			# plot the fitted spline "fit_spline_coeff_Intercept_new"
-			if (1) { #(opt$Draw) {
-				plotfile1 <- paste0(outdir,'/fit_spline_coeff_Intercept_new.pdf')	
-				a <- data.frame(group = paste("Original"), x = Regression_model_coeff.df[,1], y = Regression_model_coeff.df[,2])
+			if (1) {
+				plotfile1 <- paste0(outdir, '/fit_spline_coeff_Intercept_new.pdf')	
+				# a <- data.frame(group = paste("Original"), x = Regression_model_coeff.df[,1], y = Regression_model_coeff.df[,2])
+				a <- data.frame(group = paste("Original"), x = Regression_model_coeff.df[non_NA_idx, 1], y = Regression_model_coeff.df[non_NA_idx, 2])
 				b <- data.frame(group = paste("spline fit"), x = fit_spline_coeff_Intercept_new$x, y = fit_spline_coeff_Intercept_new$y)
 				curr_plotA <- ggplot(rbind(a, b), aes(x=x, y=y, color=group, fill=group)) + geom_point(size=0.1) + geom_line(size=0.3) + xlab("Average interaction distance") + ylab("Regression coefficient - intercept") + scale_colour_manual(values = c("black", "red"))
 				curr_plotA + ggtitle("fit_spline_coeff_Intercept")
-				ggsave(plotfile1, plot = curr_plotA, width=5, height=5)
-
-				# plotfile1 <- paste0(outdir,'/fit_spline_coeff_Intercept_new.pdf')	
-				# pdf(plotfile1, width=5, height=5)
-				# # par(mar=c(5,5,2,2)+0.1)
-				# plot(Regression_model_coeff.df[,1], Regression_model_coeff.df[,2], cex=0.5, col="black", xlab="Average interaction distance", ylab="Regression coefficient - intercept")
-				# lines(fit_spline_coeff_Intercept_new$x, fit_spline_coeff_Intercept_new$y, col="red", lwd=0.5)
-				# title("fit_spline_coeff_Intercept")
-				# dev.off()
+				ggsave(plotfile1, plot = curr_plotA, width=5, height=5)				
 			}
 
 			# plot the fitted spline "fit_spline_coeff_Intercept_new" in log scale
-			if (1) { #(opt$Draw) {
+			if (0) { #(opt$Draw) {
 				plotfile1 <- paste0(outdir,'/fit_spline_coeff_Intercept_new_LOGScale.pdf')	
-				a <- data.frame(group = paste("Original"), x = log10(Regression_model_coeff.df[,1]), y = log10(Regression_model_coeff.df[,2]))
+				# a <- data.frame(group = paste("Original"), x = log10(Regression_model_coeff.df[,1]), y = log10(Regression_model_coeff.df[,2]))
+				a <- data.frame(group = paste("Original"), x = log10(Regression_model_coeff.df[non_NA_idx, 1]), y = log10(Regression_model_coeff.df[non_NA_idx, 2]))
 				b <- data.frame(group = paste("spline fit"), x = log10(fit_spline_coeff_Intercept_new$x), y = log10(fit_spline_coeff_Intercept_new$y))
 				curr_plotA <- ggplot(rbind(a, b), aes(x=x, y=y, color=group, fill=group)) + geom_point(size=0.1) + geom_line(size=0.3) + xlab("Average interaction distance (log)") + ylab("Regression coefficient - intercept (log)") + scale_colour_manual(values = c("black", "red"))
 				curr_plotA + ggtitle("fit_spline_coeff_Intercept - log scale")
-				ggsave(plotfile1, plot = curr_plotA, width=5, height=5)
-
-				# plotfile1 <- paste0(outdir,'/fit_spline_coeff_Intercept_new_LOGScale.pdf')	
-				# pdf(plotfile1, width=5, height=5)
-				# # par(mar=c(5,5,2,2)+0.1)
-				# plot(log10(Regression_model_coeff.df[,1]), log10(Regression_model_coeff.df[,2]), cex=0.5, col="black", xlab="Average interaction distance (log)", ylab="Regression coefficient - intercept (log)")
-				# lines(log10(fit_spline_coeff_Intercept_new$x), log10(fit_spline_coeff_Intercept_new$y), col="red", lwd=0.5)
-				# title("fit_spline_coeff_Intercept - log scale")
-				# dev.off()
+				ggsave(plotfile1, plot = curr_plotA, width=5, height=5)				
 			}
 
-			fit_spline_coeff_Logbias1 <- smooth.spline(Regression_model_coeff.df[,1], Regression_model_coeff.df[,3], cv=TRUE)
+			# add - sourya
+			# check non-NA elements from average interaction distance and bias regression model logbias1, and use them for spline fitting
+			non_NA_idx <- which((!is.na(Regression_model_coeff.df[,1])) & (!is.na(Regression_model_coeff.df[,3])) & (is.finite(Regression_model_coeff.df[,1])) & (is.finite(Regression_model_coeff.df[,3])))
+			if (length(non_NA_idx) <= 2) {
+				cat(sprintf("\n\n ********* all NA entries in average interaction distance AND / OR bias regression model logbias1 -- spline fit is not possible - FitHiChIP quits !!!  **** \n\n "))
+				return()
+			}
+
+			# fit_spline_coeff_Logbias1 <- smooth.spline(Regression_model_coeff.df[,1], Regression_model_coeff.df[,3], cv=TRUE)
+			fit_spline_coeff_Logbias1 <- smooth.spline(Regression_model_coeff.df[non_NA_idx, 1], Regression_model_coeff.df[non_NA_idx, 3], cv=TRUE)
 			pp.fit_spline_coeff_Logbias1 <- predict(fit_spline_coeff_Logbias1, TestDistVal)
 			fit_spline_coeff_Logbias1_new <- smooth.spline(pp.fit_spline_coeff_Logbias1$x, pp.fit_spline_coeff_Logbias1$y, cv=TRUE)
 
-			cat(sprintf("\n modeled fit_spline_coeff_Logbias1"))
+			cat(sprintf("\n ===>>> using bias regression --- modeled fit_spline_coeff_Logbias1"))
 
 			# plot the fitted spline "fit_spline_coeff_Logbias1_new"
 			if (1) { #(opt$Draw) {
 				plotfile1 <- paste0(outdir,'/fit_spline_coeff_Logbias1_new.pdf')	
-				a <- data.frame(group = paste("Original"), x = Regression_model_coeff.df[,1], y = Regression_model_coeff.df[,3])
+				# a <- data.frame(group = paste("Original"), x = Regression_model_coeff.df[,1], y = Regression_model_coeff.df[,3])
+				a <- data.frame(group = paste("Original"), x = Regression_model_coeff.df[non_NA_idx, 1], y = Regression_model_coeff.df[non_NA_idx, 3])
 				b <- data.frame(group = paste("spline fit"), x = fit_spline_coeff_Logbias1_new$x, y = fit_spline_coeff_Logbias1_new$y)
 				curr_plotA <- ggplot(rbind(a, b), aes(x=x, y=y, color=group, fill=group)) + geom_point(size=0.1) + geom_line(size=0.3) + xlab("Average interaction distance") + ylab("Regression coefficient - logbias1") + scale_colour_manual(values = c("black", "red"))
 				curr_plotA + ggtitle("fit_spline_coeff_logbias1")
-				ggsave(plotfile1, plot = curr_plotA, width=5, height=5)
-
-				# plotfile1 <- paste0(outdir,'/fit_spline_coeff_Logbias1_new.pdf')	
-				# pdf(plotfile1, width=5, height=5)
-				# # par(mar=c(5,5,2,2)+0.1)
-				# plot(Regression_model_coeff.df[,1], Regression_model_coeff.df[,3], cex=0.5, col="black", xlab="Average interaction distance", ylab="Regression coefficient - logbias1")
-				# lines(fit_spline_coeff_Logbias1_new$x, fit_spline_coeff_Logbias1_new$y, col="red", lwd=0.5)
-				# title("fit_spline_coeff_logbias1")
-				# dev.off()
+				ggsave(plotfile1, plot = curr_plotA, width=5, height=5)				
 			}
 
 			# plot the fitted spline "fit_spline_coeff_Logbias1_new" in log scale
-			if (1) { #(opt$Draw) {
+			if (0) {
 				plotfile1 <- paste0(outdir,'/fit_spline_coeff_Logbias1_new_LOGScale.pdf')	
-				a <- data.frame(group = paste("Original"), x = log10(Regression_model_coeff.df[,1]), y = log10(Regression_model_coeff.df[,3]))
+				# a <- data.frame(group = paste("Original"), x = log10(Regression_model_coeff.df[,1]), y = log10(Regression_model_coeff.df[,3]))
+				a <- data.frame(group = paste("Original"), x = log10(Regression_model_coeff.df[non_NA_idx, 1]), y = log10(Regression_model_coeff.df[non_NA_idx, 3]))
 				b <- data.frame(group = paste("spline fit"), x = log10(fit_spline_coeff_Logbias1_new$x), y = log10(fit_spline_coeff_Logbias1_new$y))
 				curr_plotA <- ggplot(rbind(a, b), aes(x=x, y=y, color=group, fill=group)) + geom_point(size=0.1) + geom_line(size=0.3) + xlab("Average interaction distance (log)") + ylab("Regression coefficient - logbias1 (log)") + scale_colour_manual(values = c("black", "red"))
 				curr_plotA + ggtitle("fit_spline_coeff_logbias1 - log scale")
 				ggsave(plotfile1, plot = curr_plotA, width=5, height=5)
-
-				# plotfile1 <- paste0(outdir,'/fit_spline_coeff_Logbias1_new_LOGScale.pdf')	
-				# pdf(plotfile1, width=5, height=5)
-				# # par(mar=c(5,5,2,2)+0.1)
-				# plot(log10(Regression_model_coeff.df[,1]), log10(Regression_model_coeff.df[,3]), cex=0.5, col="black", xlab="Average interaction distance (log)", ylab="Regression coefficient - logbias1 (log)")
-				# lines(log10(fit_spline_coeff_Logbias1_new$x), log10(fit_spline_coeff_Logbias1_new$y), col="red", lwd=0.5)
-				# title("fit_spline_coeff_logbias1 - log scale")
-				# dev.off()
 			}
 
-			fit_spline_coeff_Logbias2 <- smooth.spline(Regression_model_coeff.df[,1], Regression_model_coeff.df[,4], cv=TRUE)
+			# add - sourya
+			# check non-NA elements from average interaction distance and bias regression model logbias2, and use them for spline fitting
+			non_NA_idx <- which((!is.na(Regression_model_coeff.df[,1])) & (!is.na(Regression_model_coeff.df[,4])) & (is.finite(Regression_model_coeff.df[,1])) & (is.finite(Regression_model_coeff.df[,4])))
+			if (length(non_NA_idx) <= 2) {
+				cat(sprintf("\n\n ********* all NA entries in average interaction distance AND / OR bias regression model logbias2 -- spline fit is not possible - FitHiChIP quits !!!  **** \n\n "))
+				return()
+			}
+
+			# fit_spline_coeff_Logbias2 <- smooth.spline(Regression_model_coeff.df[, 1], Regression_model_coeff.df[, 4], cv=TRUE)
+			fit_spline_coeff_Logbias2 <- smooth.spline(Regression_model_coeff.df[non_NA_idx, 1], Regression_model_coeff.df[non_NA_idx, 4], cv=TRUE)
 			pp.fit_spline_coeff_Logbias2 <- predict(fit_spline_coeff_Logbias2, TestDistVal)
 			fit_spline_coeff_Logbias2_new <- smooth.spline(pp.fit_spline_coeff_Logbias2$x, pp.fit_spline_coeff_Logbias2$y, cv=TRUE)
 
-			cat(sprintf("\n modeled fit_spline_coeff_Logbias2"))
+			cat(sprintf("\n ===>>> using bias regression --- modeled fit_spline_coeff_Logbias2"))
 
 			# plot the fitted spline "fit_spline_coeff_Logbias2_new"
-			if (1) { #(opt$Draw) {
+			if (1) { 
 				plotfile1 <- paste0(outdir,'/fit_spline_coeff_Logbias2_new.pdf')	
-				a <- data.frame(group = paste("Original"), x = Regression_model_coeff.df[,1], y = Regression_model_coeff.df[,4])
+				# a <- data.frame(group = paste("Original"), x = Regression_model_coeff.df[,1], y = Regression_model_coeff.df[,4])
+				a <- data.frame(group = paste("Original"), x = Regression_model_coeff.df[non_NA_idx, 1], y = Regression_model_coeff.df[non_NA_idx, 4])
 				b <- data.frame(group = paste("spline fit"), x = fit_spline_coeff_Logbias2_new$x, y = fit_spline_coeff_Logbias2_new$y)
 				curr_plotA <- ggplot(rbind(a, b), aes(x=x, y=y, color=group, fill=group)) + geom_point(size=0.1) + geom_line(size=0.3) + xlab("Average interaction distance") + ylab("Regression coefficient - logbias2") + scale_colour_manual(values = c("black", "red"))
 				curr_plotA + ggtitle("fit_spline_coeff_logbias2") 
-				ggsave(plotfile1, plot = curr_plotA, width=5, height=5)
-
-				# plotfile1 <- paste0(outdir,'/fit_spline_coeff_Logbias2_new.pdf')	
-				# pdf(plotfile1, width=5, height=5)
-				# # par(mar=c(5,5,2,2)+0.1)
-				# plot(Regression_model_coeff.df[,1], Regression_model_coeff.df[,4], cex=0.5, col="black", xlab="Average interaction distance", ylab="Regression coefficient - logbias2")
-				# lines(fit_spline_coeff_Logbias2_new$x, fit_spline_coeff_Logbias2_new$y, col="red", lwd=0.5)
-				# title("fit_spline_coeff_logbias2")
-				# dev.off()
+				ggsave(plotfile1, plot = curr_plotA, width=5, height=5)				
 			}
 
 			# plot the fitted spline "fit_spline_coeff_Logbias2_new" in log scale
-			if (1) { #(opt$Draw) {
+			if (0) { 
 				plotfile1 <- paste0(outdir,'/fit_spline_coeff_Logbias2_new_LOGScale.pdf')	
-				a <- data.frame(group = paste("Original"), x = log10(Regression_model_coeff.df[,1]), y = log10(Regression_model_coeff.df[,4]))
+				# a <- data.frame(group = paste("Original"), x = log10(Regression_model_coeff.df[,1]), y = log10(Regression_model_coeff.df[,4]))
+				a <- data.frame(group = paste("Original"), x = log10(Regression_model_coeff.df[non_NA_idx, 1]), y = log10(Regression_model_coeff.df[non_NA_idx, 4]))
 				b <- data.frame(group = paste("spline fit"), x = log10(fit_spline_coeff_Logbias2_new$x), y = log10(fit_spline_coeff_Logbias2_new$y))
 				curr_plotA <- ggplot(rbind(a, b), aes(x=x, y=y, color=group, fill=group)) + geom_point(size=0.1) + geom_line(size=0.3) + xlab("Average interaction distance (log)") + ylab("Regression coefficient - logbias2 (log)") + scale_colour_manual(values = c("black", "red"))
 				curr_plotA + ggtitle("fit_spline_coeff_logbias2 - log scale")
-				ggsave(plotfile1, plot = curr_plotA, width=5, height=5)
-
-				# plotfile1 <- paste0(outdir,'/fit_spline_coeff_Logbias2_new_LOGScale.pdf')	
-				# pdf(plotfile1, width=5, height=5)
-				# # par(mar=c(5,5,2,2)+0.1)
-				# plot(log10(Regression_model_coeff.df[,1]), log10(Regression_model_coeff.df[,4]), cex=0.5, col="black", xlab="Average interaction distance (log)", ylab="Regression coefficient - logbias2 (log)")
-				# lines(log10(fit_spline_coeff_Logbias2_new$x), log10(fit_spline_coeff_Logbias2_new$y), col="red", lwd=0.5)
-				# title("fit_spline_coeff_logbias2 - log scale")
-				# dev.off()
+				ggsave(plotfile1, plot = curr_plotA, width=5, height=5)				
 			}
 			#============================
 
 			# debug - sourya
 			time_start <- Sys.time()
 
-			# using the fitted splines for the distance / probability
-			# and the bias correction coefficients
+			# using the fitted splines for the distance / probability and the bias correction coefficients
 			# we now use the full set of input interactions
-			# to model the expected contact count and the corresponding bias correcte probability 
+			# to model the expected contact count and the corresponding bias corrected probability 
 			for (k in (1:length(uniq.idx))) {
 				# all the locations from si to ei will have the same probability 
 				# with respect to fitted spline (FitHiC distance)
@@ -1212,7 +1082,7 @@ if (opt$BiasCorr == 0) {
 				pp_L2 <- predict(fit_spline_coeff_Logbias2_new, gene.dist[si])
 				coeff_LogBias2 <- pp_L2$y
 
-				if (1) {
+				if (0) {
 					cat(sprintf("\n *** Processing uniq distance idx: %s  si: %s  ei: %s num elem : %s  gene dist : %s  Spline prob (p): %s  coeff_Intcpt : %s coeff_LogBias1 : %s coeff_LogBias2 : %s ", k, si, ei, (ei-si+1), gene.dist[si], p, coeff_Intcpt, coeff_LogBias1, coeff_LogBias2))
 				}
 
@@ -1247,39 +1117,46 @@ if (opt$BiasCorr == 0) {
 				# Note: here we add the quantity (si-1) since the which operator returns indices from 1
 				# to get the indices mapped back on the range si:ei, we add this offset
 
-				# debug - sourya
-				# for ICE bias, don't allow bias > 1000
+				bias1_val_vec <- as.numeric(interaction.data[si:ei, bias1.col])
+				bias2_val_vec <- as.numeric(interaction.data[si:ei, bias2.col])
+
 				if (opt$BiasType == 1) {
 					# coverage bias
-					nonzero_biasidx_set <- which((interaction.data[si:ei, bias1.col] > 0) & (interaction.data[si:ei, bias2.col] > 0)) + (si-1)
+					nonzero_biasidx_set <- which((bias1_val_vec > 0) & (bias2_val_vec > 0)) + (si-1)
 				} else {
 					# ICE bias
 					# use bias values < 1000
-					nonzero_biasidx_set <- which((interaction.data[si:ei, bias1.col] > 0) & (interaction.data[si:ei, bias1.col] < 1000) & (interaction.data[si:ei, bias2.col] > 0) & (interaction.data[si:ei, bias2.col] < 1000)) + (si-1)
+					nonzero_biasidx_set <- which((bias1_val_vec > 0) & (bias1_val_vec < 1000) & (bias2_val_vec > 0) & (bias2_val_vec < 1000)) + (si-1)
 				}
 
 				# the zero bias values are those not in nonzero_biasidx_set
 				zero_biasidx_set <- setdiff(seq(si, ei), nonzero_biasidx_set)
 
-				if (1) {
-					cat(sprintf("\n\n ****** length nonzero_biasidx_set: %s  length zero_biasidx_set : %s  ", length(nonzero_biasidx_set), length(zero_biasidx_set)))
+				if (0) {
+					if (opt$BiasType == 1) {
+						cat(sprintf("\n\n ****** Coverage bias regression - analyzing locus pairs between indices %s and %s - total elements : %s genomic distance : %s Spline fitted probability (p): %s number of locus pairs with non-zero bias values : %s number of locus pairs with zero bias in at least one end : %s ", si, ei, (ei-si+1), gene.dist[si], p, length(nonzero_biasidx_set), length(zero_biasidx_set)))
+					} else {
+						cat(sprintf("\n\n ****** ICE bias regression - analyzing locus pairs between indices %s and %s - total elements : %s genomic distance : %s Spline fitted probability (p): %s number of locus pairs with non-zero bias values (and within allowed thresholds) : %s number of locus pairs with zero bias in at least one end, or outside the allowed thresholds : %s ", si, ei, (ei-si+1), gene.dist[si], p, length(nonzero_biasidx_set), length(zero_biasidx_set)))
+					}
 				}
 
 				# if one of the bias values are zero
 				# then just use the spline predicted probability as the estimated distance
 				if (length(zero_biasidx_set) > 0) {
 					Exp_CC_BiasRegr[zero_biasidx_set] <- (TotContact * p)	
-					cat(sprintf("\n *** processing zero_biasidx_set - assigning Exp_CC_BiasRegr : %s ", (TotContact * p)))
+					if (0) {
+						cat(sprintf("\n *** for locus pairs with zero bias in at least one end (or bias values outside very high thresholds) - assigning expected contact count value : %s ", (TotContact * p)))
+					}
 				}
 				
 				# for non-zero bias values, use the bias regression predicted contact count
 				if (length(nonzero_biasidx_set) > 0) {
 					if (opt$Resid == 0) {
-						Exp_CC_BiasRegr[nonzero_biasidx_set] <- 10^(coeff_Intcpt + coeff_LogBias1 * log10(interaction.data[nonzero_biasidx_set, bias1.col]) + coeff_LogBias2 * log10(interaction.data[nonzero_biasidx_set, bias2.col]))
+						Exp_CC_BiasRegr[nonzero_biasidx_set] <- 10^(coeff_Intcpt + coeff_LogBias1 * log10(as.numeric(interaction.data[nonzero_biasidx_set, bias1.col])) + coeff_LogBias2 * log10(as.numeric(interaction.data[nonzero_biasidx_set, bias2.col])))
 					} else {
 						# here residual contact count is predicted
 						# add the spline fit contact count to the predicted value
-						Exp_CC_BiasRegr[nonzero_biasidx_set] <- 10^(coeff_Intcpt + coeff_LogBias1 * log10(interaction.data[nonzero_biasidx_set, bias1.col]) + coeff_LogBias2 * log10(interaction.data[nonzero_biasidx_set, bias2.col]) + log10(TotContact * p))
+						Exp_CC_BiasRegr[nonzero_biasidx_set] <- 10^(coeff_Intcpt + coeff_LogBias1 * log10(as.numeric(interaction.data[nonzero_biasidx_set, bias1.col])) + coeff_LogBias2 * log10(as.numeric(interaction.data[nonzero_biasidx_set, bias2.col])) + log10(TotContact * p))
 					}
 
 					# condition add - sourya
@@ -1287,35 +1164,17 @@ if (opt$BiasCorr == 0) {
 					if (opt$BiasType == 2) {						
 						limit_exceed_idx <- which(Exp_CC_BiasRegr > (2^15))
 						if (length(limit_exceed_idx) > 0) {
-							cat(sprintf("\n ***  Number of elements with very high expected CC : %s - to be trimmed ", length(limit_exceed_idx)))
 							Exp_CC_BiasRegr[limit_exceed_idx] <- (TotContact * p)
+							if (0) {
+								cat(sprintf("\n *** ICE bias regression -- number of elements with very high expected CC : %s trimmed their expected contact count to the value : %s ", length(limit_exceed_idx), (TotContact * p)))
+							}
 						}
 					}
 					# end condition - sourya
-
-					if (1) {
+					if (0) {
 						cat(sprintf("\n *** processing nonzero_biasidx_set - maximum Exp_CC_BiasRegr in these elements : %s ", max(Exp_CC_BiasRegr[nonzero_biasidx_set])))
 					}
 				}
-				#================
-
-				# #================
-				# # add - sourya
-
-				# # for NA entries of expected contact count
-				# # assign the spline predicted probability for the estimated distance
-				# if (length(zero_biasidx_set) > 0) {
-				# 	Exp_CC_BiasRegr[zero_biasidx_set] <- (TotContact * p)
-				# }
-
-				# # for non-NA entries of expected contact count
-				# # use the bias regression predicted contact count	
-				# if (length(nonzero_biasidx_set) > 0) {
-				# 	Exp_CC_BiasRegr[nonzero_biasidx_set] <- expCCVec[non_NA_idx]
-				# }			
-
-				# # end add - sourya
-				# #================
 
 			}	# end distance loop 
 
@@ -1323,9 +1182,7 @@ if (opt$BiasCorr == 0) {
 				cat(sprintf("\n\n *** modeled the bias regression based probability and expected contact count **** \n\n"))
 			}
 
-			# debug - sourya
 			time_end <- Sys.time()
-
 			if (0) {
 				cat(sprintf("\n\n\n ==>>> modeled the bias regression -- time: %s \n\n", (time_end - time_start)))
 			}
@@ -1339,7 +1196,7 @@ if (opt$BiasCorr == 0) {
 			ExpTotContact <- as.integer(sum(Exp_CC_BiasRegr))
 			# ExpTotContact <- as.integer(min(sum(Exp_CC_BiasRegr), as.integer(.Machine$integer.max)))
 
-			if (1) {
+			if (0) {
 				cat(sprintf("\n *** NumElem: %s  length non_NA_Exp_CC_BiasRegr : %s  ExpTotContact_1 : %s ExpTotContact : %s ", NumElem, length(non_NA_Exp_CC_BiasRegr), ExpTotContact_1, ExpTotContact))
 			}
 
@@ -1363,7 +1220,7 @@ if (opt$BiasCorr == 0) {
 					ei <- numPairs	# last read	
 				}
 
-				if (1) {
+				if (0) {
 					cat(sprintf("\n *** Modeling regression bias probability based P value --- uniq distance idx: %s  si: %s  ei: %s num elem : %s ", k, si, ei, (ei-si+1)))
 				}
 
@@ -1388,12 +1245,10 @@ if (opt$BiasCorr == 0) {
 			}	# end distance loop
 
 			if (1) {
-				cat(sprintf("\n\n *** modeled the binomial distribution with respect to bias regression probability **** \n\n"))
+				cat(sprintf("\n\n *** p-value estimation is complete for the bias regression **** \n\n"))
 			}
 
-			# debug - sourya
 			time_end <- Sys.time()
-
 			if (0) {
 				cat(sprintf("\n\n\n ==>>> modeled the binomial distribution with respect to bias regression -- time: %s \n\n", (time_end - time_start)))
 			}
@@ -1869,67 +1724,55 @@ if (timeprof == 1) {
 }
 
 
-# sourya - comment - sourya
+# sourya - comment 
 if (0) {
 
-# accumulate all results - also add header information
-if ((opt$BiasCorr == 0) | ((opt$BiasCorr == 1) & (opt$MultBias == 1))) {
-	# either there is no bias correction
-	# or bias correction is done by multiplying the probabilities
-	FinalData <- cbind(interaction.data, Prob_Val, Spline_Binom_Prob_CC, Spline_Binom_P_Val_CC, Spline_Binom_QVal)
-	colnames(FinalData) <- c(colnames(interaction.data), "p", "dbinom", "P-Value", "Q-Value")	
-} else {
-	# here accumulate both the original spline fit probability
-	# and also the probability obtained from the bias regression
-	# and the expected contact count from the bias regression model
-	# P and Q values are similar
-	FinalData <- cbind(interaction.data, Prob_Val, Exp_CC_BiasRegr, Prob_BiasRegr, Spline_Binom_Prob_CC, Spline_Binom_P_Val_CC, Spline_Binom_QVal)	
-	colnames(FinalData) <- c(colnames(interaction.data), "p", "exp_cc_Bias", "p_Bias", "dbinom_Bias", "P-Value_Bias", "Q-Value_Bias")	
+	# accumulate all results - also add header information
+	if ((opt$BiasCorr == 0) | ((opt$BiasCorr == 1) & (opt$MultBias == 1))) {
+		# either there is no bias correction
+		# or bias correction is done by multiplying the probabilities
+		FinalData <- cbind(interaction.data, Prob_Val, Spline_Binom_Prob_CC, Spline_Binom_P_Val_CC, Spline_Binom_QVal)
+		colnames(FinalData) <- c(colnames(interaction.data), "p", "dbinom", "P-Value", "Q-Value")	
+	} else {
+		# here accumulate both the original spline fit probability
+		# and also the probability obtained from the bias regression
+		# and the expected contact count from the bias regression model
+		# P and Q values are similar
+		FinalData <- cbind(interaction.data, Prob_Val, Exp_CC_BiasRegr, Prob_BiasRegr, Spline_Binom_Prob_CC, Spline_Binom_P_Val_CC, Spline_Binom_QVal)	
+		colnames(FinalData) <- c(colnames(interaction.data), "p", "exp_cc_Bias", "p_Bias", "dbinom_Bias", "P-Value_Bias", "Q-Value_Bias")	
 
-	# append the Spline distribution probability and corresponding P value as separate columns
-	# and write in a separate text file
-	temp_outfile <- paste0(OutIntDir, '/', 'temp_out.bed')
-	write.table(FinalData, temp_outfile, row.names = FALSE, col.names = TRUE, sep = "\t", quote=FALSE, append=FALSE)	
-}
+		# append the Spline distribution probability and corresponding P value as separate columns
+		# and write in a separate text file
+		temp_outfile <- paste0(OutIntDir, '/', 'temp_out.bed')
+		write.table(FinalData, temp_outfile, row.names = FALSE, col.names = TRUE, sep = "\t", quote=FALSE, append=FALSE)	
+	}
 
-# now sort the file contents and write that in the final specified output file
-system(paste('sort -k1,1 -k2,2n -k5,5n', paste0('-k',opt$cccol,',',opt$cccol,'nr'), temp_outfile, '>', opt$OutFile))
+	# now sort the file contents and write that in the final specified output file
+	system(paste('sort -k1,1 -k2,2n -k5,5n', paste0('-k',opt$cccol,',',opt$cccol,'nr'), temp_outfile, '>', opt$OutFile))
 
 }	# end dummy if
 
 # add - sourya
 if (1) {
 
-if ((opt$BiasCorr == 0) | ((opt$BiasCorr == 1) & (opt$MultBias == 1))) {
-	FinalData <- cbind(Prob_Val, Spline_Binom_Prob_CC, Spline_Binom_P_Val_CC, Spline_Binom_QVal)
-	colnames(FinalData) <- c("p", "dbinom", "P-Value", "Q-Value")	
-} else {
-	FinalData <- cbind(Prob_Val, Exp_CC_BiasRegr, Prob_BiasRegr, Spline_Binom_Prob_CC, Spline_Binom_P_Val_CC, Spline_Binom_QVal)
-	colnames(FinalData) <- c("p", "exp_cc_Bias", "p_Bias", "dbinom_Bias", "P-Value_Bias", "Q-Value_Bias")
-}
-temp_outfile_2 <- paste0(OutIntDir, '/temp_out2.bed')
-write.table(FinalData, temp_outfile_2, row.names=F, col.names=T, sep = "\t", quote=F, append=F)
+	if ((opt$BiasCorr == 0) | ((opt$BiasCorr == 1) & (opt$MultBias == 1))) {
+		FinalData <- cbind.data.frame(Prob_Val, Spline_Binom_Prob_CC, Spline_Binom_P_Val_CC, Spline_Binom_QVal)
+		colnames(FinalData) <- c("p", "dbinom", "P-Value", "Q-Value")	
+	} else {
+		FinalData <- cbind.data.frame(Prob_Val, Exp_CC_BiasRegr, Prob_BiasRegr, Spline_Binom_Prob_CC, Spline_Binom_P_Val_CC, Spline_Binom_QVal)
+		colnames(FinalData) <- c("p", "exp_cc_Bias", "p_Bias", "dbinom_Bias", "P-Value_Bias", "Q-Value_Bias")
+	}
+	temp_outfile_2 <- paste0(OutIntDir, '/temp_out2.bed')
+	write.table(FinalData, temp_outfile_2, row.names=F, col.names=T, sep="\t", quote=F, append=F)
 
-temp_outfile <- paste0(OutIntDir, '/temp_out.bed')
-system(paste("paste", opt$InpFile, temp_outfile_2, ">", temp_outfile))
+	temp_outfile <- paste0(OutIntDir, '/temp_out.bed')
+	system(paste("paste", opt$InpFile, temp_outfile_2, ">", temp_outfile))
 
-# delete the temporary output file
-system(paste("rm", temp_outfile_2))
+	# delete the temporary output file
+	system(paste("rm", temp_outfile_2))
 
-# # copy the header in the output file
-# system(paste0("awk \'{if (NR==1) {print $0}}\' ", temp_outfile, " > ", opt$OutFile))
-
-# # now read chromosomes in this file
-# ChrData <- data.table::fread(opt$CoverageFile, header=T)
-# ChrNames <- unique(sort(ChrData[,1])))
-# for (i in (1:length(ChrNames))) {
-# 	currChr <- ChrNames[i]
-# 	cat(sprintf("\n Processing chromosome for finalizing significant interactions: %s ", currChr))
-# 	system(paste0("awk \'{if ((NR>1) && ($1==\"", currChr, "\") && ($4==\"", currChr, "\")) {print $0}}\' ", temp_outfile, " | sort -k2,2n -k5,5n -k", opt$cccol, ",", opt$cccol, "nr >> ", opt$OutFile))
-# }	# end chromosome loop
-
-# now sort the file contents and write that in the final specified output file
-system(paste('sort -k1,1 -k2,2n -k5,5n', paste0('-k',opt$cccol,',',opt$cccol,'nr'), temp_outfile, '>', opt$OutFile))
+	# now sort the file contents and write that in the final specified output file
+	system(paste('sort -k1,1 -k2,2n -k5,5n', paste0('-k',opt$cccol,',',opt$cccol,'nr'), temp_outfile, '>', opt$OutFile))
 
 }	# end dummy if
 
@@ -1963,29 +1806,9 @@ curr_plotA <- ggplot(a, aes(x=x, y=y, fill=group, colour=group)) + geom_line(col
 curr_plotA + ggtitle("Number of significant interactions below various FDR threshold values")
 ggsave(plotfile1, plot = curr_plotA, width=8, height=6)		
 
-
-# plotfile1 <- paste0(outdir,'/Interaction_vs_qval.pdf')	
-# pdf(plotfile1, width=8, height=6)
-# # par(mar=c(5,5,2,2)+0.1)
-# plot(qvalue_seq, IntCount, cex=0.8, col="black", xlab="FDR threshold", ylab="Interaction count", xlim=c(min(qvalue_seq), max(qvalue_seq)))
-# lines(qvalue_seq, IntCount, col="blue", lwd=0.8)
-# title("Number of interactions below various FDR threshold values")
-# dev.off()
-
 plotfile1 <- paste0(outdir,'/Interaction_log2_vs_qval.png')
 a <- data.frame(group = paste("Interactions below FDR threshold"), x = qvalue_seq, y = LogIntCount)
 curr_plotA <- ggplot(a, aes(x=x, y=y, fill=group, colour=group)) + geom_line(color="blue") + xlab('FDR threshold') + ylab('No of significant interactions (log2)') + xlim(min(qvalue_seq), max(qvalue_seq)) + ylim(0, (max(LogIntCount) + 0.25))
 curr_plotA + ggtitle("Number of significant interactions (log2) below various FDR threshold values")
 ggsave(plotfile1, plot = curr_plotA, width=8, height=6)		
-
-# plotfile1 <- paste0(outdir,'/Interaction_log2_vs_qval.pdf')	
-# pdf(plotfile1, width=8, height=6)
-# # par(mar=c(5,5,2,2)+0.1)
-# plot(qvalue_seq, LogIntCount, cex=0.8, col="black", xlab="FDR threshold", ylab="Interaction count (log2)", xlim=c(min(qvalue_seq), max(qvalue_seq)))
-# lines(qvalue_seq, LogIntCount, col="blue", lwd=0.8)
-# title("Number of interactions (log2) below various FDR threshold values")
-# dev.off()
-
-
-
 

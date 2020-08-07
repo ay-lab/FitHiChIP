@@ -11,8 +11,7 @@
 
 library(optparse)
 library(data.table)
-
-options(scipen = 999)
+options(scipen = 10)
 options(datatable.fread.datatable=FALSE)
 
 # Sourya - Note - the string after '--'' and the metavar field should be identical
@@ -62,7 +61,7 @@ cat(sprintf("\n Output directory: %s \n", OutDir))
 valid_chr_count <- 0
 
 # read the chromosomes of input ChrSizeFile
-ChrData <- read.table(opt$ChrSizeFile, header=F, sep="\t", stringsAsFactors=F)
+ChrData <- data.table::fread(opt$ChrSizeFile, header=F, sep="\t", stringsAsFactors=F)
 ChrNames <- sort(ChrData[,1])
 
 # files for processing one chromosome
@@ -72,32 +71,26 @@ temp_NormFeature_CurrChr <- paste0(dirname(opt$OutFile), '/temp_NormFeature_Curr
 for (i in (1:length(ChrNames))) {
 	currChr <- ChrNames[i]
 	cat(sprintf("\n Processing chromosome for interaction features: %s ", currChr))
-
 	# extract interactions for the current chromosome
 	system(paste0("awk \'{if ((NR==1) || (($1==\"", currChr, "\") && ($4==\"", currChr, "\"))) {print $0}}\' ", opt$IntFile, " > ", temp_Interaction_File_CurrChr))
-
 	nLoop <- as.integer(system(paste("cat", temp_Interaction_File_CurrChr, "| wc -l"), intern = TRUE))
+	cat(sprintf(" --- number of bin pairs with nonzero contacts for this chromosome : %s ", (nLoop - 1)))
 	if (nLoop <= 1) {
 		next
 	}
-
 	# extract normalization related features of individual genomic bins
 	# for the current chromosome
 	system(paste0("awk \'{if ($1==\"", currChr, "\") {print $0}}\' ", opt$AllFeatFile, " > ", temp_NormFeature_CurrChr))
-
 	nFeat <- as.integer(system(paste("cat", temp_NormFeature_CurrChr, "| wc -l"), intern = TRUE))
 	if (nFeat == 0) {
 		next
 	}
-
 	# load the interaction matrix (pairs of intervals and their contacts)
 	Interaction_Mat <- data.table::fread(temp_Interaction_File_CurrChr, header=T, sep="\t", stringsAsFactors=F)
 	colnames(Interaction_Mat) <- c("chr1","s1","e1","chr2","s2","e2","cc")
-
 	# load the all feature file
 	AllFeatures <- data.table::fread(temp_NormFeature_CurrChr, header=F, sep="\t", stringsAsFactors=F)	
 	colnames(AllFeatures) <- c("chr1","s1","e1","Coverage","isPeak", "Bias", "Mapp", "GCContent", "RESites")
-
 	if (nrow(AllFeatures) == 0) {
 		next
 	}

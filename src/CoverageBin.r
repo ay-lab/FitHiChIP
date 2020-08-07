@@ -5,7 +5,7 @@ library(GenomicRanges)
 library(tools)
 library(data.table)
 
-options(scipen = 999)
+options(scipen = 10)
 options(datatable.fread.datatable=FALSE)
 
 #======================
@@ -55,7 +55,7 @@ temp_1D_binfile <- paste0(OutDir, '/temp_1D_ALLBins.bed')
 system(paste("bedtools makewindows -g", opt$ChrSizeFile, "-w", opt$BinSize, ">", temp_1D_binfile))
 
 # read the chromosomes of input ChrSizeFile
-ChrData <- read.table(opt$ChrSizeFile, header=F, sep="\t", stringsAsFactors=F)
+ChrData <- data.table::fread(opt$ChrSizeFile, header=F, sep="\t", stringsAsFactors=F)
 ChrNames <- sort(ChrData[,1])
 
 # files for processing one chromosome
@@ -63,41 +63,32 @@ temp_1D_binfile_currChr <- paste0(OutDir, '/temp_1D_ALLBins_CurrChr.bed')
 
 for (i in (1:length(ChrNames))) {
 	currChr <- ChrNames[i]
-	cat(sprintf("\n Processing chromosome for coverage computation: %s ", currChr))
-
+	cat(sprintf("\n Computing 1D coverage - Processing chromosome : %s ", currChr))
 	# get the bins for the current chromosome
 	system(paste0("awk \'{if ($1==\"", currChr, "\") {print $0}}\' ", temp_1D_binfile, " > ", temp_1D_binfile_currChr))
-
 	nline <- as.integer(system(paste("cat", temp_1D_binfile_currChr, "| wc -l"), intern = TRUE))
 	if (nline == 0) {
 		next
 	}
-	
 	# now extract the HiChIP 1D coverage from the input locus pair and contact count file
 	# and for the current chromosome
 	temp_1D_Coveragefile <- paste0(OutDir, '/temp_1D_coverage.bed')
 	system(paste0("awk -F\'[\t]\' -v OFS=\"\t\" \'{if ((NR>1) && ($1==\"", currChr, "\")) {a[$1\"\t\"$2\"\t\"$3]+=$7; a[$4\"\t\"$5\"\t\"$6]+=$7}} END {for (x in a) {print x,a[x]}}\' ", opt$InpFile, " | sort -k1,1 -k2,2n > ", temp_1D_Coveragefile))
-
 	nline <- as.integer(system(paste("cat", temp_1D_Coveragefile, "| wc -l"), intern = TRUE))
 	if (nline == 0) {
 		next
 	}
-
 	# read the bins for the current chromosome
 	temp_1D_bindata <- data.table::fread(temp_1D_binfile_currChr, header=F, sep="\t", stringsAsFactors=F)	
-	
 	# read the HiChIP coverage values for the current chromosome
 	temp_1D_CoverageData <- data.table::fread(temp_1D_Coveragefile, header=F, sep="\t", stringsAsFactors=F)
-
 	# append the coverage values of temp_1D_CoverageData 
 	# into the bins in temp_1D_bindata
 	coverageVec <- rep(0, nrow(temp_1D_bindata))
 	ov <- Overlap1D(temp_1D_bindata, temp_1D_CoverageData, uniqov=FALSE)
 	coverageVec[ov$A_AND_B] <- temp_1D_CoverageData[ov$B_AND_A, 4]
-
 	# assign the peak information in the 1D bins
 	peakvec <- rep(0, nrow(temp_1D_bindata))
-
 	if (!is.null(opt$PeakFile)) {	
 		# now read the peak file - supporting both gzipped and normal files
 		temp_peakfile <- paste0(OutDir, '/temp_peaks.bed')
@@ -106,17 +97,19 @@ for (i in (1:length(ChrNames))) {
 		} else {
 			system(paste0("cat ", opt$PeakFile, " | awk \'{if (($1==\"", currChr, "\") && ($2 ~ /^[0-9]+$/) && ($3 ~ /^[0-9]+$/)) {print $1\"\t\"$2\"\t\"$3}}\' - > ", temp_peakfile))
 		}
-		temp_PeakData <- data.table::fread(temp_peakfile, header=F, sep="\t", stringsAsFactors=F)
-		if (nrow(temp_PeakData) > 0) {
-			ov1 <- Overlap1D(temp_1D_bindata, temp_PeakData, boundary=0, offset=0, uniqov=FALSE)
-			peakvec[ov1$A_AND_B] <- 1		
+		nline <- as.integer(system(paste("cat", temp_peakfile, "| wc -l"), intern = TRUE))
+		cat(sprintf(" -- number of input peaks for this chromosome : %s ",  nline))
+		if (nline > 0) {
+			temp_PeakData <- data.table::fread(temp_peakfile, sep="\t", stringsAsFactors=F)
+			if (nrow(temp_PeakData) > 0) {
+				ov1 <- Overlap1D(temp_1D_bindata, temp_PeakData, boundary=0, offset=0, uniqov=FALSE)
+				peakvec[ov1$A_AND_B] <- 1		
+			}
 		}
 	}	# end peak file non-null condition
-
 	# now construct the final data frame
 	FinalDF <- cbind.data.frame(temp_1D_bindata, coverageVec, peakvec)
 	colnames(FinalDF) <- c('Chr', 'Start', 'End', 'Coverage', 'IsPeak')
-
 	# increment the valid chromosome counter
 	valid_chr_count <- valid_chr_count + 1
 	if (valid_chr_count == 1) {
@@ -124,7 +117,6 @@ for (i in (1:length(ChrNames))) {
 	} else {
 		write.table(FinalDF, opt$OutFile, row.names=F, col.names=F, sep="\t", quote=F, append=T)
 	}
-
 }	# end chromosome loop
 
 # remove temporary files

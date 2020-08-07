@@ -4,7 +4,7 @@ library(optparse)
 library(data.table)
 suppressMessages(library(GenomicRanges))
 
-options(scipen = 999)
+options(scipen = 10)
 options(datatable.fread.datatable=FALSE)
 
 #======================
@@ -78,8 +78,8 @@ for (i in (1:length(ChrNames))) {
 	# otherwise, process the loops
 	valid_chr_count <- valid_chr_count + 1
 
-	CurrChrIntervalData <- data.table::fread(CurrChrIntervalFile)
-	CurrChrLoopData <- data.table::fread(CurrChrLoopFile)
+	CurrChrIntervalData <- data.table::fread(CurrChrIntervalFile, sep="\t", stringsAsFactors=F)
+	CurrChrLoopData <- data.table::fread(CurrChrLoopFile, sep="\t", stringsAsFactors=F)
 
 	# define the output data frame
 	outDF_CurrChr <- matrix(0, nrow=nrow(CurrChrLoopData), ncol=3)

@@ -11,8 +11,7 @@
 
 library(tools)
 library(data.table)
-
-options(scipen = 999)
+options(scipen = 10)
 options(datatable.fread.datatable=FALSE)
 
 args <- commandArgs(TRUE)
@@ -28,22 +27,9 @@ MatrixFile <- args[2]
 # both cis and trans interactions (with no distance constraints)
 InitialInteractionFile <- args[3]
 
-# # lower value of distance threshold for interactions
-# LowDistThr <- as.integer(args[4])
-
-# # upper value of distance threshold for interactions
-# UpDistThr <- as.integer(args[5])
-
-# # final interaction file
-# # cis interaction
-# # with the distance thresholds satisfied
-# FinalInteractionFile <- args[6]
-
-# IntervalMat <- read.table(IntervalFile, header=F, sep="\t", stringsAsFactors=F)	
 IntervalMat <- data.table::fread(IntervalFile, header=F, sep="\t", stringsAsFactors=F)	
 colnames(IntervalMat) <- c("chr1","s1","e1","idx")
 
-# InpInteraction <- read.table(MatrixFile, header=F, sep="\t", stringsAsFactors=F)
 InpInteraction <- data.table::fread(MatrixFile, header=F, sep="\t", stringsAsFactors=F)
 colnames(InpInteraction) <- c("idx1","idx2","cc")
 
@@ -63,12 +49,5 @@ colnames(df2) <- c(colnames(df1), "chr2","s2","e2")
 # and also the third column (contact count)
 df3 <- df2[,c(4:ncol(df2),3)]
 colnames(df3) <- c(colnames(df2)[4:ncol(df2)], "cc")
-write.table(df3, InitialInteractionFile, row.names = FALSE, col.names = TRUE, sep = "\t", quote=FALSE, append=FALSE)
-
-# # now filter these interactions according to cis 
-# # and the distance thresholds
-# idx <- which((as.character(df3[,1]) == as.character(df3[,4])) & (abs(as.integer(df3[,2]) - as.integer(df3[,5])) >= LowDistThr) & (abs(as.integer(df3[,2]) - as.integer(df3[,5])) <= UpDistThr))
-# final.df <- df3[idx, ]
-# colnames(final.df) <- colnames(df3)
-# write.table(final.df, FinalInteractionFile, row.names = FALSE, col.names = TRUE, sep = "\t", quote=FALSE, append=FALSE)
+write.table(df3, InitialInteractionFile, row.names=F, col.names=T, sep="\t", quote=F, append=F)
 
