@@ -17,7 +17,7 @@
 library(ggplot2)
 library(data.table)
 
-options(scipen = 999)
+options(scipen = 10)
 options(datatable.fread.datatable=FALSE)
 
 args <- commandArgs(TRUE)
@@ -42,7 +42,6 @@ if (1) { #((file.exists(boxplotCCQvalfile) == FALSE) | (file.exists(plotfile) ==
 
 	# load the interaction matrix of the unfiltered file
 	# Note: this unfiltered interaction file has header information
-	# unfilt.data <- read.table(unfilt.file, header=T, sep="\t", stringsAsFactors=F)
 	unfilt.data <- data.table::fread(unfilt.file, header=T, sep="\t", stringsAsFactors=F)
 
 	# absolute genomic distance data

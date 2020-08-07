@@ -12,7 +12,7 @@ library(optparse)
 library(ggplot2)
 library(data.table)
 
-options(scipen = 999)
+options(scipen = 10)
 options(datatable.fread.datatable=FALSE)
 
 #================================================
@@ -33,30 +33,29 @@ cat(sprintf("\n Output plot file: %s ", opt$OutFile))
 
 if (0) {
 
-tempOutFile <- paste0(OutDir, '/temp_CC_Dist.bed')
+	tempOutFile <- paste0(OutDir, '/temp_CC_Dist.bed')
 
-# first print the distance vs interaction count in a text file
-# where the first column is distance, and the second column is interaction count
-system(paste("awk \'function abs(v) {return v < 0 ? -v : v} {print abs($5-$2)}\'", opt$IntFile, "| sort -k1,1n | uniq -c | awk \'{if (NR>1) {print $2\"\t\"$1}}\' - > ", tempOutFile))
+	# first print the distance vs interaction count in a text file
+	# where the first column is distance, and the second column is interaction count
+	system(paste("awk \'function abs(v) {return v < 0 ? -v : v} {print abs($5-$2)}\'", opt$IntFile, "| sort -k1,1n | uniq -c | awk \'{if (NR>1) {print $2\"\t\"$1}}\' - > ", tempOutFile))
 
-# InpData <- read.table(tempOutFile, header=F, sep="\t", stringsAsFactors=F)
-InpData <- data.table::fread(tempOutFile, header=F, sep="\t", stringsAsFactors=F)
+	# InpData <- read.table(tempOutFile, header=F, sep="\t", stringsAsFactors=F)
+	InpData <- data.table::fread(tempOutFile, header=F, sep="\t", stringsAsFactors=F)
 
-a <- data.frame(group = paste("Distance vs Interaction"), x = InpData[,1], y = InpData[,2])
-curr_plotA <- ggplot(a, aes(x=x, y=y, fill=group, colour=group)) + geom_line(color="blue") + xlab('Interaction Distance') + ylab('No of significant interactions')
-curr_plotA + ggtitle("FitHiChIP - distance vs significant interactions")
-ggsave(opt$OutFile, plot = curr_plotA, width=8, height=6)
+	a <- data.frame(group = paste("Distance vs Interaction"), x = InpData[,1], y = InpData[,2])
+	curr_plotA <- ggplot(a, aes(x=x, y=y, fill=group, colour=group)) + geom_line(color="blue") + xlab('Interaction Distance') + ylab('No of significant interactions')
+	curr_plotA + ggtitle("FitHiChIP - distance vs significant interactions")
+	ggsave(opt$OutFile, plot = curr_plotA, width=8, height=6)
 
-# now remove the temporary file
-system(paste("rm", tempOutFile))
+	# now remove the temporary file
+	system(paste("rm", tempOutFile))
 
 }	# end dummy if
 
 
 # provide mean and median distance statistics 
 # for these interactions
-# InpLoopData <- read.table(opt$IntFile, header=T)
-InpLoopData <- data.table::fread(opt$IntFile, header=T)
+InpLoopData <- data.table::fread(opt$IntFile, header=T, sep="\t", stringsAsFactors=F)
 DistVec <- abs(InpLoopData[,5] - InpLoopData[,2])
 median_dist <- median(DistVec)
 mean_dist <- mean(DistVec)
@@ -70,7 +69,6 @@ writeLines(outtext, con=fp_out, sep="\n")
 outtext <- paste0("\n Mean distance of these loops: ", mean_dist)
 writeLines(outtext, con=fp_out, sep="\n")
 close(fp_out)
-
 
 # plot histogram of interaction distance vs significant interaction count
 # bin width is set as 10 Kb

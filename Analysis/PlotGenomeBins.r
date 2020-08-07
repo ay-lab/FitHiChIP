@@ -10,7 +10,7 @@ library(optparse)
 library(ggplot2)
 library(data.table)
 
-options(scipen = 999)
+options(scipen = 10)
 options(datatable.fread.datatable=FALSE)
 
 # variables depicting the dimension of plots
