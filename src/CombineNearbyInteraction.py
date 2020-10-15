@@ -193,9 +193,9 @@ def main():
     sys_cmd = "awk -F\'[\t]\' \'{if (NR > 1) {print $1}}\' " + str(InpFile) + " | sort -k1,1 | uniq > " + str(temp_chr_log_file)
     os.system(sys_cmd)
     with open(temp_chr_log_file, 'r') as fp_in:
-        l = fp_in.readline()
-        currchrname = (l.rstrip()).split()[0]
-        TargetChrList.append(currchrname)
+	for l in fp_in.readlines():
+        	currchrname = (l.rstrip()).split()[0]
+        	TargetChrList.append(currchrname)
     print 'list of chromosomes: ', str(TargetChrList)
     # remove temporary files
     sys_cmd = "rm " + temp_chr_log_file
