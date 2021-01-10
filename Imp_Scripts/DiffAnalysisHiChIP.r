@@ -31,6 +31,31 @@ NUMCOL_SEGMENT_UNIONLOOP <- 12
 TSS_OFFSET <- 5000
 THR_DEFAULT_BCV <- 0.4
 
+##==================
+DiffLoopWashUConvert <- function(inpfile, WashUfile) {
+	n <- GetNumLines(inpfile)
+	if (n > 1) {
+		system(paste("awk -F[\'\t\'] \'{if (NR>1) {if ($(NF-2) > 0) {x=(-log($(NF-2))/log(10))} else {x=500}; print $1\"\t\"(($2+$3)/2-1)\"\t\"(($2+$3)/2+1)\"\t\"$4\":\"(($5+$6)/2-1)\"-\"(($5+$6)/2+1)\",\"x\"\t\"(NR-1)\"\t.\"}}\' ", inpfile, " | sort -k1,1 -k2,2n > ", WashUfile))
+		system(paste("bgzip", WashUfile))
+		system(paste0("tabix -p bed ", WashUfile, ".gz"))
+	}
+}
+
+LoopWashUCreate <- function(categoryDir, CategoryList, allLoop_file) {
+	exclloopfile_cat1 <- paste0(categoryDir, '/DiffLoops_Excl_', CategoryList[1], '.bed')
+	exclloopfile_cat2 <- paste0(categoryDir, '/DiffLoops_Excl_', CategoryList[2], '.bed')
+	system(paste("awk \'(NR==1) || (($(NF-1)>0) && ($NF==0))\' ", allLoop_file, ">", exclloopfile_cat1))
+	system(paste("awk \'(NR==1) || (($(NF-1)==0) && ($NF>0))\' ", allLoop_file, ">", exclloopfile_cat2))
+	WashUDir <- paste0(categoryDir, '/WashU_Files')
+	system(paste("mkdir -p", WashUDir))
+	WashU_allLoop_file <- paste0(categoryDir, '/DiffLoops_WashU.bed')
+	DiffLoopWashUConvert(allLoop_file, WashU_allLoop_file)
+	WashU_exclloopfile_cat1 <- paste0(categoryDir, '/DiffLoops_Excl_', CategoryList[1], '_WashU.bed')
+	DiffLoopWashUConvert(exclloopfile_cat1, WashU_exclloopfile_cat1)
+	WashU_exclloopfile_cat2 <- paste0(categoryDir, '/DiffLoops_Excl_', CategoryList[2], '_WashU.bed')
+	DiffLoopWashUConvert(exclloopfile_cat2, WashU_exclloopfile_cat2)	
+}
+
 #======================================================
 # this function returns a vector (equal to the size of number of loops)
 # which counts for each loop the number of replicates showing significant interaction
@@ -1128,45 +1153,38 @@ system(paste("awk \'(NR==1) || ($(NF-5)>0)\' ", allLoop_file, ">", paste0(catego
 DiffLoopDir <- paste0(opt$OutDir, '/EdgeR_Loops_Ov_FitHiChIP_Sig_One_Repl')
 system(paste("mkdir -p", DiffLoopDir))
 
-OneSample_SigRepl_Loop_file <- paste0(categoryDir, '/DiffLoops_ALL.bed')
+OneSample_SigRepl_Loop_file <- paste0(DiffLoopDir, '/DiffLoops_ALL.bed')
 system(paste("awk \'((NR==1) || ($(NF-1)>0) || ($NF>0))\' ", EdgeROutFile, ">", OneSample_SigRepl_Loop_file))
+WashU_OneSample_SigRepl_Loop_file <- paste0(DiffLoopDir, '/DiffLoops_ALL_WashU.bed')
+DiffLoopWashUConvert(OneSample_SigRepl_Loop_file, WashU_OneSample_SigRepl_Loop_file)
 
 categoryDir <- paste0(DiffLoopDir, '/ND_ND')
 system(paste("mkdir -p", categoryDir))
 allLoop_file <- paste0(categoryDir, '/DiffLoops.bed')
 system(paste("awk \'(NR==1) || (($11==\"ND\") && ($12==\"ND\"))\' ", OneSample_SigRepl_Loop_file, ">", allLoop_file))
-system(paste("awk \'(NR==1) || (($(NF-1)>0) && ($NF==0))\' ", allLoop_file, ">", paste0(categoryDir, '/DiffLoops_Excl_', CategoryList[1], '.bed')))
-system(paste("awk \'(NR==1) || (($(NF-1)==0) && ($NF>0))\' ", allLoop_file, ">", paste0(categoryDir, '/DiffLoops_Excl_', CategoryList[2], '.bed')))
-
+LoopWashUCreate(categoryDir, CategoryList, allLoop_file)
 
 categoryDir <- paste0(DiffLoopDir, '/LD_ND')
 system(paste("mkdir -p", categoryDir))
 allLoop_file <- paste0(categoryDir, '/DiffLoops.bed')
 system(paste("awk \'(NR==1) || ((($11==\"LD\") && ($12==\"ND\")) || (($11==\"ND\") && ($12==\"LD\")))\' ", OneSample_SigRepl_Loop_file, ">", allLoop_file))
-system(paste("awk \'(NR==1) || (($(NF-1)>0) && ($NF==0))\' ", allLoop_file, ">", paste0(categoryDir, '/DiffLoops_Excl_', CategoryList[1], '.bed')))
-system(paste("awk \'(NR==1) || (($(NF-1)==0) && ($NF>0))\' ", allLoop_file, ">", paste0(categoryDir, '/DiffLoops_Excl_', CategoryList[2], '.bed')))
-
+LoopWashUCreate(categoryDir, CategoryList, allLoop_file)
 
 categoryDir <- paste0(DiffLoopDir, '/LD_LD')
 system(paste("mkdir -p", categoryDir))
 allLoop_file <- paste0(categoryDir, '/DiffLoops.bed')
 system(paste("awk \'(NR==1) || (($11==\"LD\") && ($12==\"LD\"))\' ", OneSample_SigRepl_Loop_file, ">", allLoop_file))
-system(paste("awk \'(NR==1) || (($(NF-1)>0) && ($NF==0))\' ", allLoop_file, ">", paste0(categoryDir, '/DiffLoops_Excl_', CategoryList[1], '.bed')))
-system(paste("awk \'(NR==1) || (($(NF-1)==0) && ($NF>0))\' ", allLoop_file, ">", paste0(categoryDir, '/DiffLoops_Excl_', CategoryList[2], '.bed')))
-
+LoopWashUCreate(categoryDir, CategoryList, allLoop_file)
 
 categoryDir <- paste0(DiffLoopDir, '/HD_HD')
 system(paste("mkdir -p", categoryDir))
 allLoop_file <- paste0(categoryDir, '/DiffLoops.bed')
 system(paste("awk \'(NR==1) || (($11==\"HD\") && ($12==\"HD\"))\' ", OneSample_SigRepl_Loop_file, ">", allLoop_file))
-system(paste("awk \'(NR==1) || (($(NF-1)>0) && ($NF==0))\' ", allLoop_file, ">", paste0(categoryDir, '/DiffLoops_Excl_', CategoryList[1], '.bed')))
-system(paste("awk \'(NR==1) || (($(NF-1)==0) && ($NF>0))\' ", allLoop_file, ">", paste0(categoryDir, '/DiffLoops_Excl_', CategoryList[2], '.bed')))
-
+LoopWashUCreate(categoryDir, CategoryList, allLoop_file)
 
 categoryDir <- paste0(DiffLoopDir, '/HD_LD_or_ND')
 system(paste("mkdir -p", categoryDir))
 allLoop_file <- paste0(categoryDir, '/DiffLoops.bed')
 system(paste("awk \'(NR==1) || ((($11==\"HD\") && ($12!=\"HD\")) || (($11!=\"HD\") && ($12==\"HD\")))\' ", OneSample_SigRepl_Loop_file, ">", allLoop_file))
-system(paste("awk \'(NR==1) || (($(NF-1)>0) && ($NF==0))\' ", allLoop_file, ">", paste0(categoryDir, '/DiffLoops_Excl_', CategoryList[1], '.bed')))
-system(paste("awk \'(NR==1) || (($(NF-1)==0) && ($NF>0))\' ", allLoop_file, ">", paste0(categoryDir, '/DiffLoops_Excl_', CategoryList[2], '.bed')))
+LoopWashUCreate(categoryDir, CategoryList, allLoop_file)
 
