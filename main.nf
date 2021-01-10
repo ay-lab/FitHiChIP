@@ -31,7 +31,7 @@ process prepare_config {
 
     script:
 
-    cstr = "OutDir=./fhcout/\nHiCProBasedir=/HiC-Pro-2.11.1/\n"
+    cstr = "OutDir=./fhcout/\nHiCProBasedir=/HiC-Pro-2.11.4/\n"
 
     if (vp.exists()) 
         cstr = cstr + "ValidPairs=${vp}\n"
