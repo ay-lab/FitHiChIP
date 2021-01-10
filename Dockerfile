@@ -5,7 +5,7 @@ RUN apt-get -y upgrade
 RUN apt-get -y install pkg-config libssl-dev curl libcurl4-openssl-dev
 
 # Install required R packages
-RUN R -e "install.packages(c('BiocManager', 'optparse', 'ggplot2', 'splines', 'fdrtool', 'parallel', 'tools', 'dplyr'), quitely=TRUE, repos='http://cran.rstudio.com/')"
+RUN R -e "install.packages(c('BiocManager', 'optparse', 'ggplot2', 'data.table', 'splines', 'fdrtool', 'parallel', 'tools', 'plyr', 'dplyr'), quitely=TRUE, repos='http://cran.rstudio.com/')"
 
 RUN R -e 'BiocManager::install()'
 RUN R -e "BiocManager::install('GenomicRanges');"
@@ -56,12 +56,12 @@ RUN conda install -y -c bioconda pysam
 RUN R -e "install.packages(c('RColorBrewer'), quitely=TRUE, repos='http://cran.rstudio.com/')"
 
 # Install HiCPro
-RUN cd / && wget https://github.com/nservant/HiC-Pro/archive/v2.11.1.tar.gz
-RUN tar -zxvf v2.11.1.tar.gz
+RUN cd / && wget https://github.com/nservant/HiC-Pro/archive/v2.11.4.tar.gz
+RUN tar -zxvf v2.11.4.tar.gz
 
-RUN cd HiC-Pro-2.11.1/ && make configure && make install
-ENV PATH="/HiC-Pro-2.11.1/bin/:${PATH}"
-ENV PATH="/HiC-Pro-2.11.1/bin/utils/:${PATH}"
+RUN cd HiC-Pro-2.11.4/ && make configure && make install
+ENV PATH="/HiC-Pro-2.11.4/bin/:${PATH}"
+ENV PATH="/HiC-Pro-2.11.4/bin/utils/:${PATH}"
 
 # Install Macs2
 RUN pip install MACS2
@@ -69,7 +69,7 @@ RUN pip install MACS2
 # Get FitHiChIP
 RUN apt-get -y install git
 RUN cd / && git clone https://github.com/ay-lab/FitHiChIP
-RUN cd /FitHiChIP && sed -i 's/\/home\/sourya\/packages\/HiCPro\/HiC-Pro_2.9.0\//\/HiC-Pro-2.11.1\//g' configfile_*
+RUN cd /FitHiChIP && sed -i 's/\/home\/sourya\/packages\/HiCPro\/HiC-Pro_2.9.0\//\/HiC-Pro-2.11.4\//g' configfile_*
 RUN pip install networkx
 
 
