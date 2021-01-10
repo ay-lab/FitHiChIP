@@ -33,40 +33,19 @@ All the results in FitHiChIP, like the significant loops, HiChIP peak calling, p
 
 https://doi.org/10.5281/zenodo.3255048
 
+Release notes corresponding to version 9.0 (January 10, 2021)
+----------------------------------------------------------------
+
+	1. Updated singularity, Docker installation, incorporating the latest code and dependencies.
+	2. Incorporated simultaneous generation of WashU browser compatible tracks for differential analysis.
+	3. Minor warning fix regarding 0 size of input peaks for a given chromosome.
+	4. Updated documentation.
+
 Release notes corresponding to version 8.1 (May 10, 2020)
 --------------------------------------------------------------
 
 	1. Mandatory to use HiCPro version 2.11.4. This version automatically installs ICE via python package iced.
 	2. Minor bug fix in testing the installed packages and versions before running FitHiChIP.
-
-
-Release notes corresponding to version 8.0 (January 30, 2020)
---------------------------------------------------------------
-
-	1. Minor bug fix in differential analysis module
-	2. Using ggplot2 for plotting spline fit and regression coefficients, in the significant interaction module. Useful for running in computational cluster environment.
-
-Release notes corresponding to version 7.1 (24th October 2019) 
-------------------------------------------------------------------
-
-	Major changes: 
-
-	1. Updated differential analysis module - support processing ChIP-seq coverage files in BEDGraph format (in addition to process ChIP-seq alignment .bam files). Improved code with much lower running time. Improved documentation.
-		** Requires additional R libraries to be installed : 1) data.table, 2) plyr
-		** For details, please check the installation procedure in the main documentation
-	2. Thoroughly tested support of HiC data. User now can provide HiC contact matrices in either HiC-pro based validpairs / matrix format, or simple bed format (peak file is not required) and specify ALL-to-ALL (4) interaction type to obtain HiC data specific significant interactions.
-	3. Included code for simulating HiChIP data from input HiC and ChIP-seq (as published in our Nature Communication Paper). Note that this implementation is far from optimal, and was mainly to show the robustness of FitHiChIP. The simulation needs to be much improved.
-	3. Lower running time in finding statistically significant interactions, by faster data reading and processing.
-	4. Updated nextflow and docker installation steps.
-
-	Minor changes:
-
-	1. Added: differential analysis using gzipped input files.
-	2. Removed: dependency of specifying HiC pro installation directory in the configuration file.
-	2. Bug fix: differential loops using input files with a subset of chromosomes (even one chromosome).
-	3. Bug fix: parsing input parameters - error in checking q-value range (invalid arithmetic operator)
-	
-	*** for older releases and corresponding release notes, please check the file "Release_Notes.txt"
 
 
 Contact
