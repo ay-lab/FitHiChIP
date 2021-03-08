@@ -55,7 +55,7 @@ if (0) {
 
 # provide mean and median distance statistics 
 # for these interactions
-InpLoopData <- data.table::fread(opt$IntFile, header=T, sep="\t", stringsAsFactors=F)
+InpLoopData <- data.table::fread(opt$IntFile, header=F, sep="\t", stringsAsFactors=F)
 DistVec <- abs(InpLoopData[,5] - InpLoopData[,2])
 median_dist <- median(DistVec)
 mean_dist <- mean(DistVec)
