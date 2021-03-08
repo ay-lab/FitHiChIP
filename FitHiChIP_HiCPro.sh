@@ -337,9 +337,8 @@ if [[ -z $HiCProExec ]]; then
 	echo 'ERROR ===>>>> HiC-pro is not installed in the system - FitHiChIP quits !!!'
 	exit 1
 fi
-# extract the "somedir" portion
-#HiCProBasedir=${HiCProExec::-12}
-HiCProBasedir=`echo $HiCProExec | sed 's/bin\/HiC-Pro//g'`
+d1=$(dirname ${HiCProExec})
+HiCProBasedir=$(dirname ${d1})
 echo 'Base directory containing HiCPro package : '$HiCProBasedir
 
 #===================
