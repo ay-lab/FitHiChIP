@@ -26,12 +26,14 @@ Author: Sourya Bhattacharyya
 Vijay-Ay lab, LJI
 """
 
+import heapq
+import math
 import os
 import sys
-import math
 from optparse import OptionParser
+
 import networkx as nx
-from Queue import heapq
+
 
 #==========================================================
 # this function returns the element below which top K % of 
@@ -145,21 +147,21 @@ def main():
 
     # print the parameters
     if 1:
-        print '****** Merge filtering of adjacent loops is enabled *****'
-        print '***** within function of merged filtering - printing the parameters ***'
-        print '*** bin_size: ', bin_size
-        print '*** headerInp: ', headerInp
-        print '*** connectivity_rule: ', connectivity_rule
-        print '*** TopPctElem: ', TopPctElem
-        print '*** NeighborHoodBinThr: ', NeighborHoodBinThr
-        print '*** QValCol: ', QValCol
-        print '*** PValCol: ', PValCol
-        print '*** SortOrder: ', SortOrder
+        print('****** Merge filtering of adjacent loops is enabled *****')
+        print('***** within function of merged filtering - printing the parameters ***')
+        print('*** bin_size: ', bin_size)
+        print('*** headerInp: ', headerInp)
+        print('*** connectivity_rule: ', connectivity_rule)
+        print('*** TopPctElem: ', TopPctElem)
+        print('*** NeighborHoodBinThr: ', NeighborHoodBinThr)
+        print('*** QValCol: ', QValCol)
+        print('*** PValCol: ', PValCol)
+        print('*** SortOrder: ', SortOrder)
 
     # output directory
     OutDir = os.path.dirname(os.path.realpath(OutFile))
     if 1:
-        print 'OutDir: ', str(OutDir)
+        print('OutDir: ', str(OutDir))
 
     # open the output file
     # if input interaction file has header information, 
@@ -196,7 +198,7 @@ def main():
 	for l in fp_in.readlines():
         	currchrname = (l.rstrip()).split()[0]
         	TargetChrList.append(currchrname)
-    print 'list of chromosomes: ', str(TargetChrList)
+    print('list of chromosomes: ', str(TargetChrList))
     # remove temporary files
     sys_cmd = "rm " + temp_chr_log_file
     os.system(sys_cmd)
@@ -207,7 +209,7 @@ def main():
     for chridx in range(len(TargetChrList)):
         curr_chr = TargetChrList[chridx]
         if 1:
-            print 'Processing the chromosome: ', str(curr_chr)
+            print('Processing the chromosome: ', str(curr_chr))
 
         # extract the interactions of current chromosome from the complete set of interactions
         tempchrdumpfile = OutDir + '/Temp_chr_Dump.bed'
@@ -222,11 +224,11 @@ def main():
 
         if (num_Int == 0):
             if 0:
-                print 'Number of interactions for this chromosome = 0 --- continue'
+                print('Number of interactions for this chromosome = 0 --- continue')
             continue
 
         if 0:
-            print 'Extracted interactions for the current chromosome'
+            print('Extracted interactions for the current chromosome')
 
         # # extract also the max span of interactions (6th column maximum element)
         # # so as to estimate the matrix size
@@ -271,7 +273,7 @@ def main():
                 # add the node to the given graph as well
                 G.add_node(curr_key)
                 if 0:
-                    print 'Current interaction: ', str(line), '  ------ curr_key: ', curr_key
+                    print('Current interaction: ', str(line), '  ------ curr_key: ', curr_key)
 
         # now check the nodes of G
         # assign edges of G according to the 8 / 4 connectivity rule (according to the input parameter)
@@ -282,27 +284,27 @@ def main():
             for j in range(i+1, len(nodelist)):
                 node2 = nodelist[j]
                 if 0:
-                    print 'Checking the edge between node 1: ', node1, '  and node 2: ', node2
+                    print('Checking the edge between node 1: ', node1, '  and node 2: ', node2)
                 # check if there should be an edge between node1 and node2
                 # according to the desired connectivity rule
                 if (connectivity_rule == 8):
                     if (abs(node1[0] - node2[0]) <= 1) and (abs(node1[1] - node2[1]) <= 1):
                         G.add_edge(node1, node2)
                         if 0:
-                            print '8 connectivity Edge between node 1: ', node1, '  and node 2: ', node2
+                            print('8 connectivity Edge between node 1: ', node1, '  and node 2: ', node2)
                 if (connectivity_rule == 4):
                     if ((abs(node1[0] - node2[0]) + abs(node1[1] - node2[1])) <= 1):
                         G.add_edge(node1, node2)
                         if 0:
-                            print '4 connectivity Edge between node 1: ', node1, '  and node 2: ', node2
+                            print('4 connectivity Edge between node 1: ', node1, '  and node 2: ', node2)
 
         # check the edges of G
         edgelist = list(G.edges())
 
         if 1:
-            print 'No of nodes of G: ', G.number_of_nodes()
-            print 'No of edges of G: ', G.number_of_edges()
-            print 'Number of connected components of G: ', nx.number_connected_components(G)
+            print('No of nodes of G: ', G.number_of_nodes())
+            print('No of edges of G: ', G.number_of_edges())
+            print('Number of connected components of G: ', nx.number_connected_components(G))
 
         # scan through individual connected components
         # for each such connected component (list of interactions)
@@ -310,7 +312,7 @@ def main():
         list_conn_comp = sorted(nx.connected_components(G), key = len, reverse=True)
 
         if 0:
-            print '\n\n**** Number of connected components: ', len(list_conn_comp), '  ****\n\n'
+            print('\n\n**** Number of connected components: ', len(list_conn_comp), '  ****\n\n')
 
         #====================
         # process individual connected components
@@ -319,31 +321,31 @@ def main():
             # a connected component - a particular list of connected nodes
             curr_comp_list = list(list_conn_comp[i])
             if 0:
-                print '\n\n\n  ===>>>>> Processing the connected component no: ', i, '  list: ', str(curr_comp_list), '  number of elements: ', len(curr_comp_list)
+                print('\n\n\n  ===>>>>> Processing the connected component no: ', i, '  list: ', str(curr_comp_list), '  number of elements: ', len(curr_comp_list))
 
             # from the first interacting bin set, get the lower and higher bin index
             min_idx_bin1 = min([x[0] for x in curr_comp_list])
             max_idx_bin1 = max([x[0] for x in curr_comp_list])
             if 0:
-                print 'min_idx_bin1: ', min_idx_bin1, ' max_idx_bin1: ', max_idx_bin1
+                print('min_idx_bin1: ', min_idx_bin1, ' max_idx_bin1: ', max_idx_bin1)
 
             # get the span of coordinates for the first interacting bin (set)
             span_low_bin1 = (min_idx_bin1 - 1) * bin_size
             span_high_bin1 = max_idx_bin1 * bin_size
             if 0:
-                print 'span_low_bin1: ', span_low_bin1, ' span_high_bin1: ', span_high_bin1
+                print('span_low_bin1: ', span_low_bin1, ' span_high_bin1: ', span_high_bin1)
 
             # from the second interacting bin set, get the lower and higher bin index
             min_idx_bin2 = min([x[1] for x in curr_comp_list])
             max_idx_bin2 = max([x[1] for x in curr_comp_list])
             if 0:
-                print 'min_idx_bin2: ', min_idx_bin2, ' max_idx_bin2: ', max_idx_bin2
+                print('min_idx_bin2: ', min_idx_bin2, ' max_idx_bin2: ', max_idx_bin2)
 
             # get the span of coordinates for the first interacting bin (set)
             span_low_bin2 = (min_idx_bin2 - 1) * bin_size
             span_high_bin2 = max_idx_bin2 * bin_size
             if 0:
-                print 'span_low_bin2: ', span_low_bin2, ' span_high_bin2: ', span_high_bin2
+                print('span_low_bin2: ', span_low_bin2, ' span_high_bin2: ', span_high_bin2)
 
             # sum of contact counts for all the interacting bins 
             # within this set of connected nodes
@@ -365,7 +367,7 @@ def main():
             Percent_Significant_BinPair = (possible_bin_pairs * 1.0) / total_possible_bin_pairs
 
             if 0:
-                print ' ==>>> total_possible_bin_pairs: ', total_possible_bin_pairs, ' possible_bin_pairs: ', possible_bin_pairs, ' % clique: ', Percent_Significant_BinPair
+                print(' ==>>> total_possible_bin_pairs: ', total_possible_bin_pairs, ' possible_bin_pairs: ', possible_bin_pairs, ' % clique: ', Percent_Significant_BinPair)
 
 
             #==================================================
@@ -387,7 +389,7 @@ def main():
                     curr_key_bin1_mid = (((curr_key[0] - 1) * bin_size) + (curr_key[0] * bin_size)) / 2
                     curr_key_bin2_mid = (((curr_key[1] - 1) * bin_size) + (curr_key[1] * bin_size)) / 2
                     if 0:
-                        print ' Connected component index: ', j, ' curr_key: ', curr_key, ' bin 1 mid: ', curr_key_bin1_mid, ' bin 2 mid: ', curr_key_bin2_mid, ' CC: ', curr_cc, ' Pval: ', curr_pval, ' Qval: ', curr_qval
+                        print(' Connected component index: ', j, ' curr_key: ', curr_key, ' bin 1 mid: ', curr_key_bin1_mid, ' bin 2 mid: ', curr_key_bin2_mid, ' CC: ', curr_cc, ' Pval: ', curr_pval, ' Qval: ', curr_qval)
                     if (j == 0):
                         # first index
                         rep_bin_key = curr_key                        
@@ -412,7 +414,7 @@ def main():
                 qval = CurrChrDict[rep_bin_key]._GetQVal()
 
                 if 0:
-                    print '**** Selected bin key: ', rep_bin_key, ' start bin mid: ', (rep_bin1_low + rep_bin1_high)/2,  ' end bin mid: ', (rep_bin2_low + rep_bin2_high) / 2, ' cc: ', cc, ' pval: ', pval, ' qval: ', qval
+                    print('**** Selected bin key: ', rep_bin_key, ' start bin mid: ', (rep_bin1_low + rep_bin1_high)/2,  ' end bin mid: ', (rep_bin2_low + rep_bin2_high) / 2, ' cc: ', cc, ' pval: ', pval, ' qval: ', qval)
 
                 # write the interaction in the specified output file
                 fp_outInt.write('\n' + str(curr_chr) + '\t' + str(rep_bin1_low) + '\t' + str(rep_bin1_high) + '\t' + str(curr_chr) + '\t' + str(rep_bin2_low) + '\t' + str(rep_bin2_high) + '\t' + str(cc) + '\t' + str(pval) + '\t' + str(qval) + '\t' + str(span_low_bin1) + '\t' + str(span_high_bin1) + '\t' + str(span_low_bin2) + '\t' + str(span_high_bin2) + '\t' + str(sum_cc) + '\t' + str(Percent_Significant_BinPair))
@@ -468,7 +470,7 @@ def main():
                 custom_qval = custom_percent(curr_conn_comp_QValList, TopPctElem, (SortOrder+1))
 
                 if 0:
-                    print ' --> current connected component: max CC: ', max_cc, '  min Q val: ', min_qval, '  top K (TopPctElem): ', TopPctElem, '  custom_cc threshold: ', custom_cc, '  custom_qval threshold: ', custom_qval
+                    print(' --> current connected component: max CC: ', max_cc, '  min Q val: ', min_qval, '  top K (TopPctElem): ', TopPctElem, '  custom_cc threshold: ', custom_cc, '  custom_qval threshold: ', custom_qval)
 
                 # this list stores the candidate interactions
                 # from this particular connected component
@@ -479,7 +481,7 @@ def main():
                 while (len(Curr_Comp_Tuple_List) > 0):
                     curr_elem = heapq.heappop(Curr_Comp_Tuple_List)
                     if 0:
-                        print 'extracted element from heap: ', curr_elem
+                        print('extracted element from heap: ', curr_elem)
 
                     #===================================
                     # earlier condition - 1 - sourya
@@ -509,7 +511,7 @@ def main():
                         subl = [curr_elem[2], curr_elem[3]]
                         Final_Rep_Key_List.append(subl)
                         if 0:
-                            print '\t\t *** inserted element in the final list: ', str(subl), '  generated Final_Rep_Key_List: ', str(Final_Rep_Key_List)
+                            print('\t\t *** inserted element in the final list: ', str(subl), '  generated Final_Rep_Key_List: ', str(Final_Rep_Key_List))
                         continue
 
                     # otherwise, check with the existing interactions
@@ -523,7 +525,7 @@ def main():
                         if (((abs(Final_Rep_Key_List[i][0] - curr_elem[2])) * bin_size) <= NeighborHoodBinThr) and (((abs(Final_Rep_Key_List[i][1] - curr_elem[3])) * bin_size) <= NeighborHoodBinThr):
                             flag = True
                             if 0:
-                                print ' --- current element is within neighborhood of the bins indexed by ', i, '  of Final_Rep_Key_List'
+                                print(' --- current element is within neighborhood of the bins indexed by ', i, '  of Final_Rep_Key_List')
                             break
                     
                     if (flag == False):
@@ -532,7 +534,7 @@ def main():
                         subl = [curr_elem[2], curr_elem[3]]
                         Final_Rep_Key_List.append(subl)
                         if 0:
-                            print '\t\t *** inserted element in the final list: ', str(subl), '  generated Final_Rep_Key_List: ', str(Final_Rep_Key_List)
+                            print('\t\t *** inserted element in the final list: ', str(subl), '  generated Final_Rep_Key_List: ', str(Final_Rep_Key_List))
                         
                 # now print the candidate interactions 
                 # of the current component
@@ -549,7 +551,7 @@ def main():
                     qval = CurrChrDict[rep_bin_key]._GetQVal()
 
                     if 0:
-                        print '**** Selected bin key: ', rep_bin_key, ' start bin mid: ', (rep_bin1_low + rep_bin1_high)/2,  ' end bin mid: ', (rep_bin2_low + rep_bin2_high) / 2, ' cc: ', cc, ' pval: ', pval, ' qval: ', qval
+                        print('**** Selected bin key: ', rep_bin_key, ' start bin mid: ', (rep_bin1_low + rep_bin1_high)/2,  ' end bin mid: ', (rep_bin2_low + rep_bin2_high) / 2, ' cc: ', cc, ' pval: ', pval, ' qval: ', qval)
 
                     # write the interaction in the specified output file
                     fp_outInt.write('\n' + str(curr_chr) + '\t' + str(rep_bin1_low) + '\t' + str(rep_bin1_high) + '\t' + str(curr_chr) + '\t' + str(rep_bin2_low) + '\t' + str(rep_bin2_high) + '\t' + str(cc) + '\t' + str(pval) + '\t' + str(qval) + '\t' + str(span_low_bin1) + '\t' + str(span_high_bin1) + '\t' + str(span_low_bin2) + '\t' + str(span_high_bin2) + '\t' + str(sum_cc) + '\t' + str(Percent_Significant_BinPair))
@@ -599,7 +601,7 @@ def main():
                 Final_Rep_Key_List = []
 
                 if 0:
-                    print ' **** Processing the connected component ===== number of elements: ', len(Curr_Comp_Tuple_List)
+                    print(' **** Processing the connected component ===== number of elements: ', len(Curr_Comp_Tuple_List))
 
                 # now extract elements from the constructed queue
                 while (len(Curr_Comp_Tuple_List) > 0):
@@ -607,7 +609,7 @@ def main():
                     # element with the lowest value
                     curr_elem = heapq.heappop(Curr_Comp_Tuple_List)
                     if 0:
-                        print 'extracted element from heap: ', curr_elem
+                        print('extracted element from heap: ', curr_elem)
 
                     # if this is the first element 
                     # then insert they key in the candidate set of interactions
@@ -615,7 +617,7 @@ def main():
                         subl = [curr_elem[2], curr_elem[3]]
                         Final_Rep_Key_List.append(subl)
                         if 0:
-                            print '*** inserted element in the final list: ', str(subl)
+                            print('*** inserted element in the final list: ', str(subl))
                         continue
 
                     # otherwise, check with the existing interactions
@@ -629,7 +631,7 @@ def main():
                         if (((abs(Final_Rep_Key_List[i][0] - curr_elem[2])) * bin_size) <= NeighborHoodBinThr) and (((abs(Final_Rep_Key_List[i][1] - curr_elem[3])) * bin_size) <= NeighborHoodBinThr):
                             flag = True
                             if 0:
-                                print ' --- current element is within neighborhood of the existing (included) bin ', Final_Rep_Key_List[i]
+                                print(' --- current element is within neighborhood of the existing (included) bin ', Final_Rep_Key_List[i])
                             break
 
                     if (flag == False):
@@ -638,12 +640,12 @@ def main():
                         subl = [curr_elem[2], curr_elem[3]]
                         Final_Rep_Key_List.append(subl)
                         if 0:
-                            print '*** inserted element in the final list: ', str(subl)
+                            print('*** inserted element in the final list: ', str(subl))
 
                 # now print the candidate interactions 
                 # of the current component
                 if 0:
-                    print '\n\n**** Printing selected loops of the connected component ***\n\n'
+                    print('\n\n**** Printing selected loops of the connected component ***\n\n')
 
                 for i in range(len(Final_Rep_Key_List)):
                     rep_bin_key = (Final_Rep_Key_List[i][0], Final_Rep_Key_List[i][1])
@@ -657,7 +659,7 @@ def main():
                     pval = CurrChrDict[rep_bin_key]._GetPVal()
                     qval = CurrChrDict[rep_bin_key]._GetQVal()                    
                     if 0:
-                        print 'Selected bin key: ', rep_bin_key, ' start bin mid: ', (rep_bin1_low + rep_bin1_high)/2,  ' end bin mid: ', (rep_bin2_low + rep_bin2_high) / 2, ' cc: ', cc, ' pval: ', pval, ' qval: ', qval
+                        print('Selected bin key: ', rep_bin_key, ' start bin mid: ', (rep_bin1_low + rep_bin1_high)/2,  ' end bin mid: ', (rep_bin2_low + rep_bin2_high) / 2, ' cc: ', cc, ' pval: ', pval, ' qval: ', qval)
 
                     # write the interaction in the specified output file
                     fp_outInt.write('\n' + str(curr_chr) + '\t' + str(rep_bin1_low) + '\t' + str(rep_bin1_high) + '\t' + str(curr_chr) + '\t' + str(rep_bin2_low) + '\t' + str(rep_bin2_high) + '\t' + str(cc) + '\t' + str(pval) + '\t' + str(qval) + '\t' + str(span_low_bin1) + '\t' + str(span_high_bin1) + '\t' + str(span_low_bin2) + '\t' + str(span_high_bin2) + '\t' + str(sum_cc) + '\t' + str(Percent_Significant_BinPair))
@@ -677,9 +679,8 @@ def main():
     os.system(sys_cmd)
 
     if 1:
-        print '==================== End of merge filtering adjacent interactions !!! ======================'
+        print('==================== End of merge filtering adjacent interactions !!! ======================')
 
 #===============================================
 if __name__ == "__main__":
     main()
-
