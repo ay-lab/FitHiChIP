@@ -338,7 +338,9 @@ if [[ -z $HiCProExec ]]; then
 	exit 1
 fi
 # extract the "somedir" portion
-HiCProBasedir=${HiCProExec::-12}
+#HiCProBasedir=${HiCProExec::-12}
+HiCProBasedir=`echo $HiCProExec | sed 's/bin\/HiC-Pro//g'`
+echo 'Base directory containing HiCPro package : '$HiCProBasedir
 
 #===================
 # verify the input parameters
