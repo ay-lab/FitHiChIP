@@ -261,8 +261,8 @@ def main():
             for line in fp:
                 linecontents = (line.rstrip()).split()
                 # we set the bin number according to the end coordinate
-                bin1 = int(linecontents[2]) / bin_size
-                bin2 = int(linecontents[5]) / bin_size
+                bin1 = int(linecontents[2]) // bin_size
+                bin2 = int(linecontents[5]) // bin_size
                 if (bin1 < bin2):
                     curr_key = (bin1, bin2)
                 else:
@@ -364,7 +364,7 @@ def main():
             # % of bin pairs within the region spanned by this connected component
             # having significant interaction
             # the higher the %, the better this component is strongly connected
-            Percent_Significant_BinPair = (possible_bin_pairs * 1.0) / total_possible_bin_pairs
+            Percent_Significant_BinPair = (possible_bin_pairs * 100) // total_possible_bin_pairs
 
             if 0:
                 print(' ==>>> total_possible_bin_pairs: ', total_possible_bin_pairs, ' possible_bin_pairs: ', possible_bin_pairs, ' % clique: ', Percent_Significant_BinPair)
