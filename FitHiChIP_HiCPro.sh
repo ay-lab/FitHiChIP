@@ -145,7 +145,7 @@ MultBias=0
 # read the configuration file and store various parameters
 #==============================
 
-echo -e "\n ================ Parsing input configuration file ================="
+echo -e "\n\n ================ Parsing input configuration file ================= \n\n"
 
 # separator used in the config file
 IFS="="
@@ -345,7 +345,7 @@ echo 'Base directory containing HiCPro package : '$HiCProBasedir
 # verify the input parameters
 #===================
 
-echo -e "\n ================ Verifying input configuration parameters ================="
+echo -e "\n\n ================ Verifying input configuration parameters ================= \n\n"
 
 if [[ -z $InpValidPairsFile && -z $InpInitialInteractionBedFile ]]; then
 	if [[ -z $InpBinIntervalFile || -z $InpMatrixFile ]]; then
@@ -449,10 +449,10 @@ else
 	fi	
 fi
 
-# first check the python version
-# check if python is installed and its version is > 2.7.0
-# pythonversion=$(python -V 2>&1 | grep -Po '(?<=Python )(.+)')
-pythonversion=$(python --version 2>&1 | head -n 1 | awk '{print $2}' -)
+## first check the python version
+# note: FitHiChIP new versions now use python3, instead of python2
+# check if python3 is installed and its version is > 3.4
+pythonversion=$(python3 --version 2>&1 | head -n 1 | awk '{print $2}' -)
 if [[ -z "$pythonversion" ]]; then
     echo "ERROR ====>>> No Python installation is detected in the system !!! FitHiChIP quits !!!" 
     errcond=1
@@ -462,53 +462,53 @@ if [[ $numfield -ge 3 ]]; then
 	num1=`echo $pythonversion | awk -F'[.]' '{print $1}' -`
 	num2=`echo $pythonversion | awk -F'[.]' '{print $2}' -`
 	num3=`echo $pythonversion | awk -F'[.]' '{print $3}' -`
-	if [[ $num1 -gt 2 ]]; then
+	if [[ $num1 -gt 3 ]]; then
 		echo "Installed python version: "${pythonversion}
-	elif [[ $num1 -eq 2 && $num2 -gt 7 ]]; then
+	elif [[ $num1 -eq 3 && $num2 -gt 4 ]]; then
 		echo "Installed python version: "${pythonversion}
-	elif [[ $num1 -eq 2 && $num2 -eq 7 && $num3 -ge 1 ]]; then
+	elif [[ $num1 -eq 3 && $num2 -eq 4 && $num3 -ge 1 ]]; then
 		echo "Installed python version: "${pythonversion}
 	else 
-		echo " --- should be python 2 with version > 2.7.0 !!! FitHiChIP quits !!!"
+		echo " --- FitHiChIP now works on python 3 - should be python3 with version >= 3.4 !!! FitHiChIP quits !!!"
 		errcond=1
 	fi
 else
 	num1=`echo $pythonversion | awk -F'[.]' '{print $1}' -`
 	num2=`echo $pythonversion | awk -F'[.]' '{print $2}' -`
-	if [[ $num1 -gt 2 ]]; then
+	if [[ $num1 -gt 3 ]]; then
 		echo "Installed python version: "${pythonversion}
-	elif [[ $num1 -eq 2 && $num2 -gt 7 ]]; then
+	elif [[ $num1 -eq 3 && $num2 -gt 3 ]]; then
 		echo "Installed python version: "${pythonversion}
 	else 
-		echo " --- should be python 2 with version > 2.7.0 !!! FitHiChIP quits !!!"
+		echo " --- FitHiChIP now works on python 3 - should be python3 with version >= 3.4 !!! FitHiChIP quits !!!"
 		errcond=1
 	fi	
 fi
 
-# check if python libraries are also installed
-if python -c "import gzip"; then
+# check if python3 libraries are also installed
+if python3 -c "import gzip"; then
     echo '*** Python library gzip is installed'
 else
-    echo 'ERROR ====>>> Python library gzip is not installed !!! FitHiChIP quits !!!'
+    echo 'ERROR ====>>> Python3 library gzip is not installed !!! FitHiChIP quits !!!'
     errcond=1
 fi
-if python -c "from optparse import OptionParser"; then
+if python3 -c "from optparse import OptionParser"; then
     echo '*** Python module OptionParser (from the package optparse) is installed'
 else
     echo 'ERROR ====>>> Python module OptionParser (from the package optparse) is not installed !!! FitHiChIP quits !!!'
     errcond=1
 fi
-if python -c "import networkx"; then
+if python3 -c "import networkx"; then
     echo '*** Python package networkx is installed'
 else
-    echo 'ERROR ====>>> Python package networkx is not installed !!! FitHiChIP quits !!!'
+    echo 'ERROR ====>>> Python3 package networkx is not installed !!! Try to install the package by python3 -m pip install networkx. FitHiChIP quits !!!'
     errcond=1
 fi
 
 # check if MACS2 package is installed
 macs2version=$(macs2 --version 2>&1 |  head -n 1 | awk -F[" "] '{print $2 }' -)
 if [[ -z "$macs2version" ]]; then
-    echo "ERROR ====>>> MACS2 peak calling package is not detected in the system !!! FitHiChIP quits !!!" 
+    echo "ERROR ====>>> MACS2 peak calling package is not detected in the system !!! Try to install the package by python3 -m pip install MACS2. FitHiChIP quits !!!" 
     errcond=1
 else
 	echo "*** Found MACS2 package (for peak calling) installed in the system -  "$macs2version
@@ -692,11 +692,10 @@ fi 	# end dummy if - testing installed packages
 # here check if the configuration file has relative path names as the input
 # in such a case, convert the relative path names (with respect to the location of the configuration file itself)
 # in the absolute file
-
 # also perform Error checking - check if input files provided are correct
 # i.e. these files exist
 
-echo -e "\n ================ Changing relative pathnames of the input files to their absolute path names ================="
+echo -e "\n\n ====== Changing relative pathnames of the input files to their absolute path names ========== \n\n"
 
 # directory of the configuration file
 ConfigFileDir=$(dirname "${ConfigFile}")
@@ -849,6 +848,8 @@ cd -
 # further error checking - check for false values
 #===================
 
+echo -e "\n\n ====== Final checing of input parameters ========== \n\n"
+
 if [[ $IntType -lt 1 || $IntType -gt 5 ]]; then
 	echo 'ERROR ===>>>> Parameter IntType should have value between 1 to 5: -- FitHiChIP quits !!!'
 	exit 1
@@ -908,6 +909,7 @@ mkdir -p $OutDir
 #============================
 # print the parameters and values
 #============================
+echo -e "\n\n ====== Writing input parameters ========== \n\n"
 ConfFile=$OutDir/Parameters.txt
 
 if [[ ! -f $ConfFile || $OverWrite == 1 ]]; then
@@ -982,8 +984,9 @@ cd $currscriptdir
 
 #==============================
 # note down the executables of python and Rscript
-PythonExec=`which python`
-echo 'Executable of python (2): '$PythonExec
+# now FitHiChIP supports python3, instead of python2
+PythonExec=`which python3`
+echo 'Executable of python3: '$PythonExec
 
 RScriptExec=`which Rscript`
 echo 'Executable of R : '$RScriptExec
@@ -1005,7 +1008,7 @@ mkdir -p $HiCProMatrixDir
 # then use this interaction file
 if [[ ! -z $InpInitialInteractionBedFile ]]; then
 
-	echo -e "\n ================ Processing input pre-computed locus pairs along with the contact count : ${InpInitialInteractionBedFile} ================="
+	echo -e "\n\n ================ Processing input pre-computed locus pairs along with the contact count : ${InpInitialInteractionBedFile} ================= \n\n"
 
 	# check whether the file is gzipped or not
 	if [[ $InpInitialInteractionBedFile == *.gz ]]; then
@@ -1049,7 +1052,7 @@ else
 	# if the matrices are not provided and the validpairs text file is provided
 	# then compute the interaction matrices using the HiC-pro utility
 	#=================
-	echo -e "\n ================ Processing HiC-pro generated output ================="
+	echo -e "\n\n ================ Processing HiC-pro generated valid pairs and / or matrix files provided as input ================= \n\n"
 
 	if [[ -z $InpBinIntervalFile || -z $InpMatrixFile ]]; then
 
@@ -1131,7 +1134,7 @@ fi
 # ALL to ALL interactions
 #=======================
 
-echo -e "\n ================ Limiting input interactions to the specified distance ranges ${LowDistThres} to ${UppDistThres} ================="
+echo -e "\n\n ======= Limiting input interactions to the specified distance ranges ${LowDistThres} to ${UppDistThres} =========\n\n"
 
 # create a directory for individual distance thresholds
 InteractionThrDir=$HiCProMatrixDir'/L_'$LowDistThres'_U'$UppDistThres
@@ -1167,7 +1170,7 @@ mkdir -p $FeatureDir
 # for individual bins
 if [[ ! -z $MappabilityFile && ! -z $RefFastaFile && ! -z $REFragFile ]]; then
 
-	echo -e "\n ================ Processing input mappability, GC content files ================="
+	echo -e "\n\n ================ Processing input mappability, GC content files ================= \n\n"
 
 	# file storing the RE fragments, mappability and GC content together
 	REFragMappGCFile=$FeatureDir'/REFrag_Mapp_GC_Merged.bed'
@@ -1306,7 +1309,7 @@ fi 	# end if mappability, GC content and RE frag files exist
 # previously a python script was used
 # now a better optimized R script is used
 #=================
-echo -e "\n ================ Generating coverage statistics and bias for individual bins ================="
+echo -e "\n\n ================ Generating coverage statistics and bias for individual bins ================= \n\n"
 
 CoverageFile=$FeatureDir'/'$PREFIX'.coverage.bed'
 
@@ -1435,7 +1438,7 @@ fi
 # before applying bedtools map, check whether the input is sorted by position
 #==================================
 
-echo -e "\n ================ creating full feature file for FitHiChIP ================="
+echo -e "\n\n ================ creating full feature file for FitHiChIP ================= \n\n"
 
 # Use of ICE / coverage bias results in different feature files
 if [ $BiasType == 2 ]; then
@@ -1530,7 +1533,7 @@ InteractionSortedDistFileName='Interactions.sortedGenDist.bed'
 # depending on the bias type, two different directories are created 
 # for each category of interactions
 #============================
-echo -e "\n ================ Generating interactions + features for significance estimation ================="
+echo -e "\n\n ================ Generating interactions + features for significance estimation ================= \n\n"
 
 DirALLtoALLBase=$OutDir'/FitHiChIP_ALL2ALL_b'$BIN_SIZE'_L'$LowDistThres'_U'$UppDistThres
 if [ $BiasType == 2 ]; then
@@ -1603,7 +1606,7 @@ else
 	IntHigh=4
 fi
 
-echo "Specified IntType: "$IntType
+echo "Specified Interaction Type (in the configuration parameter file): "$IntType
 echo "Derived IntLow: "$IntLow
 echo "Derived IntHigh: "$IntHigh
 
@@ -1735,6 +1738,8 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 	echo "Merging nearby interactions (1: yes, 0: no): $MergeInteraction " >> $outtext
 
 	#====================================
+	echo -e "\n\n ============= Calling significant interactions ========== \n\n"
+
 	# files storing FitHiChIP interactions (significant + all)
 	# along with the WashU browser compatible interactions
 	FitHiC_Pass1_outfile=$GenFitHiCDir'/'$PREFIX'.interactions_FitHiC.bed'
@@ -1837,12 +1842,11 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 	#========================
 	# if merge filtering is enabled, we apply on the FitHiChIP significant interactions
 	# and also create a washu browser generated compatible file
-	#========================
-
+	#========================	
 	if [[ $MergeInteraction == 1 && $nsigFitHiC -gt 1 ]]; then
-		echo '********** Merged filtering option is true ************'		
+		echo -e "\n ********** Merged filtering option is true ************\n"
 		if [[ ! -f $FitHiC_Pass1_Filt_MergedIntfile || $OverWrite == 1 ]]; then
-			echo '******** applying merge filtering on the FitHiChIP significant interactions ******'
+			echo -e '\n******** applying merge filtering on the FitHiChIP significant interactions ******\n'
 			# create merged interactions - connected component based analysis
 			$PythonExec ./src/CombineNearbyInteraction.py --InpFile $FitHiC_Pass1_Filtfile --OutFile $FitHiC_Pass1_Filt_MergedIntfile --headerInp 1 --binsize $BIN_SIZE --percent 100 --Neigh 2		
 			echo '----- Applied merged filtering (connected component model) on the adjacent loops of FitHiChIP'
