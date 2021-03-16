@@ -1751,7 +1751,7 @@ if (0) {
 	}
 
 	# now sort the file contents and write that in the final specified output file
-	system(paste('sort -k1,1 -k2,2n -k5,5n', paste0('-k',opt$cccol,',',opt$cccol,'nr'), temp_outfile, '>', opt$OutFile))
+	system(paste('(head -n 1', temp_outfile, '&& tail -n +2', temp_outfile, '| sort -k1,1 -k2,2n -k5,5n', paste0('-k',opt$cccol,',',opt$cccol,'nr'), ')>', opt$OutFile))
 
 }	# end dummy if
 
@@ -1775,7 +1775,7 @@ if (1) {
 	system(paste("rm", temp_outfile_2))
 
 	# now sort the file contents and write that in the final specified output file
-	system(paste('sort -k1,1 -k2,2n -k5,5n', paste0('-k',opt$cccol,',',opt$cccol,'nr'), temp_outfile, '>', opt$OutFile))
+	system(paste('(head -n 1', temp_outfile, '&& tail -n +2', temp_outfile, '| sort -k1,1 -k2,2n -k5,5n', paste0('-k',opt$cccol,',',opt$cccol,'nr'), ')>', opt$OutFile))
 
 }	# end dummy if
 
