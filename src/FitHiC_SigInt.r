@@ -45,6 +45,9 @@ AllPossibleContacts <- function(InpDistSet, binsize, ChrSpecBin.df, IntType) {
 	# this vector stores number of locus pairs for individual genomic distance
 	CountLocusPairDist <- rep(0, length(InpDistSet))
 
+	# number of processors within the system
+	ncore <- detectCores()
+
 	# compute all possible locus pairs for individual chromosomes
 	res_chrCntLocPair <- as.data.frame(parallel:::mclapply( 1:length(ChrList_NameNum) , mc.cores = ncore , function(chr_idx){
 
