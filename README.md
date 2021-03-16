@@ -33,6 +33,16 @@ All the results in FitHiChIP, like the significant loops, HiChIP peak calling, p
 
 https://doi.org/10.5281/zenodo.3255048
 
+
+Release notes corresponding to version 9.1 (in progress) (March 15, 2021)
+---------------------------------------------------------
+
+	1. Upgraded merge filtering routine to support Python3, instead of deprecated python2
+	2. Updated README and manual
+
+
+
+
 Release notes corresponding to version 9.0 (January 10, 2021)
 ----------------------------------------------------------------
 
