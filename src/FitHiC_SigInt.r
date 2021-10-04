@@ -189,7 +189,6 @@ nbins <- as.integer(opt$nbins)
 
 # peak to peak background usage option
 Peak2PeakBackg <- as.integer(opt$P2P)
-cat(sprintf("\n Peak to peak background usage for spline fit: %s ", Peak2PeakBackg))
 
 # input interaction type
 IntType <- as.integer(opt$IntType)
@@ -213,8 +212,8 @@ if (timeprof == 1) {
 }
 
 # list of parameters
-if (0) {
-	cat(sprintf("\n\n ******* list of parameters - \n BinSize : %s \n IntType : %s \n UseNonzeroContacts : %s \n P2P : %s \n BiasCorr : %s \n BiasType : %s \n BiasLowThr : %s \n BiasHighThr : %s \n nbins : %s \n BiasFilt : %s \n MultBias : %s \n Resid : %s \n EqOcc : %s \n\n", opt$BinSize, opt$IntType, opt$UseNonzeroContacts, opt$P2P, opt$BiasCorr, opt$BiasType, opt$BiasLowThr, opt$BiasHighThr, opt$nbins, opt$BiasFilt, opt$MultBias, opt$Resid, opt$EqOcc))
+if (1) {
+	cat(sprintf("\n\n ******* Within significant interaction module - list of parameters - \n BinSize : %s \n IntType : %s \n P2P background usage : %s \n BiasCorr : %s \n BiasType : %s \n nbins : %s \n\n", opt$BinSize, opt$IntType, opt$P2P, opt$BiasCorr, opt$BiasType, opt$nbins))
 }
 
 #========================================================
@@ -251,7 +250,13 @@ if (opt$UseNonzeroContacts == 0) {
 # load the interaction data matrix (its header information is provided in opt$headerInp)
 interaction.data <- data.table::fread(opt$InpFile, header=opt$headerInp, sep="\t", stringsAsFactors=F)
 if (opt$headerInp == FALSE) {
-	colnames(interaction.data) <- c("chr1", "s1", "e1", "chr2", "s2", "e2", "cc", "d1", "isPeak1", "Bias1", "mapp1", "gc1", "cut1", "d2", "isPeak2", "Bias2", "mapp2", "gc2", "cut2")
+	if (0) {
+		## old code - does not use genomic distance
+		colnames(interaction.data) <- c("chr1", "s1", "e1", "chr2", "s2", "e2", "cc", "d1", "isPeak1", "Bias1", "mapp1", "gc1", "cut1", "d2", "isPeak2", "Bias2", "mapp2", "gc2", "cut2")
+	} else {
+		## new code - uses genomic distance	
+		colnames(interaction.data) <- c("chr1", "s1", "e1", "chr2", "s2", "e2", "cc", "d1", "isPeak1", "Bias1", "mapp1", "gc1", "cut1", "d2", "isPeak2", "Bias2", "mapp2", "gc2", "cut2", "Dist")
+	}
 }
 
 if (timeprof == 1) {
@@ -312,7 +317,13 @@ if ((opt$BiasCorr == 1) & (opt$BiasFilt == 1)) {
 
 #======================================================
 # absolute genomic distance for an interaction instance
-gene.dist <- abs(interaction.data[,2] - interaction.data[,5])
+if (0) {
+	## old code - when genomic distance was not used
+	gene.dist <- abs(interaction.data[,2] - interaction.data[,5])
+} else {
+	## new code - uses genomic distance	
+	gene.dist <- abs(interaction.data[,ncol(interaction.data)])
+}
 
 # no of interactions pairs
 numPairs <- length(gene.dist)
@@ -335,13 +346,20 @@ if (is.unsorted(gene.dist) == TRUE) {
 # if --P2P is enabled, training data consists of only peak to peak interactions
 # else training data consists of the complete interaction set
 if ((Peak2PeakBackg == 1) & (ncol(interaction.data) >= 15)) {
-	TrainingData <- interaction.data[which((interaction.data[,9] == 1) & (interaction.data[,15] == 1)), ]
-	# append the interaction distance as the last column of the training data
-	TrainingData <- cbind(TrainingData, abs(TrainingData[,2] - TrainingData[,5]))
-	# now sort the data with respect to increasing interaction distance
-	TrainingData <- TrainingData[order( TrainingData[,ncol(TrainingData)] ), ]
-	# remove the last column
-	TrainingData <- TrainingData[,1:(ncol(TrainingData)-1)]
+	idx <- which((interaction.data[,9] == 1) & (interaction.data[,15] == 1))
+	TrainingData <- interaction.data[idx, ]
+	if (0) {
+		## old code - when genomic distance was not used
+		# append the interaction distance as the last column of the training data
+		TrainingData <- cbind(TrainingData, abs(TrainingData[,2] - TrainingData[,5]))
+		# now sort the data with respect to increasing interaction distance
+		TrainingData <- TrainingData[order( TrainingData[,ncol(TrainingData)] ), ]
+		# remove the last column
+		TrainingData <- TrainingData[,1:(ncol(TrainingData)-1)]
+	} else {
+		## sort the training data with respect to the interaction distance
+		TrainingData <- TrainingData[order( TrainingData[,ncol(TrainingData)] ), ]
+	}
 } else {
 	TrainingData <- interaction.data
 }
@@ -355,7 +373,13 @@ if (numTrainingPairs == 0) {
 cat(sprintf("\n ****** Total number of training interactions: %s ********", numTrainingPairs))
 
 # interaction distance vector for the training data only
-Trainingdata_GeneDist <- abs(TrainingData[,2] - TrainingData[,5])
+if (0) {
+	## old code - when genomic distance was not used
+	Trainingdata_GeneDist <- abs(TrainingData[,2] - TrainingData[,5])
+} else {
+	## new code - uses genomic distance	
+	Trainingdata_GeneDist <- TrainingData[, ncol(TrainingData)]
+}
 
 # contact count sum for the training data
 TotTrainingDataContact <- sum(TrainingData[,opt$cccol])
@@ -440,7 +464,13 @@ nelemSameGeneDist <- c()
 while (ei < numTrainingPairs) {
 	# start index of this particular bin
 	si <- ei + 1
-	curr_gene_dist <- abs(TrainingData[si,2] - TrainingData[si,5])
+	if (0) {
+		## old code - when genomic distance was not used
+		curr_gene_dist <- abs(TrainingData[si,2] - TrainingData[si,5])
+	} else {
+		## new code - uses genomic distance	at the last column
+		curr_gene_dist <- abs(TrainingData[si,ncol(TrainingData)])
+	}
 	idx_list <- which(Trainingdata_GeneDist == curr_gene_dist)
 	# number of elements (interacting segment pairs) with this particular genomic distance
 	# and having nonzero contact count
@@ -626,7 +656,7 @@ if (timeprof == 1) {
 # in the unit of bin size employed in the current file)
 # here the spline is adapted on the full set of interactions
 #=========================
-binsize <- abs(interaction.data[1,2] - interaction.data[1,5])
+binsize <- abs(interaction.data[1,2] - interaction.data[1,3])
 TestDistVal <- seq(min(gene.dist), max(gene.dist), binsize)
 
 # probability obtained from the spline
@@ -1092,92 +1122,130 @@ if (opt$BiasCorr == 0) {
 				# copy the spline based probability 
 				Prob_Val[si:ei] <- p
 
-				# #================
-				# # add - sourya
-
-				# # first compute the expected contact count
-				# # using the regression coefficients
-				# # and then filter out the NA entries
-				# if (opt$Resid == 0) {
-				# 	expCCVec <- 10^(coeff_Intcpt + coeff_LogBias1 * log10(interaction.data[si:ei, bias1.col]) + coeff_LogBias2 * log10(interaction.data[si:ei, bias2.col]))
-				# } else {
-				# 	expCCVec <- 10^(coeff_Intcpt + coeff_LogBias1 * log10(interaction.data[si:ei, bias1.col]) + coeff_LogBias2 * log10(interaction.data[si:ei, bias2.col]) + log10(TotContact * p))
+				#================
+				## compute the expected contact count using the regression coefficients, and filter out the NA entries
+				#================
+				# ## approach 1
+				# if (0) {			
+				# 	if (opt$Resid == 0) {
+				# 		expCCVec <- 10^(coeff_Intcpt + coeff_LogBias1 * log10(interaction.data[si:ei, bias1.col]) + coeff_LogBias2 * log10(interaction.data[si:ei, bias2.col]))
+				# 	} else {
+				# 		expCCVec <- 10^(coeff_Intcpt + coeff_LogBias1 * log10(interaction.data[si:ei, bias1.col]) + coeff_LogBias2 * log10(interaction.data[si:ei, bias2.col]) + log10(TotContact * p))
+				# 	}
+				# 	# get indices having non-NA expected contact count
+				# 	# Note: here we add the quantity (si-1) since the which operator returns indices from 1
+				# 	# to get the indices mapped back on the range si:ei, we add this offset
+				# 	non_NA_idx <- which(!is.na(expCCVec))
+				# 	nonzero_biasidx_set <- non_NA_idx + (si-1)
+				# 	# the zero bias values are those not in nonzero_biasidx_set
+				# 	zero_biasidx_set <- setdiff(seq(si, ei), nonzero_biasidx_set)
 				# }
+				#================
 
-				# # get indices having non-NA expected contact count
-				# # Note: here we add the quantity (si-1) since the which operator returns indices from 1
-				# # to get the indices mapped back on the range si:ei, we add this offset
-				# non_NA_idx <- which(!is.na(expCCVec))
-				# nonzero_biasidx_set <- non_NA_idx + (si-1)
-				# # the zero bias values are those not in nonzero_biasidx_set
-				# zero_biasidx_set <- setdiff(seq(si, ei), nonzero_biasidx_set)
-
-				# # end add - sourya
 				# #================
+				# ## approach 2
+				# if (0) {				
+				# 	# get indices having zero and non zero bias 
+				# 	# Note: here we add the quantity (si-1) since the which operator returns indices from 1
+				# 	# to get the indices mapped back on the range si:ei, we add this offset
+				# 	bias1_val_vec <- as.numeric(interaction.data[si:ei, bias1.col])
+				# 	bias2_val_vec <- as.numeric(interaction.data[si:ei, bias2.col])
+				# 	if (opt$BiasType == 1) {
+				# 		# coverage bias
+				# 		nonzero_biasidx_set <- which((bias1_val_vec > 0) & (bias2_val_vec > 0)) + (si-1)
+				# 	} else {
+				# 		# ICE bias
+				# 		# use bias values < 1000
+				# 		nonzero_biasidx_set <- which((bias1_val_vec > 0) & (bias1_val_vec < 1000) & (bias2_val_vec > 0) & (bias2_val_vec < 1000)) + (si-1)
+				# 	}
+				# 	# the zero bias values are those not in nonzero_biasidx_set
+				# 	zero_biasidx_set <- setdiff(seq(si, ei), nonzero_biasidx_set)
+				# 	if (0) {
+				# 		if (opt$BiasType == 1) {
+				# 			cat(sprintf("\n\n ****** Coverage bias regression - analyzing locus pairs between indices %s and %s - total elements : %s genomic distance : %s Spline fitted probability (p): %s number of locus pairs with non-zero bias values : %s number of locus pairs with zero bias in at least one end : %s ", si, ei, (ei-si+1), gene.dist[si], p, length(nonzero_biasidx_set), length(zero_biasidx_set)))
+				# 		} else {
+				# 			cat(sprintf("\n\n ****** ICE bias regression - analyzing locus pairs between indices %s and %s - total elements : %s genomic distance : %s Spline fitted probability (p): %s number of locus pairs with non-zero bias values (and within allowed thresholds) : %s number of locus pairs with zero bias in at least one end, or outside the allowed thresholds : %s ", si, ei, (ei-si+1), gene.dist[si], p, length(nonzero_biasidx_set), length(zero_biasidx_set)))
+				# 		}
+				# 	}
+				# 	# if one of the bias values are zero
+				# 	# then just use the spline predicted probability as the estimated distance
+				# 	if (length(zero_biasidx_set) > 0) {
+				# 		Exp_CC_BiasRegr[zero_biasidx_set] <- (TotContact * p)	
+				# 		if (0) {
+				# 			cat(sprintf("\n *** for locus pairs with zero bias in at least one end (or bias values outside very high thresholds) - assigning expected contact count value : %s ", (TotContact * p)))
+				# 		}
+				# 	}			
+				# 	# for non-zero bias values, use the bias regression predicted contact count
+				# 	if (length(nonzero_biasidx_set) > 0) {
+				# 		if (opt$Resid == 0) {
+				# 			Exp_CC_BiasRegr[nonzero_biasidx_set] <- 10^(coeff_Intcpt + coeff_LogBias1 * log10(as.numeric(interaction.data[nonzero_biasidx_set, bias1.col])) + coeff_LogBias2 * log10(as.numeric(interaction.data[nonzero_biasidx_set, bias2.col])))
+				# 		} else {
+				# 			# here residual contact count is predicted
+				# 			# add the spline fit contact count to the predicted value
+				# 			Exp_CC_BiasRegr[nonzero_biasidx_set] <- 10^(coeff_Intcpt + coeff_LogBias1 * log10(as.numeric(interaction.data[nonzero_biasidx_set, bias1.col])) + coeff_LogBias2 * log10(as.numeric(interaction.data[nonzero_biasidx_set, bias2.col])) + log10(TotContact * p))
+				# 		}
+				# 		# condition add - sourya
+				# 		# for ICE bias, check if the expected contact count is going beyond a certain limit
+				# 		if (opt$BiasType == 2) {						
+				# 			limit_exceed_idx <- which(Exp_CC_BiasRegr > (2^15))
+				# 			if (length(limit_exceed_idx) > 0) {
+				# 				Exp_CC_BiasRegr[limit_exceed_idx] <- (TotContact * p)
+				# 				if (0) {
+				# 					cat(sprintf("\n *** ICE bias regression -- number of elements with very high expected CC : %s trimmed their expected contact count to the value : %s ", length(limit_exceed_idx), (TotContact * p)))
+				# 				}
+				# 			}
+				# 		}
+				# 		# end condition - sourya
+				# 		if (0) {
+				# 			cat(sprintf("\n *** processing nonzero_biasidx_set - maximum Exp_CC_BiasRegr in these elements : %s ", max(Exp_CC_BiasRegr[nonzero_biasidx_set])))
+				# 		}
+				# 	}
+				# }	# end dummy if
 
 				#================
-				# get indices having zero and non zero bias 
-				# Note: here we add the quantity (si-1) since the which operator returns indices from 1
-				# to get the indices mapped back on the range si:ei, we add this offset
-
-				bias1_val_vec <- as.numeric(interaction.data[si:ei, bias1.col])
-				bias2_val_vec <- as.numeric(interaction.data[si:ei, bias2.col])
-
-				if (opt$BiasType == 1) {
-					# coverage bias
+				## approach 3
+				if (1) {
+					bias1_val_vec <- as.numeric(interaction.data[si:ei, bias1.col])
+					bias2_val_vec <- as.numeric(interaction.data[si:ei, bias2.col])
 					nonzero_biasidx_set <- which((bias1_val_vec > 0) & (bias2_val_vec > 0)) + (si-1)
-				} else {
-					# ICE bias
-					# use bias values < 1000
-					nonzero_biasidx_set <- which((bias1_val_vec > 0) & (bias1_val_vec < 1000) & (bias2_val_vec > 0) & (bias2_val_vec < 1000)) + (si-1)
-				}
-
-				# the zero bias values are those not in nonzero_biasidx_set
-				zero_biasidx_set <- setdiff(seq(si, ei), nonzero_biasidx_set)
-
-				if (0) {
-					if (opt$BiasType == 1) {
-						cat(sprintf("\n\n ****** Coverage bias regression - analyzing locus pairs between indices %s and %s - total elements : %s genomic distance : %s Spline fitted probability (p): %s number of locus pairs with non-zero bias values : %s number of locus pairs with zero bias in at least one end : %s ", si, ei, (ei-si+1), gene.dist[si], p, length(nonzero_biasidx_set), length(zero_biasidx_set)))
-					} else {
-						cat(sprintf("\n\n ****** ICE bias regression - analyzing locus pairs between indices %s and %s - total elements : %s genomic distance : %s Spline fitted probability (p): %s number of locus pairs with non-zero bias values (and within allowed thresholds) : %s number of locus pairs with zero bias in at least one end, or outside the allowed thresholds : %s ", si, ei, (ei-si+1), gene.dist[si], p, length(nonzero_biasidx_set), length(zero_biasidx_set)))
-					}
-				}
-
-				# if one of the bias values are zero
-				# then just use the spline predicted probability as the estimated distance
-				if (length(zero_biasidx_set) > 0) {
-					Exp_CC_BiasRegr[zero_biasidx_set] <- (TotContact * p)	
+					zero_biasidx_set <- setdiff(seq(si, ei), nonzero_biasidx_set)
 					if (0) {
-						cat(sprintf("\n *** for locus pairs with zero bias in at least one end (or bias values outside very high thresholds) - assigning expected contact count value : %s ", (TotContact * p)))
+						if (opt$BiasType == 1) {
+							cat(sprintf("\n\n ****** Coverage bias regression "))
+						} else {
+							cat(sprintf("\n\n ****** ICE bias regression "))
+						}
+						cat(sprintf(" - analyzing locus pairs between indices %s and %s - total elements : %s genomic distance : %s Spline fitted probability (p): %s number of locus pairs with non-zero bias values (and within allowed thresholds) : %s number of locus pairs with zero bias in at least one end, or outside the allowed thresholds : %s ", si, ei, (ei-si+1), gene.dist[si], p, length(nonzero_biasidx_set), length(zero_biasidx_set)))
 					}
-				}
-				
-				# for non-zero bias values, use the bias regression predicted contact count
-				if (length(nonzero_biasidx_set) > 0) {
-					if (opt$Resid == 0) {
-						Exp_CC_BiasRegr[nonzero_biasidx_set] <- 10^(coeff_Intcpt + coeff_LogBias1 * log10(as.numeric(interaction.data[nonzero_biasidx_set, bias1.col])) + coeff_LogBias2 * log10(as.numeric(interaction.data[nonzero_biasidx_set, bias2.col])))
-					} else {
-						# here residual contact count is predicted
-						# add the spline fit contact count to the predicted value
-						Exp_CC_BiasRegr[nonzero_biasidx_set] <- 10^(coeff_Intcpt + coeff_LogBias1 * log10(as.numeric(interaction.data[nonzero_biasidx_set, bias1.col])) + coeff_LogBias2 * log10(as.numeric(interaction.data[nonzero_biasidx_set, bias2.col])) + log10(TotContact * p))
-					}
-
-					# condition add - sourya
-					# for ICE bias, check if the expected contact count is going beyond a certain limit
-					if (opt$BiasType == 2) {						
-						limit_exceed_idx <- which(Exp_CC_BiasRegr > (2^15))
-						if (length(limit_exceed_idx) > 0) {
-							Exp_CC_BiasRegr[limit_exceed_idx] <- (TotContact * p)
-							if (0) {
-								cat(sprintf("\n *** ICE bias regression -- number of elements with very high expected CC : %s trimmed their expected contact count to the value : %s ", length(limit_exceed_idx), (TotContact * p)))
-							}
+					# if one of the bias values are zero
+					# then just use the spline predicted probability as the estimated distance
+					if (length(zero_biasidx_set) > 0) {
+						Exp_CC_BiasRegr[zero_biasidx_set] <- (TotContact * p)	
+						if (0) {
+							cat(sprintf("\n *** for locus pairs with zero bias in at least one end (or bias values outside very high thresholds) - assigning expected contact count value : %s ", (TotContact * p)))
+						}
+					}					
+					# for non-zero bias values, use the bias regression predicted contact count
+					if (length(nonzero_biasidx_set) > 0) {
+						if (opt$Resid == 0) {
+							Exp_CC_BiasRegr[nonzero_biasidx_set] <- 10^(coeff_Intcpt + coeff_LogBias1 * log10(as.numeric(interaction.data[nonzero_biasidx_set, bias1.col])) + coeff_LogBias2 * log10(as.numeric(interaction.data[nonzero_biasidx_set, bias2.col])))
+						} else {
+							# here residual contact count is predicted
+							# add the spline fit contact count to the predicted value
+							Exp_CC_BiasRegr[nonzero_biasidx_set] <- 10^(coeff_Intcpt + coeff_LogBias1 * log10(as.numeric(interaction.data[nonzero_biasidx_set, bias1.col])) + coeff_LogBias2 * log10(as.numeric(interaction.data[nonzero_biasidx_set, bias2.col])) + log10(TotContact * p))
 						}
 					}
-					# end condition - sourya
-					if (0) {
-						cat(sprintf("\n *** processing nonzero_biasidx_set - maximum Exp_CC_BiasRegr in these elements : %s ", max(Exp_CC_BiasRegr[nonzero_biasidx_set])))
+
+					## check for NA or infinite entries
+					## specifically true for ICE bias
+					## and replace with the max possible integer
+					na_idx <- which(is.na(Exp_CC_BiasRegr) | (!is.finite(Exp_CC_BiasRegr)))
+					if (length(na_idx) > 0) {
+						Exp_CC_BiasRegr[na_idx] <- (2^15)	## arbitrary high integer
+						cat(sprintf("\n\n *** bias regression - possible overflow / NA -- number of elements : %s assigned 2^15 ", length(na_idx)))
 					}
-				}
+
+				}	# end dummy if
 
 			}	# end distance loop 
 
@@ -1190,17 +1258,23 @@ if (opt$BiasCorr == 0) {
 				cat(sprintf("\n\n\n ==>>> modeled the bias regression -- time: %s \n\n", (time_end - time_start)))
 			}
 
-			# now use the expected contact count from the bias correction 
-			# to model the binomial distribution
-			NumElem <- length(Exp_CC_BiasRegr)
-			non_NA_Exp_CC_BiasRegr <- which(!is.na(Exp_CC_BiasRegr))
-			ExpTotContact_1 <- sum(Exp_CC_BiasRegr)
-			# check the maximum integer range and trim the sum of expected contact count
-			ExpTotContact <- as.integer(sum(Exp_CC_BiasRegr))
+			## now use the expected contact count from the bias correction 
+			## to model the binomial distribution
+			## get the sum of expected contact counts
+			NumElem <- length(Exp_CC_BiasRegr)			
+			
+			# non_NA_Exp_CC_BiasRegr <- which(!is.na(Exp_CC_BiasRegr))
+			# ExpTotContact_1 <- sum(Exp_CC_BiasRegr)
+			
+			## check the maximum integer range and trim the sum of expected contact count
 			# ExpTotContact <- as.integer(min(sum(Exp_CC_BiasRegr), as.integer(.Machine$integer.max)))
+			ExpTotContact <- as.integer(sum(Exp_CC_BiasRegr))
+			if (is.na(ExpTotContact)) {
+				ExpTotContact <- as.integer(.Machine$integer.max)
+			}
 
-			if (0) {
-				cat(sprintf("\n *** NumElem: %s  length non_NA_Exp_CC_BiasRegr : %s  ExpTotContact_1 : %s ExpTotContact : %s ", NumElem, length(non_NA_Exp_CC_BiasRegr), ExpTotContact_1, ExpTotContact))
+			if (1) {
+				cat(sprintf("\n *** NumElem: %s ExpTotContact : %s ", NumElem, ExpTotContact))
 			}
 
 			# debug - sourya
@@ -1727,33 +1801,33 @@ if (timeprof == 1) {
 }
 
 
-# sourya - comment 
-if (0) {
+# # sourya - comment 
+# if (0) {
 
-	# accumulate all results - also add header information
-	if ((opt$BiasCorr == 0) | ((opt$BiasCorr == 1) & (opt$MultBias == 1))) {
-		# either there is no bias correction
-		# or bias correction is done by multiplying the probabilities
-		FinalData <- cbind(interaction.data, Prob_Val, Spline_Binom_Prob_CC, Spline_Binom_P_Val_CC, Spline_Binom_QVal)
-		colnames(FinalData) <- c(colnames(interaction.data), "p", "dbinom", "P-Value", "Q-Value")	
-	} else {
-		# here accumulate both the original spline fit probability
-		# and also the probability obtained from the bias regression
-		# and the expected contact count from the bias regression model
-		# P and Q values are similar
-		FinalData <- cbind(interaction.data, Prob_Val, Exp_CC_BiasRegr, Prob_BiasRegr, Spline_Binom_Prob_CC, Spline_Binom_P_Val_CC, Spline_Binom_QVal)	
-		colnames(FinalData) <- c(colnames(interaction.data), "p", "exp_cc_Bias", "p_Bias", "dbinom_Bias", "P-Value_Bias", "Q-Value_Bias")	
+# 	# accumulate all results - also add header information
+# 	if ((opt$BiasCorr == 0) | ((opt$BiasCorr == 1) & (opt$MultBias == 1))) {
+# 		# either there is no bias correction
+# 		# or bias correction is done by multiplying the probabilities
+# 		FinalData <- cbind(interaction.data, Prob_Val, Spline_Binom_Prob_CC, Spline_Binom_P_Val_CC, Spline_Binom_QVal)
+# 		colnames(FinalData) <- c(colnames(interaction.data), "p", "dbinom", "P-Value", "Q-Value")	
+# 	} else {
+# 		# here accumulate both the original spline fit probability
+# 		# and also the probability obtained from the bias regression
+# 		# and the expected contact count from the bias regression model
+# 		# P and Q values are similar
+# 		FinalData <- cbind(interaction.data, Prob_Val, Exp_CC_BiasRegr, Prob_BiasRegr, Spline_Binom_Prob_CC, Spline_Binom_P_Val_CC, Spline_Binom_QVal)	
+# 		colnames(FinalData) <- c(colnames(interaction.data), "p", "exp_cc_Bias", "p_Bias", "dbinom_Bias", "P-Value_Bias", "Q-Value_Bias")	
 
-		# append the Spline distribution probability and corresponding P value as separate columns
-		# and write in a separate text file
-		temp_outfile <- paste0(OutIntDir, '/', 'temp_out.bed')
-		write.table(FinalData, temp_outfile, row.names = FALSE, col.names = TRUE, sep = "\t", quote=FALSE, append=FALSE)	
-	}
+# 		# append the Spline distribution probability and corresponding P value as separate columns
+# 		# and write in a separate text file
+# 		temp_outfile <- paste0(OutIntDir, '/', 'temp_out.bed')
+# 		write.table(FinalData, temp_outfile, row.names = FALSE, col.names = TRUE, sep = "\t", quote=FALSE, append=FALSE)	
+# 	}
 
-	# now sort the file contents and write that in the final specified output file
-	system(paste('sort -k1,1 -k2,2n -k5,5n', paste0('-k',opt$cccol,',',opt$cccol,'nr'), temp_outfile, '>', opt$OutFile))
+# 	# now sort the file contents and write that in the final specified output file
+# 	system(paste('sort -k1,1 -k2,2n -k5,5n', paste0('-k',opt$cccol,',',opt$cccol,'nr'), temp_outfile, '>', opt$OutFile))
 
-}	# end dummy if
+# }	# end dummy if
 
 # add - sourya
 if (1) {
@@ -1765,17 +1839,20 @@ if (1) {
 		FinalData <- cbind.data.frame(Prob_Val, Exp_CC_BiasRegr, Prob_BiasRegr, Spline_Binom_Prob_CC, Spline_Binom_P_Val_CC, Spline_Binom_QVal)
 		colnames(FinalData) <- c("p", "exp_cc_Bias", "p_Bias", "dbinom_Bias", "P-Value_Bias", "Q-Value_Bias")
 	}
-	temp_outfile_2 <- paste0(OutIntDir, '/temp_out2.bed')
-	write.table(FinalData, temp_outfile_2, row.names=F, col.names=T, sep="\t", quote=F, append=F)
 
 	temp_outfile <- paste0(OutIntDir, '/temp_out.bed')
+	temp_outfile_2 <- paste0(OutIntDir, '/temp_out2.bed')	
+	write.table(FinalData, temp_outfile_2, row.names=F, col.names=T, sep="\t", quote=F, append=F)
+
+	## updated code - here genomic distance is used, so the output contains an additional field "Dist"
 	system(paste("paste", opt$InpFile, temp_outfile_2, ">", temp_outfile))
 
 	# delete the temporary output file
 	system(paste("rm", temp_outfile_2))
 
 	# now sort the file contents and write that in the final specified output file
-	system(paste('sort -k1,1 -k2,2n -k5,5n', paste0('-k',opt$cccol,',',opt$cccol,'nr'), temp_outfile, '>', opt$OutFile))
+	system(paste0("awk \'(NR==1)\' ", temp_outfile, " > ", opt$OutFile))
+	system(paste0("awk \'(NR>1)\' ", temp_outfile, " | sort -k1,1 -k2,2n -k5,5n -k", opt$cccol, ",", opt$cccol, "nr - >> ", opt$OutFile))
 
 }	# end dummy if
 
