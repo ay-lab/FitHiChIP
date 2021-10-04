@@ -111,6 +111,8 @@ BiasType=1
 UseP2PBackgrnd=1
 # Merging interactions which are near to each other
 MergeInteraction=1
+# if the reference genome is circular genome
+CircularGenome=0
 
 #========================
 # following parameters are now obsolete
@@ -171,6 +173,10 @@ do
 			if [ $param == "Bed" ]; then
 				InpInitialInteractionBedFile=$paramval
 			fi
+			## indicates circular genome
+			if [ $param == "CircularGenome" ]; then
+				CircularGenome=$paramval
+			fi			
 			if [ $param == "PeakFile" ]; then
 				PeakFILE=$paramval
 			fi
@@ -1018,7 +1024,7 @@ if [[ ! -z $InpInitialInteractionBedFile ]]; then
 		gzipInt=0
 	fi
 
-	Interaction_Initial_File=$HiCProMatrixDir/$PREFIX.interactions.initial.bed
+	Interaction_Initial_File=${HiCProMatrixDir}/${PREFIX}.interactions.initial.bed
 	
 	# dump the lines having 2nd, 3rd, 5th, 6th and 7th fields as integer
 	if [ $gzipInt == 1 ]; then
@@ -1107,7 +1113,7 @@ else
 	#=======================
 	echo -e "\n ================ Creating input interactions (bin pairs + CC) ================="
 
-	Interaction_Initial_File=$HiCProMatrixDir/$PREFIX.interactions.initial.bed
+	Interaction_Initial_File=${HiCProMatrixDir}/${PREFIX}.interactions.initial.bed
 
 	if [[ ! -f $Interaction_Initial_File || $OverWrite == 1 ]]; then
 		$RScriptExec ./src/InteractionHicPro.r $InpBinIntervalFile $InpMatrixFile $Interaction_Initial_File	
@@ -1142,7 +1148,12 @@ mkdir -p $InteractionThrDir
 Interaction_File=$InteractionThrDir/$PREFIX.cis.interactions.DistThr.bed
 
 if [[ ! -f $Interaction_File || $OverWrite == 1 ]]; then
-	awk -v l="$LowDistThres" -v u="$UppDistThres" -F['\t'] 'function abs(v) {return v < 0 ? -v : v} {if ((NR==1) || ($1==$4 && ($7>0) && abs($2-$5)>=l && abs($2-$5)<=u)) {print $0}}' $Interaction_Initial_File > $Interaction_File
+	
+	## old code - comment - sourya
+	# awk -v l="$LowDistThres" -v u="$UppDistThres" -F['\t'] 'function abs(v) {return v < 0 ? -v : v} {if ((NR==1) || ($1==$4 && ($7>0) && abs($2-$5)>=l && abs($2-$5)<=u)) {print $0}}' $Interaction_Initial_File > $Interaction_File
+
+	## new code - sourya
+	$RScriptExec ./src/Filt_Loop_DistThr.r $Interaction_Initial_File $Interaction_File $LowDistThres $UppDistThres $CircularGenome $ChrSizeFile
 
 	if [ $TimeProf == 1 ]; then
 		duration=$(echo "$(date +%s.%N) - $start" | bc)
@@ -1687,11 +1698,12 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 	if [[ ! -f $CurrIntFileSortDist || $OverWrite == 1 ]]; then
 
 		# old code - sourya
-		awk -F['\t'] -v OFS='\t' 'function abs(v) {return v < 0 ? -v : v} {print $0"\t"abs($5-$2)}' $CurrIntFile | sort -k${coln},${coln}n -k${cccol},${cccol}nr | cut -f1-${totcol} - > $CurrIntFileSortDist	
+		# awk -F['\t'] -v OFS='\t' 'function abs(v) {return v < 0 ? -v : v} {print $0"\t"abs($5-$2)}' $CurrIntFile | sort -k${coln},${coln}n -k${cccol},${cccol}nr | cut -f1-${totcol} - > $CurrIntFileSortDist	
 
 		# new code - sourya
 		# distance specific locus pair extract + sorted by genomic distance
-		# $RScriptExec ./src/Interaction_Sort_Genomic_Distance.r $CurrIntFile $CurrIntFileSortDist
+		## also supports circular genomes and corresponding distance calculations
+		$RScriptExec ./src/Interaction_Sort_Genomic_Distance.r $CurrIntFile $CurrIntFileSortDist $CircularGenome $ChrSizeFile
 
 		if [[ $TimeProf == 1 ]]; then
 			duration=$(echo "$(date +%s.%N) - $start" | bc)
