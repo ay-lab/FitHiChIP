@@ -25,6 +25,10 @@ Matrix=
 # chr1 	start1 	end1 	chr2 	start2 	end2 	contactcounts
 Bed=
 
+# Boolean variable indicating if the reference genome is circular
+# by default, it is 0
+# if the genome is circular, the calculation of genomic distance is slightly different
+CircularGenome=0
 
 # File containing reference ChIP-seq / HiChIP peaks (in .bed format)
 # mandatory parameter
