@@ -1703,7 +1703,7 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 		# new code - sourya
 		# distance specific locus pair extract + sorted by genomic distance
 		## also supports circular genomes and corresponding distance calculations
-		$RScriptExec ./src/Interaction_Sort_Genomic_Distance.r $CurrIntFile $CurrIntFileSortDist $CircularGenome $ChrSizeFile
+		$RScriptExec ./src/Interaction_Sort_Genomic_Distance.r $CurrIntFile $CurrIntFileSortDist $CircularGenome $ChrSizeFile $cccol
 
 		if [[ $TimeProf == 1 ]]; then
 			duration=$(echo "$(date +%s.%N) - $start" | bc)
