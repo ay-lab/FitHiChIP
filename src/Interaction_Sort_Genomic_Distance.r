@@ -12,29 +12,29 @@ InpFile <- as.character(args[1])
 OutFile <- as.character(args[2])
 CircularGenome <- as.integer(args[3])
 ChrSizeFile <- as.character(args[4])
+cccol <- as.integer(args[5])
 
-## copy the first line (header) in the output file
-## also append one field: genomic distance
-system(paste("head ", InpFile, " | awk \'{if (NR==1) {print $0\"\tDist\"}}\' - > ", OutFile))
-
-# ## also get the number of fields in the input file
-# nfield <- as.integer(system(paste("cat", OutFile, " | awk \'{print NF}\' -"), intern = TRUE))
-# cat(sprintf("\n Number of columns in the input file : %s ", nfield))
-
-## file to store the genomic distances for individual locus pairs
+## temporary file to store the genomic distances for individual locus pairs
 temp_Dist_LocusPairFile <- paste0(dirname(OutFile), '/temp_Dist_LocusPair.bed')
 if (file.exists(temp_Dist_LocusPairFile)) {
 	system(paste("rm", temp_Dist_LocusPairFile))
 }
 
-## file to store the individual genomic distance values
-tempDistFile <- paste0(dirname(OutFile), '/temp_Genomic_Distance.bed')
+## copy the first line (header) in the output file
+## also append one field: genomic distance
+system(paste("head ", InpFile, " | awk \'{if (NR==1) {print $0\"\tDist\"}}\' - > ", OutFile))
+
+## get the number of fields in the input file
+nfield <- as.integer(system(paste("awk \'{if (NR==1) {print NF}}\' ", OutFile), intern = TRUE))
+cat(sprintf("\n Number of columns in the output file : %s ", nfield))
 
 if (CircularGenome == 0) {
 	## traditional reference genome
-	system(paste0("awk -F\'[\t]\' \'function abs(v) {return v < 0 ? -v : v} {if (NR>1) {print $0\"\t\"abs($5-$2)}}\' ", InpFile, " > ", temp_Dist_LocusPairFile))
+	## sort by the genomic distance and then by the contact count
+	system(paste0("awk -F\'[\t]\' \'function abs(v) {return v < 0 ? -v : v} {if (NR>1) {print $0\"\t\"abs($5-$2)}}\' ", InpFile, " | sort -k", nfield, ",", nfield, "n -k", cccol, ",", cccol, "nr - >> ", OutFile))
 } else {
 	## circular genome
+	## construct locus pairs with genomic distance for individual chromosomes
 	ChrSizeData <- read.table(ChrSizeFile, header=F, sep="\t", stringsAsFactors=F)
 	ChrList <- unique(ChrSizeData[,1])
 	for (j in 1:length(ChrList)) {
@@ -43,26 +43,13 @@ if (CircularGenome == 0) {
 		## chromosome size for this chromosome
 		max_coord <- ChrSizeData[which(ChrSizeData[,1] == currchr), 2]
 		cat(sprintf(" -->> max_coord (from ChrSizeFile) for this chromosome : %s ", max_coord))
-		system(paste0("awk -F\'[\t]\' -v R=", max_coord, " -v c=\"", currchr, "\" \'function abs(v) {return v < 0 ? -v : v}; function min(x,y) {return x < y ? x : y} {if ((NR>1) && ($1==c)) {print $0\"\t\" min(min(abs($5-$2),abs((R-$5)+$2)),abs((R-$2)+$5))}}\' ", InpFile, " >> ", temp_Dist_LocusPairFile))
+		system(paste0("awk -F\'[\t]\' -v R=", max_coord, " -v c=\"", currchr, "\" \'function abs(v) {return v < 0 ? -v : v}; function min(x,y) {return x < y ? x : y} {if ((NR>1) && ($1==c)) {print $0\"\t\"min(min(abs($5-$2),abs((R-$5)+$2)),abs((R-$2)+$5))}}\' ", InpFile, " >> ", temp_Dist_LocusPairFile))
 	}
+	## now sort by the genomic distance and then by the contact count
+	system(paste0("sort -k", nfield, ",", nfield, "n -k", cccol, ",", cccol, "nr ", temp_Dist_LocusPairFile, " >> ", OutFile))	
 }
 
-system(paste0("awk -F\'[\t]\' \'{print $NF}\' ", temp_Dist_LocusPairFile, " | sort -k1,1n | uniq > ", tempDistFile))
-## read the unique distance values
-DistData <- read.table(tempDistFile, header=F, sep="\t", stringsAsFactors=F)
-DistValues <- sort(as.integer(DistData[,1]))
-for (i in 1:length(DistValues)) {
-	currDist <- DistValues[i]
-	cat(sprintf("\n ---- Processing distance value for sorting locus pairs based on interaction distance: %s ", currDist))
-	## old code - don't use the genomic distance (last field)
-	# system(paste0("awk -F[\'\t\'] \'{if ($NF == ", currDist, ") {print $0}}\' ", temp_Dist_LocusPairFile, " | sort -k7,7nr | cut -f1-", nfield, " >> ", OutFile))
-	## new code - use the genomic distance (last field)
-	system(paste0("awk -F[\'\t\'] \'{if ($NF == ", currDist, ") {print $0}}\' ", temp_Dist_LocusPairFile, " | sort -k7,7nr >> ", OutFile))
-}	# end distance value loop
-
-if (file.exists(tempDistFile)) {
-	system(paste("rm", tempDistFile))
-}
 if (file.exists(temp_Dist_LocusPairFile)) {
 	system(paste("rm", temp_Dist_LocusPairFile))
 }
+
