@@ -1123,7 +1123,7 @@ if (opt$BiasCorr == 0) {
 				pp_L2 <- predict(fit_spline_coeff_Logbias2_new, gene.dist[si])
 				coeff_LogBias2 <- pp_L2$y
 
-				if (1) {
+				if (0) {
 					cat(sprintf("\n *** Processing uniq distance idx: %s  si: %s  ei: %s num elem : %s  gene dist : %s  Spline prob (p): %s  coeff_Intcpt : %s coeff_LogBias1 : %s coeff_LogBias2 : %s ", k, si, ei, (ei-si+1), gene.dist[si], p, coeff_Intcpt, coeff_LogBias1, coeff_LogBias2))
 				}
 
@@ -1217,7 +1217,9 @@ if (opt$BiasCorr == 0) {
 					bias2_val_vec <- as.numeric(interaction.data[si:ei, bias2.col])
 					nonzero_biasidx_set <- which((bias1_val_vec > 0) & (bias2_val_vec > 0)) + (si-1)
 					zero_biasidx_set <- setdiff(seq(si, ei), nonzero_biasidx_set)
-					if (1) {
+
+					## debug - sourya
+					if (0) {
 						if (opt$BiasType == 1) {
 							cat(sprintf("\n\n ****** Coverage bias regression "))
 						} else {
@@ -1225,6 +1227,7 @@ if (opt$BiasCorr == 0) {
 						}
 						cat(sprintf(" - analyzing locus pairs between indices %s and %s - total elements : %s genomic distance : %s Spline fitted probability (p): %s number of locus pairs with non-zero bias values (and within allowed thresholds) : %s number of locus pairs with zero bias in at least one end, or outside the allowed thresholds : %s ", si, ei, (ei-si+1), gene.dist[si], p, length(nonzero_biasidx_set), length(zero_biasidx_set)))
 					}
+
 					# if one of the bias values are zero
 					# then just use the spline predicted probability as the estimated distance
 					if (length(zero_biasidx_set) > 0) {
@@ -1305,6 +1308,7 @@ if (opt$BiasCorr == 0) {
 					ei <- numPairs	# last read	
 				}
 
+				## debug - sourya
 				if (1) {
 					cat(sprintf("\n *** Modeling regression bias probability based P value --- uniq distance idx: %s  si: %s  ei: %s num elem : %s ", k, si, ei, (ei-si+1)))
 				}
@@ -1317,7 +1321,8 @@ if (opt$BiasCorr == 0) {
 					pr_bias <- (Exp_CC_BiasRegr[idx] * 1.0) / ExpTotContact
 					db2 <- dbinom(curr_cc, size=ExpTotContact, prob=pr_bias)
 					pb2 <- pbinom(curr_cc, size=ExpTotContact, prob=pr_bias, lower.tail=FALSE)
-					if (1) {
+					## debug - sourya
+					if (0) {
 						cat(sprintf("\n idx : %s curr_cc: %s  pr_bias : %s  db2 : %s  pb2: %s ", idx, curr_cc, pr_bias, db2, pb2))
 					}
 					return(c(idx,pr_bias,db2,(db2+pb2)))
