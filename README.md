@@ -34,6 +34,13 @@ All the results in FitHiChIP, like the significant loops, HiChIP peak calling, p
 https://doi.org/10.5281/zenodo.3255048
 
 
+Release - Version 10.0 (April 2022)
+---------------------------
+1. HiC-pro installation directory is required only if user provides HiC-pro valid pairs output. If user provides matrix and bin interval files (obtained from another source), he/she does not require to install HiCPro.
+2. HiC-pro version is no longer tested, although users are requested to use the latest version of HiC-Pro if they are providing the valid pairs as the input.
+3. Parallel processing is updated. Instead of using mclapply, we use lapply. Some users experienced halt / crash of parallel processing routine in their clusters, while working with mclapply, since it uses process forking. The difference in running time is negligible.
+
+
 Major release - version 9.1 (October, 2021)
 ---------------------------------------------------------
 
