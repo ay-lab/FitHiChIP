@@ -34,28 +34,22 @@ All the results in FitHiChIP, like the significant loops, HiChIP peak calling, p
 https://doi.org/10.5281/zenodo.3255048
 
 
-Release notes corresponding to version 9.1 (in progress) (March 15, 2021)
----------------------------------------------------------
+Release notes - Version 10.0 (April 2022)
+-----------------------------------------
 
-	1. Upgraded merge filtering routine to support Python3, instead of deprecated python2
-	2. Updated README and manual
+	1. HiC-pro installation directory is now checked only if user provides HiC-pro valid pairs output. If user provides matrix and bin interval files (obtained from another source), he/she does not require to install HiCPro.
+	2. HiC-pro version checking is stopped. Although users are requested to use the latest version of HiCPro.
+	3. Parallel processing is updated. Instead of using mclapply, we use lapply. Some users experienced halt / crash of parallel processing routine.
 
 
+For the earlier release notes, please check the file *Release_Notes.txt*
 
 
-Release notes corresponding to version 9.0 (January 10, 2021)
-----------------------------------------------------------------
+Utility scripts for the manuscript
+======================================
 
-	1. Updated singularity, Docker installation, incorporating the latest code and dependencies.
-	2. Incorporated simultaneous generation of WashU browser compatible tracks for differential analysis.
-	3. Minor warning fix regarding 0 size of input peaks for a given chromosome.
-	4. Updated documentation.
+	Check the folder *UtilScript* and corresponding README file for the links to various utility scripts used to generate the figures in this manuscript.
 
-Release notes corresponding to version 8.1 (May 10, 2020)
---------------------------------------------------------------
-
-	1. Mandatory to use HiCPro version 2.11.4. This version automatically installs ICE via python package iced.
-	2. Minor bug fix in testing the installed packages and versions before running FitHiChIP.
 
 
 Contact
