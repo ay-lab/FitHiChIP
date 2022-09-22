@@ -45,23 +45,28 @@ if (1) { #((file.exists(boxplotCCQvalfile) == FALSE) | (file.exists(plotfile) ==
 	unfilt.data <- data.table::fread(unfilt.file, header=T, sep="\t", stringsAsFactors=F)
 
 	# absolute genomic distance data
-	gen.dist <- abs(unfilt.data[,5] - unfilt.data[,2])
+	if (0) {
+		## old code - when genomic distance field was not specified in the output interactions
+		gen.dist <- abs(unfilt.data[,5] - unfilt.data[,2])
+	} else {
+		## new code - genomic distance field is specified
+		gen.dist <- unfilt.data$Dist
+	}
 
 	# indices corresponding to significant and insignificant interactions
+	# get the genomic distance and contact count for the significant interactions (Q value < QTHR)
 	idx.qthr.pass <- which(unfilt.data[,ncol(unfilt.data)] < QTHR)
+	# get the genomic distance and contact count for the nonsignificant interactions (Q value >= QTHR)
 	idx.qthr.fail <- which(unfilt.data[,ncol(unfilt.data)] >= QTHR)
 
 	# we only process and analyze if we have at least 2 success and 2 failure candidates
 	if ((length(idx.qthr.pass) > 1) && (length(idx.qthr.fail) > 1)) {
-
-		# get the genomic distance and contact count for the significant interactions (Q value < QTHR)
+		
 		contactcountcol <- unfilt.data[,contactcol]
+
 		CC.qthr.pass <- contactcountcol[idx.qthr.pass]
 		gen.dist.qthr.pass <- gen.dist[idx.qthr.pass]
-
-		# get the genomic distance and contact count for the nonsignificant interactions (Q value >= QTHR)
-		idx.qthr.fail <- which(unfilt.data[,ncol(unfilt.data)] >= QTHR)
-		contactcountcol <- unfilt.data[,contactcol]
+		
 		CC.qthr.fail <- contactcountcol[idx.qthr.fail]
 		gen.dist.qthr.fail <- gen.dist[idx.qthr.fail]
 
