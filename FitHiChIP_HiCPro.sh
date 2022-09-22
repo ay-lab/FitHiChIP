@@ -8,7 +8,7 @@
 
 # author: Sourya Bhattacharyya
 # Vijay-AY lab
-# La Jolla Institute for Allergy and Immunology
+# La Jolla Institute for Immunology
 #===============
 
 #===============
@@ -333,20 +333,6 @@ do
 	fi
 done < $ConfigFile
 
-#=========================
-# check whether HiC-pro is installed or not
-#=========================
-# path of HiC pro executable
-# of the format somedir/bin/HiC-Pro
-HiCProExec=`which HiC-Pro`
-if [[ -z $HiCProExec ]]; then
-	echo 'ERROR ===>>>> HiC-pro is not installed in the system - FitHiChIP quits !!!'
-	exit 1
-fi
-d1=$(dirname ${HiCProExec})
-HiCProBasedir=$(dirname ${d1})
-echo 'Base directory containing HiCPro package : '$HiCProBasedir
-
 #===================
 # verify the input parameters
 #===================
@@ -355,7 +341,7 @@ echo -e "\n\n ================ Verifying input configuration parameters ========
 
 if [[ -z $InpValidPairsFile && -z $InpInitialInteractionBedFile ]]; then
 	if [[ -z $InpBinIntervalFile || -z $InpMatrixFile ]]; then
-		echo -e 'There are three ways to provide FitHiChIP input: \n 1) provide valid pairs file (from HiC pro pipeline), \n 2) Provide both bin interval and matrix files (from HiC pro pipeline), or \n 3) provide a set of locus pairs along with their contact counts (7 columns). \n But user did not provide any of these input configurations. - exit !!'
+		echo -e 'There are three ways to provide FitHiChIP input: \n 1) provide valid pairs file (from HiC pro pipeline), \n 2) Provide both bin interval and matrix files (from HiC pro pipeline), or \n 3) provide a file in the Bed= option - either as a set of locus pairs along with their contact counts (7 columns), or in .hic format (from Juicer), or in .cool format. \n But user did not provide any of these input configurations. - exit !!'
 		exit 1
 	fi
 fi
@@ -387,13 +373,6 @@ fi
 # fi
 #======================
 
-if [[ -z $HiCProBasedir && -z $InpInitialInteractionBedFile ]]; then
-	if [[ -z $InpBinIntervalFile || -z $InpMatrixFile ]]; then
-		echo 'ERROR ====>>> As user did not provide any pre-computed locus pairs (along with their contact count) in BED input, neither provided the HiC-pro base installation directory, FitHiChIP quits - exit !!'
-		exit 1
-	fi
-fi
-
 if [[ -z $ChrSizeFile ]]; then
 	echo 'ERROR ====>>> Chromosome size file is not specified - exit !!'
 	exit 1
@@ -401,59 +380,90 @@ fi
 
 echo '***** Specified output directory : '$OutDir
 
+# boolean variable indicating error condition
+errcond=0
+
+##=============
+## if matrix file or bin interval files are not provided, 
+## get the installed HiC-pro version
+##=============
+
+if [[ -z $InpInitialInteractionBedFile ]]; then
+	if [[ -z $InpBinIntervalFile || -z $InpMatrixFile ]]; then
+		echo '====>>> User did not provide any file in the Bed= option of the configuration file, and the matrix and bin interval files (HiC-pro) are also not provided !!'
+		HiCProExec=`which HiC-Pro`
+		if [[ -z $HiCProExec ]]; then
+			echo 'ERROR ===>>>> HiC-pro is not installed in the system - FitHiChIP quits !!!'
+			exit 1
+		fi
+		# path of HiC pro executable
+		# of the format somedir/bin/HiC-Pro		
+		d1=$(dirname ${HiCProExec})
+		HiCProBasedir=$(dirname ${d1})
+		echo 'Base directory containing HiCPro package : '$HiCProBasedir
+		if [[ -z $HiCProBasedir ]]; then
+			echo 'ERROR ====>>> Invalid HiC-pro installation directory - FitHiChIP quits - exit !!'
+			exit 1
+		fi
+
+		##===========
+		## skip checking HiC-pro version
+		##===========
+		if [[ 1 == 0 ]]; then
+			# first check the HiC-pro installation
+			HiCProVersion=$(HiC-Pro -v | head -n 1 | awk -F[" "] '{print $3}' -)
+			if [[ -z "$HiCProVersion" ]]; then
+			    echo "ERROR ====>>> HiC-pro is not installed in the system !!! FitHiChIP quits !!!" 
+			    errcond=1
+			else
+				echo "HiC-pro is installed in the system"
+			fi
+			numfield=`echo $HiCProVersion | awk -F'[.]' '{print NF}' -`
+			if [[ $numfield -ge 3 ]]; then
+				num1=`echo $HiCProVersion | awk -F'[.]' '{print $1}' -`
+				num2=`echo $HiCProVersion | awk -F'[.]' '{print $2}' -`
+				num3=`echo $HiCProVersion | awk -F'[.]' '{print $3}' -`
+				if [[ $num1 -gt 2 ]]; then
+					echo "Installed HiC-pro version: "${HiCProVersion}		
+					HiCPro_version_ge_2_11_4=1	# boolean indicator
+				elif [[ $num1 -eq 2 && $num2 -gt 11 ]]; then
+					echo "Installed HiC-pro version: "${HiCProVersion}
+					HiCPro_version_ge_2_11_4=1	# boolean indicator
+				elif [[ $num1 -eq 2 && $num2 -eq 11 && $num3 -ge 4 ]]; then
+					echo "Installed HiC-pro version: "${HiCProVersion}
+					HiCPro_version_ge_2_11_4=1	# boolean indicator
+				else 
+					# echo "ERROR ====>>> HiC-pro should have version >= 2.11.4 !!! FitHiChIP quits !!!"
+					# errcond=1
+					echo "===>> installed HiC-pro version: "${HiCProVersion}
+					HiCPro_version_ge_2_11_4=0
+				fi
+			else
+				num1=`echo $HiCProVersion | awk -F'[.]' '{print $1}' -`
+				num2=`echo $HiCProVersion | awk -F'[.]' '{print $2}' -`
+				if [[ $num1 -gt 2 ]]; then
+					echo "Installed HiC-pro version: "${HiCProVersion}
+					HiCPro_version_ge_2_11_4=1	# boolean indicator
+				elif [[ $num1 -eq 2 && $num2 -gt 11 ]]; then
+					echo "Installed HiC-pro version: "${HiCProVersion}
+					HiCPro_version_ge_2_11_4=1	# boolean indicator
+				else 
+					# echo "ERROR ====>>> HiC-pro should have version >= 2.11.4 !!! FitHiChIP quits !!!"
+					# errcond=1
+					echo "===>> installed HiC-pro version: "${HiCProVersion}
+					HiCPro_version_ge_2_11_4=0		
+				fi	
+			fi
+		fi 	# end dummy if
+
+	fi
+fi
+
+
 #*****************************
 # error checking - 
 # check if the required libraries are all installed or not
 #*****************************
-if [ 1 == 1 ]; then
-
-# boolean variable indicating error condition
-errcond=0
-
-# first check the HiC-pro installation
-HiCProVersion=$(HiC-Pro -v | head -n 1 | awk -F[" "] '{print $3}' -)
-if [[ -z "$HiCProVersion" ]]; then
-    echo "ERROR ====>>> HiC-pro is not installed in the system !!! FitHiChIP quits !!!" 
-    errcond=1
-else
-	echo "HiC-pro is installed in the system"
-fi
-numfield=`echo $HiCProVersion | awk -F'[.]' '{print NF}' -`
-if [[ $numfield -ge 3 ]]; then
-	num1=`echo $HiCProVersion | awk -F'[.]' '{print $1}' -`
-	num2=`echo $HiCProVersion | awk -F'[.]' '{print $2}' -`
-	num3=`echo $HiCProVersion | awk -F'[.]' '{print $3}' -`
-	if [[ $num1 -gt 2 ]]; then
-		echo "Installed HiC-pro version: "${HiCProVersion}		
-		HiCPro_version_ge_2_11_4=1	# boolean indicator
-	elif [[ $num1 -eq 2 && $num2 -gt 11 ]]; then
-		echo "Installed HiC-pro version: "${HiCProVersion}
-		HiCPro_version_ge_2_11_4=1	# boolean indicator
-	elif [[ $num1 -eq 2 && $num2 -eq 11 && $num3 -ge 4 ]]; then
-		echo "Installed HiC-pro version: "${HiCProVersion}
-		HiCPro_version_ge_2_11_4=1	# boolean indicator
-	else 
-		# echo "ERROR ====>>> HiC-pro should have version >= 2.11.4 !!! FitHiChIP quits !!!"
-		# errcond=1
-		echo "===>> installed HiC-pro version: "${HiCProVersion}
-		HiCPro_version_ge_2_11_4=0
-	fi
-else
-	num1=`echo $HiCProVersion | awk -F'[.]' '{print $1}' -`
-	num2=`echo $HiCProVersion | awk -F'[.]' '{print $2}' -`
-	if [[ $num1 -gt 2 ]]; then
-		echo "Installed HiC-pro version: "${HiCProVersion}
-		HiCPro_version_ge_2_11_4=1	# boolean indicator
-	elif [[ $num1 -eq 2 && $num2 -gt 11 ]]; then
-		echo "Installed HiC-pro version: "${HiCProVersion}
-		HiCPro_version_ge_2_11_4=1	# boolean indicator
-	else 
-		# echo "ERROR ====>>> HiC-pro should have version >= 2.11.4 !!! FitHiChIP quits !!!"
-		# errcond=1
-		echo "===>> installed HiC-pro version: "${HiCProVersion}
-		HiCPro_version_ge_2_11_4=0		
-	fi	
-fi
 
 ## first check the python version
 # note: FitHiChIP new versions now use python3, instead of python2
@@ -690,11 +700,6 @@ if [[ $errcond == 1 ]]; then
 fi
 
 #*****************************
-fi 	# end dummy if - testing installed packages
-#*****************************
-
-
-#*****************************
 # here check if the configuration file has relative path names as the input
 # in such a case, convert the relative path names (with respect to the location of the configuration file itself)
 # in the absolute file
@@ -834,18 +839,18 @@ if [[ ! -z $OutDir ]]; then
 	fi
 fi
 
-if [[ ! -z $HiCProBasedir ]]; then
-	if [ ! -d $HiCProBasedir ]; then
-		echo 'ERROR ===>>>> Base directory of HiC-Pro package as provided : '$HiCProBasedir
-		echo 'However, no such directory exists in the system - check input file and path - FitHiChIP quits !!'
-		exit 1
-	fi	
-	if [[ "${HiCProBasedir:0:1}" != / && "${HiCProBasedir:0:2}" != ~[/a-z] ]]; then
-		# relative path - convert to absolute path
-		HiCProBasedir="$(cd $(dirname $HiCProBasedir); pwd)/$(basename $HiCProBasedir)"
-		echo 'Absolute converted path: HiCProBasedir: '$HiCProBasedir
-	fi
-fi
+# if [[ ! -z $HiCProBasedir ]]; then
+# 	if [ ! -d $HiCProBasedir ]; then
+# 		echo 'ERROR ===>>>> Base directory of HiC-Pro package as provided : '$HiCProBasedir
+# 		echo 'However, no such directory exists in the system - check input file and path - FitHiChIP quits !!'
+# 		exit 1
+# 	fi	
+# 	if [[ "${HiCProBasedir:0:1}" != / && "${HiCProBasedir:0:2}" != ~[/a-z] ]]; then
+# 		# relative path - convert to absolute path
+# 		HiCProBasedir="$(cd $(dirname $HiCProBasedir); pwd)/$(basename $HiCProBasedir)"
+# 		echo 'Absolute converted path: HiCProBasedir: '$HiCProBasedir
+# 	fi
+# fi
 
 # revert to the old directory
 cd -
@@ -948,9 +953,9 @@ if [[ ! -f $ConfFile || $OverWrite == 1 ]]; then
 	fi
 
 	echo "Output directory which will store all the results: $OutDir " >> $ConfFile
-	if [[ ! -z $HiCProBasedir ]]; then
-		echo "Base directory containing the HIC-PRO executable: $HiCProBasedir " >> $ConfFile
-	fi
+	# if [[ ! -z $HiCProBasedir ]]; then
+	# 	echo "Base directory containing the HIC-PRO executable: $HiCProBasedir " >> $ConfFile
+	# fi
 
 	echo "Low distance threshold: $LowDistThres " >> $ConfFile
 	echo "Higher distance threshold: $UppDistThres " >> $ConfFile
@@ -1005,8 +1010,10 @@ echo 'Executable of R : '$RScriptExec
 
 #================================
 
+##==============
 # generate the matrix of Hi-C interactions (ALL)
 # using HiC-pro pipeline
+##==============
 HiCProMatrixDir=$OutDir'/HiCPro_Matrix_BinSize'$BIN_SIZE
 mkdir -p $HiCProMatrixDir
 
@@ -1034,7 +1041,7 @@ if [[ ! -z $InpInitialInteractionBedFile ]]; then
 	fi
 	
 	# insert a header line
-	sed -i '1ichr\ts1\te1\tchr2\ts2\te2\tcc' $Interaction_Initial_File
+	sed -i '1ichr1\ts1\te1\tchr2\ts2\te2\tcc' $Interaction_Initial_File
 
 	echo -e "\n ===>> Dumped interactions among bin pairs in file : ${Interaction_Initial_File} "
 
@@ -1703,7 +1710,7 @@ while [[ $CurrIntType -le $IntHigh ]]; do
 		# new code - sourya
 		# distance specific locus pair extract + sorted by genomic distance
 		## also supports circular genomes and corresponding distance calculations
-		$RScriptExec ./src/Interaction_Sort_Genomic_Distance.r $CurrIntFile $CurrIntFileSortDist $CircularGenome $ChrSizeFile
+		$RScriptExec ./src/Interaction_Sort_Genomic_Distance.r $CurrIntFile $CurrIntFileSortDist $CircularGenome $ChrSizeFile $cccol
 
 		if [[ $TimeProf == 1 ]]; then
 			duration=$(echo "$(date +%s.%N) - $start" | bc)
