@@ -2,73 +2,102 @@
 # Sample configuration file for running FitHiChIP
 #====================================  
 
-#*****************************
-# important parameters
-#*****************************
+##********
+##***** parameters to provide the input HiChIP alignment files
+##********
 
-# File containing the valid pairs from HiCPro pipeline 
-# Can be either a text file, or a gzipped text file 
+##============
+## option 1: provide the valid pairs from HiC-Pro pipeline - can be gzipped as well
+##============
 ValidPairs=./TestData/Sample_ValidPairs.txt.gz
 
-# File containing the bin intervals (according to a specified bin size)
-# which is an output of HiC-pro pipeline
-# If not provided, this is computed from the parameter 1
+##============
+## option 2: provide the bin interval and contact matrix files from HiC-Pro pipeline
+##============
+
+## bin interval file (of the format *_abs.bed from HiC-pro output)
 Interval=
 
-# File storing the contact matrix (output of HiC-pro pipeline)
-# should be accompanied with the parameter 2
-# if not specified, computed from the parameter 1
+## matrix file (of the format *.matrix from HiC-pro output)
 Matrix=
 
-# Pre-computed locus pair file
-# of the format: 
-# chr1 	start1 	end1 	chr2 	start2 	end2 	contactcounts
+##============
+## option 3: If HiChIP was processed by aligners other than HiC-Pro
+## a) provide the locus pairs as a .bed formatted file with the following format (7 fields): 
+## chr1 	start1	end1 	chr2 	start2 	end2 	contactcounts
+##============
 Bed=
 
-
-# File containing reference ChIP-seq / HiChIP peaks (in .bed format)
-# mandatory parameter
-PeakFile=./TestData/Sample.Peaks.gz
-
-# Output base directory under which all results will be stored
-OutDir=./TestData/results/
-
-#Interaction type - 1: peak to peak 2: peak to non peak 3: peak to all (default) 4: all to all 5: everything from 1 to 4.
-IntType=3
-
-# Size of the bins [default = 5000], in bases, for detecting the interactions.
-BINSIZE=5000
-
-# Lower distance threshold of interaction between two segments
-# (default = 20000 or 20 Kb)
-LowDistThr=20000
-
-# Upper distance threshold of interaction between two segments
-# (default = 2000000 or 2 Mb)
-UppDistThr=2000000
-
-# Applicable only for peak to all output interactions - values: 0 / 1
-# if 1, uses only peak to peak loops for background modeling - corresponds to FitHiChIP(S)
-# if 0, uses both peak to peak and peak to nonpeak loops for background modeling - corresponds to FitHiChIP(L)
-UseP2PBackgrnd=0
-
-# parameter signifying the type of bias vector - values: 1 / 2
-# 1: coverage bias regression	2: ICE bias regression
-BiasType=1
-
-# following parameter, if 1, means that merge filtering (corresponding to either FitHiChIP(L+M) or FitHiChIP(S+M))
-# depending on the background model, would be employed. Otherwise (if 0), no merge filtering is employed. Default: 1
-MergeInt=1
-
-# FDR (q-value) threshold for loop significance
-QVALUE=0.01
-
-# File containing chromomosome size values corresponding to the reference genome.
+##********
+## File containing chromomosome size information corresponding to the reference genome.
+##********
 ChrSizeFile=./TestData/chrom_hg19.sizes
 
-# prefix string of all the output files (Default = 'FitHiChIP').
+##********
+## Mandatory parameter - Reference ChIP-seq / HiChIP peaks (in .bed format) - can be gzipped as well
+## We recommend using reference ChIP-seq peaks (if available)
+## Otherwise, peaks can be computed from HiChIP data. 
+## See the documentation: https://ay-lab.github.io/FitHiChIP/usage/Utilities.html#inferring-peaks-from-hichip-data-for-use-in-the-hichip-pipeline
+##********
+PeakFile=./TestData/Sample.Peaks.gz
+
+
+##********
+## Mandatory parameter - Output directory to contain all the results
+##********
+OutDir=./TestData/results/
+
+
+##********
+## Mandatory parameter - Boolean variable indicating if the reference genome is circular
+## 0, by default. If 1 (circular genome), calculation of genomic distance is slightly different
+##********
+CircularGenome=0
+
+
+##********
+##***** Various FitHiChIP loop calling related parameters
+##********
+
+##Interaction type
+## 1: peak to peak 
+## 2: peak to non peak 
+## 3: peak to all (default - both peak-to-peak and peak-to-nonpeak) 
+## 4: all to all (similar to Hi-C)
+## 5: All of the modes 1 to 4 are computed.
+IntType=3
+
+## Bin size, in bases, for the interactions. Default = 5000 (5 Kb).
+BINSIZE=5000
+
+## Lower distance threshold of loops - default = 20000 (20 Kb)
+LowDistThr=20000
+
+## Upper distance threshold of loops - default = 2000000 (2 Mb)
+UppDistThr=2000000
+
+## Values 0/1 - Applicable if IntType = 3 (peak to all output interactions)
+## 1 indicates FitHiChIP(S) model - uses only peak to peak loops for background modeling
+## 0 corresponds to FitHiChIP(L) - uses both peak to peak and peak to nonpeak loops for background modeling
+UseP2PBackgrnd=0
+
+## type of bias - values: 1 / 2
+## 1: coverage bias regression
+## 2: ICE bias regression
+BiasType=1
+
+## if 1 (default), merge filtering (corresponding to either FitHiChIP(L+M) or FitHiChIP(S+M) 
+## depending on the parameter UseP2PBackgrnd) is enabled
+MergeInt=1
+
+## FDR (q-value) threshold for loop significance
+QVALUE=0.01
+
+## prefix string of all the output files (Default = 'FitHiChIP').
 PREFIX=FitHiChIP
 
-# Binary variable 1/0: if 1, overwrites any existing output file. otherwise (0), does not overwrite any output file.
-OverWrite=1
+## Binary variable 1/0: 
+## if 1, overwrites any existing output file. 
+## otherwise (0), does not overwrite any output file.
+OverWrite=0
 
