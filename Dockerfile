@@ -1,4 +1,4 @@
-FROM r-base:3.6.1
+FROM r-base:4.1.0
 
 RUN apt-get update
 RUN apt-get -y upgrade
@@ -11,25 +11,24 @@ RUN R -e 'BiocManager::install()'
 RUN R -e "BiocManager::install('GenomicRanges');"
 RUN R -e "BiocManager::install('edgeR');"
 
-
-# Install python 2
-RUN apt-get -y install python2
+# Install python 3
+RUN apt-get -y install python3
 RUN apt-get -y install python-pip
-RUN pip install networkx==2.2
+RUN pip install networkx
 
 # Install Bedtools
-RUN wget https://github.com/arq5x/bedtools2/releases/download/v2.28.0/bedtools-2.28.0.tar.gz
-RUN tar -zxvf bedtools-2.28.0.tar.gz
+RUN wget https://github.com/arq5x/bedtools2/releases/download/v2.30.0/bedtools-2.30.0.tar.gz
+RUN tar -zxvf bedtools-2.30.0.tar.gz
 RUN cd bedtools2 && make && cp -r ./bin/* /usr/local/bin/
 
 
 # Install Samtools and Htslib
-RUN cd / && wget https://github.com/samtools/samtools/releases/download/1.9/samtools-1.9.tar.bz2 && wget https://github.com/samtools/htslib/releases/download/1.9/htslib-1.9.tar.bz2
-RUN tar -xjf /samtools-1.9.tar.bz2
-RUN tar -xjf /htslib-1.9.tar.bz2
+RUN cd / && wget https://github.com/samtools/samtools/releases/download/1.16.1/samtools-1.16.1.tar.bz2 && wget https://github.com/samtools/htslib/releases/download/1.16/htslib-1.16.tar.bz2
+RUN tar -xjf /samtools-1.16.1.tar.bz2
+RUN tar -xjf /htslib-1.16.tar.bz2
 
-RUN cd /htslib-1.9 && ./configure --prefix=/usr/local/ && make && make install
-RUN cd /samtools-1.9 && ./configure --prefix=/usr/local/ && make && make install
+RUN cd /htslib-1.16 && ./configure --prefix=/usr/local/ && make && make install
+RUN cd /samtools-1.16.1 && ./configure --prefix=/usr/local/ && make && make install
 
 # Install miniconda
 RUN wget https://repo.anaconda.com/miniconda/Miniconda2-latest-Linux-x86_64.sh
@@ -56,12 +55,12 @@ RUN conda install -y -c bioconda pysam
 RUN R -e "install.packages(c('RColorBrewer'), quitely=TRUE, repos='http://cran.rstudio.com/')"
 
 # Install HiCPro
-RUN cd / && wget https://github.com/nservant/HiC-Pro/archive/v2.11.4.tar.gz
-RUN tar -zxvf v2.11.4.tar.gz
+RUN cd / && wget https://github.com/nservant/HiC-Pro/archive/refs/tags/v3.1.0.tar.gz
+RUN tar -zxvf v3.1.0.tar.gz
 
-RUN cd HiC-Pro-2.11.4/ && make configure && make install
-ENV PATH="/HiC-Pro-2.11.4/bin/:${PATH}"
-ENV PATH="/HiC-Pro-2.11.4/bin/utils/:${PATH}"
+RUN cd HiC-Pro-3.1.0/ && make configure && make install
+ENV PATH="/HiC-Pro-3.1.0/bin/:${PATH}"
+ENV PATH="/HiC-Pro-3.1.0/bin/utils/:${PATH}"
 
 # Install Macs2
 RUN pip install MACS2
@@ -69,15 +68,15 @@ RUN pip install MACS2
 # Get FitHiChIP
 RUN apt-get -y install git
 RUN cd / && git clone https://github.com/ay-lab/FitHiChIP
-RUN cd /FitHiChIP && sed -i 's/\/home\/sourya\/packages\/HiCPro\/HiC-Pro_2.9.0\//\/HiC-Pro-2.11.4\//g' configfile_*
+RUN cd /FitHiChIP && sed -i 's/\/home\/sourya\/packages\/HiCPro\/HiC-Pro_2.9.0\//\/HiC-Pro-3.1.0\//g' configfile_*
 RUN pip install networkx
 
 
 # Cleanup
 RUN rm -rf /*tar*
 RUN rm -rf /bedtools2/
-RUN rm -rf /htslib-1.9/
-RUN rm -rf /samtools-1.9/
+RUN rm -rf /htslib-1.16/
+RUN rm -rf /samtools-1.16.1/
 
 RUN chmod -R 777 /root
 RUN conda install -y iced 
