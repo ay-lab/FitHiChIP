@@ -4,6 +4,7 @@ params.ValidPairs = "none"
 params.Interval = "none2"
 params.Matrix = "none3"
 params.Bed = "none4"
+params.CircularGenome = 0
 params.PeakFile = "none5"
 params.ChrSizeFile = "none6"
 params.IntType = 3
@@ -31,7 +32,7 @@ process prepare_config {
 
     script:
 
-    cstr = "OutDir=./fhcout/\nHiCProBasedir=/HiC-Pro-2.11.4/\n"
+    cstr = "OutDir=./fhcout/\nHiCProBasedir=/HiC-Pro-3.1.0/\n"
 
     if (vp.exists()) 
         cstr = cstr + "ValidPairs=${vp}\n"
@@ -53,6 +54,7 @@ process prepare_config {
     else
         cstr = cstr + "ChrSizeFile=/FitHiChIP/TestData/chrom_hg19.sizes\n"
     
+    cstr = cstr + "CircularGenome=${params.CircularGenome}\n"
     cstr = cstr + "IntType=${params.IntType}\n"
     cstr = cstr + "BINSIZE=${params.BINSIZE}\n"
     cstr = cstr + "LowDistThr=${params.LowDistThr}\n"
