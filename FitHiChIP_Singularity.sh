@@ -92,6 +92,8 @@ BiasType=1
 UseP2PBackgrnd=1
 # Merging interactions which are near to each other
 MergeInteraction=1
+# if the reference genome is circular genome
+CircularGenome=0
 
 #========================
 # following parameters are now obsolete
@@ -150,6 +152,10 @@ do
 			if [ $param == "Bed" ]; then
 				InpInitialInteractionBedFile=$paramval
 			fi
+			## indicates circular genome
+			if [ $param == "CircularGenome" ]; then
+				CircularGenome=$paramval
+			fi			
 			if [ $param == "PeakFile" ]; then
 				PeakFILE=$paramval
 			fi
@@ -306,19 +312,6 @@ do
 	fi
 done < $ConfigFile
 
-#=========================
-# check whether HiC-pro is installed or not
-#=========================
-# path of HiC pro executable
-# of the format somedir/bin/HiC-Pro
-HiCProExec=`which HiC-Pro`
-if [[ -z $HiCProExec ]]; then
-	echo 'ERROR ===>>>> HiC-pro is not installed in the system - FitHiChIP quits !!!'
-	exit 1
-fi
-# extract the "somedir" portion
-HiCProBasedir=${HiCProExec::-12}
-
 #===================
 # verify the input parameters
 #===================
@@ -359,13 +352,6 @@ fi
 # fi
 #======================
 
-if [[ -z $HiCProBasedir && -z $InpInitialInteractionBedFile ]]; then
-	if [[ -z $InpBinIntervalFile || -z $InpMatrixFile ]]; then
-		echo 'ERROR ====>>> As user did not provide any pre-computed locus pairs (along with their contact count) in BED input, neither provided the HiC-pro base installation directory, FitHiChIP quits - exit !!'
-		exit 1
-	fi
-fi
-
 if [[ -z $ChrSizeFile ]]; then
 	echo 'ERROR ====>>> Chromosome size file is not specified - exit !!'
 	exit 1
@@ -373,64 +359,94 @@ fi
 
 echo '***** Specified output directory : '$OutDir
 
+# boolean variable indicating error condition
+errcond=0
+
+##=============
+## if matrix file or bin interval files are not provided, 
+## get the installed HiC-pro version
+##=============
+
+if [[ -z $InpInitialInteractionBedFile ]]; then
+	if [[ -z $InpBinIntervalFile || -z $InpMatrixFile ]]; then
+		echo '====>>> User did not provide any file in the Bed= option of the configuration file, and the matrix and bin interval files (HiC-pro) are also not provided !!'
+		HiCProExec=`which HiC-Pro`
+		if [[ -z $HiCProExec ]]; then
+			echo 'ERROR ===>>>> HiC-pro is not installed in the system - FitHiChIP quits !!!'
+			exit 1
+		fi
+		# path of HiC pro executable
+		# of the format somedir/bin/HiC-Pro		
+		d1=$(dirname ${HiCProExec})
+		HiCProBasedir=$(dirname ${d1})
+		echo 'Base directory containing HiCPro package : '$HiCProBasedir
+		if [[ -z $HiCProBasedir ]]; then
+			echo 'ERROR ====>>> Invalid HiC-pro installation directory - FitHiChIP quits - exit !!'
+			exit 1
+		fi
+
+		##===========
+		## skip checking HiC-pro version
+		##===========
+		if [[ 1 == 0 ]]; then
+			# first check the HiC-pro installation
+			HiCProVersion=$(HiC-Pro -v | head -n 1 | awk -F[" "] '{print $3}' -)
+			if [[ -z "$HiCProVersion" ]]; then
+			    echo "ERROR ====>>> HiC-pro is not installed in the system !!! FitHiChIP quits !!!" 
+			    errcond=1
+			else
+				echo "HiC-pro is installed in the system"
+			fi
+			numfield=`echo $HiCProVersion | awk -F'[.]' '{print NF}' -`
+			if [[ $numfield -ge 3 ]]; then
+				num1=`echo $HiCProVersion | awk -F'[.]' '{print $1}' -`
+				num2=`echo $HiCProVersion | awk -F'[.]' '{print $2}' -`
+				num3=`echo $HiCProVersion | awk -F'[.]' '{print $3}' -`
+				if [[ $num1 -gt 2 ]]; then
+					echo "Installed HiC-pro version: "${HiCProVersion}		
+					HiCPro_version_ge_2_11_4=1	# boolean indicator
+				elif [[ $num1 -eq 2 && $num2 -gt 11 ]]; then
+					echo "Installed HiC-pro version: "${HiCProVersion}
+					HiCPro_version_ge_2_11_4=1	# boolean indicator
+				elif [[ $num1 -eq 2 && $num2 -eq 11 && $num3 -ge 4 ]]; then
+					echo "Installed HiC-pro version: "${HiCProVersion}
+					HiCPro_version_ge_2_11_4=1	# boolean indicator
+				else 
+					# echo "ERROR ====>>> HiC-pro should have version >= 2.11.4 !!! FitHiChIP quits !!!"
+					# errcond=1
+					echo "===>> installed HiC-pro version: "${HiCProVersion}
+					HiCPro_version_ge_2_11_4=0
+				fi
+			else
+				num1=`echo $HiCProVersion | awk -F'[.]' '{print $1}' -`
+				num2=`echo $HiCProVersion | awk -F'[.]' '{print $2}' -`
+				if [[ $num1 -gt 2 ]]; then
+					echo "Installed HiC-pro version: "${HiCProVersion}
+					HiCPro_version_ge_2_11_4=1	# boolean indicator
+				elif [[ $num1 -eq 2 && $num2 -gt 11 ]]; then
+					echo "Installed HiC-pro version: "${HiCProVersion}
+					HiCPro_version_ge_2_11_4=1	# boolean indicator
+				else 
+					# echo "ERROR ====>>> HiC-pro should have version >= 2.11.4 !!! FitHiChIP quits !!!"
+					# errcond=1
+					echo "===>> installed HiC-pro version: "${HiCProVersion}
+					HiCPro_version_ge_2_11_4=0		
+				fi	
+			fi
+		fi 	# end dummy if
+
+	fi
+fi
+
 #*****************************
 # error checking - 
 # check if the required libraries are all installed or not
 #*****************************
-if [ 1 == 1 ]; then
 
-# boolean variable indicating error condition
-errcond=0
-
-# first check the HiC-pro installation
-HiCProVersion=$(HiC-Pro -v | head -n 1 | awk -F[" "] '{print $3}' -)
-if [[ -z "$HiCProVersion" ]]; then
-    echo "ERROR ====>>> HiC-pro is not installed in the system !!! FitHiChIP quits !!!" 
-    errcond=1
-else
-	echo "HiC-pro is installed in the system"
-fi
-numfield=`echo $HiCProVersion | awk -F'[.]' '{print NF}' -`
-if [[ $numfield -ge 3 ]]; then
-	num1=`echo $HiCProVersion | awk -F'[.]' '{print $1}' -`
-	num2=`echo $HiCProVersion | awk -F'[.]' '{print $2}' -`
-	num3=`echo $HiCProVersion | awk -F'[.]' '{print $3}' -`
-	if [[ $num1 -gt 2 ]]; then
-		echo "Installed HiC-pro version: "${HiCProVersion}		
-		HiCPro_version_ge_2_11_4=1	# boolean indicator
-	elif [[ $num1 -eq 2 && $num2 -gt 11 ]]; then
-		echo "Installed HiC-pro version: "${HiCProVersion}
-		HiCPro_version_ge_2_11_4=1	# boolean indicator
-	elif [[ $num1 -eq 2 && $num2 -eq 11 && $num3 -ge 4 ]]; then
-		echo "Installed HiC-pro version: "${HiCProVersion}
-		HiCPro_version_ge_2_11_4=1	# boolean indicator
-	else 
-		# echo "ERROR ====>>> HiC-pro should have version >= 2.11.4 !!! FitHiChIP quits !!!"
-		# errcond=1
-		echo "===>> installed HiC-pro version: "${HiCProVersion}
-		HiCPro_version_ge_2_11_4=0
-	fi
-else
-	num1=`echo $HiCProVersion | awk -F'[.]' '{print $1}' -`
-	num2=`echo $HiCProVersion | awk -F'[.]' '{print $2}' -`
-	if [[ $num1 -gt 2 ]]; then
-		echo "Installed HiC-pro version: "${HiCProVersion}
-		HiCPro_version_ge_2_11_4=1	# boolean indicator
-	elif [[ $num1 -eq 2 && $num2 -gt 11 ]]; then
-		echo "Installed HiC-pro version: "${HiCProVersion}
-		HiCPro_version_ge_2_11_4=1	# boolean indicator
-	else 
-		# echo "ERROR ====>>> HiC-pro should have version >= 2.11.4 !!! FitHiChIP quits !!!"
-		# errcond=1
-		echo "===>> installed HiC-pro version: "${HiCProVersion}
-		HiCPro_version_ge_2_11_4=0		
-	fi	
-fi
-
-# first check the python version
-# check if python is installed and its version is > 2.7.0
-# pythonversion=$(python -V 2>&1 | grep -Po '(?<=Python )(.+)')
-pythonversion=$(python --version 2>&1 | head -n 1 | awk '{print $2}' -)
+## first check the python version
+# note: FitHiChIP new versions now use python3, instead of python2
+# check if python3 is installed and its version is > 3.4
+pythonversion=$(python3 --version 2>&1 | head -n 1 | awk '{print $2}' -)
 if [[ -z "$pythonversion" ]]; then
     echo "ERROR ====>>> No Python installation is detected in the system !!! FitHiChIP quits !!!" 
     errcond=1
@@ -440,53 +456,53 @@ if [[ $numfield -ge 3 ]]; then
 	num1=`echo $pythonversion | awk -F'[.]' '{print $1}' -`
 	num2=`echo $pythonversion | awk -F'[.]' '{print $2}' -`
 	num3=`echo $pythonversion | awk -F'[.]' '{print $3}' -`
-	if [[ $num1 -gt 2 ]]; then
+	if [[ $num1 -gt 3 ]]; then
 		echo "Installed python version: "${pythonversion}
-	elif [[ $num1 -eq 2 && $num2 -gt 7 ]]; then
+	elif [[ $num1 -eq 3 && $num2 -gt 4 ]]; then
 		echo "Installed python version: "${pythonversion}
-	elif [[ $num1 -eq 2 && $num2 -eq 7 && $num3 -ge 1 ]]; then
+	elif [[ $num1 -eq 3 && $num2 -eq 4 && $num3 -ge 1 ]]; then
 		echo "Installed python version: "${pythonversion}
 	else 
-		echo " --- should be python 2 with version > 2.7.0 !!! FitHiChIP quits !!!"
+		echo " --- FitHiChIP now works on python 3 - should be python3 with version >= 3.4 !!! FitHiChIP quits !!!"
 		errcond=1
 	fi
 else
 	num1=`echo $pythonversion | awk -F'[.]' '{print $1}' -`
 	num2=`echo $pythonversion | awk -F'[.]' '{print $2}' -`
-	if [[ $num1 -gt 2 ]]; then
+	if [[ $num1 -gt 3 ]]; then
 		echo "Installed python version: "${pythonversion}
-	elif [[ $num1 -eq 2 && $num2 -gt 7 ]]; then
+	elif [[ $num1 -eq 3 && $num2 -gt 3 ]]; then
 		echo "Installed python version: "${pythonversion}
 	else 
-		echo " --- should be python 2 with version > 2.7.0 !!! FitHiChIP quits !!!"
+		echo " --- FitHiChIP now works on python 3 - should be python3 with version >= 3.4 !!! FitHiChIP quits !!!"
 		errcond=1
 	fi	
 fi
 
-# check if python libraries are also installed
-if python -c "import gzip"; then
+# check if python3 libraries are also installed
+if python3 -c "import gzip"; then
     echo '*** Python library gzip is installed'
 else
-    echo 'ERROR ====>>> Python library gzip is not installed !!! FitHiChIP quits !!!'
+    echo 'ERROR ====>>> Python3 library gzip is not installed !!! FitHiChIP quits !!!'
     errcond=1
 fi
-if python -c "from optparse import OptionParser"; then
+if python3 -c "from optparse import OptionParser"; then
     echo '*** Python module OptionParser (from the package optparse) is installed'
 else
     echo 'ERROR ====>>> Python module OptionParser (from the package optparse) is not installed !!! FitHiChIP quits !!!'
     errcond=1
 fi
-if python -c "import networkx"; then
+if python3 -c "import networkx"; then
     echo '*** Python package networkx is installed'
 else
-    echo 'ERROR ====>>> Python package networkx is not installed !!! FitHiChIP quits !!!'
+    echo 'ERROR ====>>> Python3 package networkx is not installed !!! Try to install the package by python3 -m pip install networkx. FitHiChIP quits !!!'
     errcond=1
 fi
 
 # check if MACS2 package is installed
 macs2version=$(macs2 --version 2>&1 |  head -n 1 | awk -F[" "] '{print $2 }' -)
 if [[ -z "$macs2version" ]]; then
-    echo "ERROR ====>>> MACS2 peak calling package is not detected in the system !!! FitHiChIP quits !!!" 
+    echo "ERROR ====>>> MACS2 peak calling package is not detected in the system !!! Try to install the package by python3 -m pip install MACS2. FitHiChIP quits !!!" 
     errcond=1
 else
 	echo "*** Found MACS2 package (for peak calling) installed in the system -  "$macs2version
@@ -660,12 +676,6 @@ if [[ $errcond == 1 ]]; then
 	echo " ------- exiting for the moment !!"
 	exit 1
 fi
-
-#*****************************
-fi 	# end dummy if - testing installed packages
-#*****************************
-
-
 
 #*****************************
 # directory of the configuration file
