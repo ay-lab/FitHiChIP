@@ -15,12 +15,14 @@ RUN R -e "BiocManager::install('edgeR');"
 RUN apt-get -y install python3
 RUN apt-get -y install python-pip
 RUN pip install networkx
+RUN pip install numpy
+RUN pip install hicstraw
+RUN pip install cooler
 
 # Install Bedtools
 RUN wget https://github.com/arq5x/bedtools2/releases/download/v2.30.0/bedtools-2.30.0.tar.gz
 RUN tar -zxvf bedtools-2.30.0.tar.gz
 RUN cd bedtools2 && make && cp -r ./bin/* /usr/local/bin/
-
 
 # Install Samtools and Htslib
 RUN cd / && wget https://github.com/samtools/samtools/releases/download/1.16.1/samtools-1.16.1.tar.bz2 && wget https://github.com/samtools/htslib/releases/download/1.16/htslib-1.16.tar.bz2
