@@ -1,6 +1,15 @@
 Release Notes for FitHiChIP
 ---------------------------
 
+Release - Version 11.0 (December 2022)
+---------------------------
+1. FitHiChIP now support HiChIP interactions in .hic and .cool / .mcool formats, in addition to the earlier formats.
+2. Updated configuration files corresponding to these new input options.
+3. Updated Docker and Singularity packages.
+4. Differential HiChIP loop calling does not require ChIP-seq alignment files as a mandatory option. If users do not have any ChIP-seq alignment file, they can just proceed with the differential analysis without considering the difference in 1D.
+5. FitHiChIP output loops are now converted to files compatible with WashU, UCSC and IGV epigenome browsers.
+
+
 Release - Version 10.0 (April 2022)
 ---------------------------
 1. HiC-pro installation directory is now checked only if user provides HiC-pro valid pairs output. If user provides matrix and bin interval files (obtained from another source), he/she does not require to install HiCPro.
