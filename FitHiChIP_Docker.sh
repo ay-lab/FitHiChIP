@@ -152,6 +152,12 @@ do
 			if [ $param == "Bed" ]; then
 				InpInitialInteractionBedFile=$paramval
 			fi
+			if [ $param == "HIC" ]; then
+				InpHiCFile=$paramval
+			fi
+			if [ $param == "COOL" ]; then
+				InpCoolFile=$paramval
+			fi									
 			## indicates circular genome
 			if [ $param == "CircularGenome" ]; then
 				CircularGenome=$paramval
@@ -317,9 +323,9 @@ done < $ConfigFile
 #===================
 echo -e "\n ================ Verifying input configuration parameters ================="
 
-if [[ -z $InpValidPairsFile && -z $InpInitialInteractionBedFile ]]; then
+if [[ -z $InpValidPairsFile && -z $InpInitialInteractionBedFile && -z $InpHiCFile && -z $InpCoolFile ]]; then
 	if [[ -z $InpBinIntervalFile || -z $InpMatrixFile ]]; then
-		echo -e 'There are three ways to provide FitHiChIP input: \n 1) provide valid pairs file (from HiC pro pipeline), \n 2) Provide both bin interval and matrix files (from HiC pro pipeline), or \n 3) provide a set of locus pairs along with their contact counts (7 columns). \n But user did not provide any of these input configurations. - exit !!'
+		echo -e 'There are five ways to provide FitHiChIP input: \n 1) provide valid pairs file (from HiC pro pipeline), \n 2) Provide both bin interval and matrix files (from HiC pro pipeline), \n 3) provide a file in the Bed= option - either as a set of locus pairs along with their contact counts (7 columns), 4) Provide interactions in .hic format (from Juicer), or 5) Provide interactions in .cool format. \n But user did not provide any of these input configurations. - exit !!'
 		exit 1
 	fi
 fi
@@ -362,13 +368,17 @@ echo '***** Specified output directory : '$OutDir
 errcond=0
 
 ##=============
-## if matrix file or bin interval files are not provided, 
-## get the installed HiC-pro version
+## if Bed file / HiC file / cool file is not provided, 
+## means we need to process the valid pairs
+## and there is no matrix file or bin interval file
+## then, get the installed HiC-pro version
 ##=============
 
-if [[ -z $InpInitialInteractionBedFile ]]; then
+if [[ -z $InpCoolFile && -z $InpHiCFile && -z $InpInitialInteractionBedFile ]]; then
 	if [[ -z $InpBinIntervalFile || -z $InpMatrixFile ]]; then
-		echo '====>>> User did not provide any file in the Bed= option of the configuration file, and the matrix and bin interval files (HiC-pro) are also not provided !!'
+		echo '====>>> User did not provide any file in the COOL= option or the HIC= option or the Bed= option of the configuration file'
+		echo '==>>> So, the input interaction file is from the HiC-pro (valid pairs format)'
+		echo '==>>> But the matrix and bin interval files (HiC-pro) are not provided  - we need to generate them from HiC-pro'
 		HiCProExec=`which HiC-Pro`
 		if [[ -z $HiCProExec ]]; then
 			echo 'ERROR ===>>>> HiC-pro is not installed in the system - FitHiChIP quits !!!'
@@ -383,57 +393,6 @@ if [[ -z $InpInitialInteractionBedFile ]]; then
 			echo 'ERROR ====>>> Invalid HiC-pro installation directory - FitHiChIP quits - exit !!'
 			exit 1
 		fi
-
-		##===========
-		## skip checking HiC-pro version
-		##===========
-		if [[ 1 == 0 ]]; then
-			# first check the HiC-pro installation
-			HiCProVersion=$(HiC-Pro -v | head -n 1 | awk -F[" "] '{print $3}' -)
-			if [[ -z "$HiCProVersion" ]]; then
-			    echo "ERROR ====>>> HiC-pro is not installed in the system !!! FitHiChIP quits !!!" 
-			    errcond=1
-			else
-				echo "HiC-pro is installed in the system"
-			fi
-			numfield=`echo $HiCProVersion | awk -F'[.]' '{print NF}' -`
-			if [[ $numfield -ge 3 ]]; then
-				num1=`echo $HiCProVersion | awk -F'[.]' '{print $1}' -`
-				num2=`echo $HiCProVersion | awk -F'[.]' '{print $2}' -`
-				num3=`echo $HiCProVersion | awk -F'[.]' '{print $3}' -`
-				if [[ $num1 -gt 2 ]]; then
-					echo "Installed HiC-pro version: "${HiCProVersion}		
-					HiCPro_version_ge_2_11_4=1	# boolean indicator
-				elif [[ $num1 -eq 2 && $num2 -gt 11 ]]; then
-					echo "Installed HiC-pro version: "${HiCProVersion}
-					HiCPro_version_ge_2_11_4=1	# boolean indicator
-				elif [[ $num1 -eq 2 && $num2 -eq 11 && $num3 -ge 4 ]]; then
-					echo "Installed HiC-pro version: "${HiCProVersion}
-					HiCPro_version_ge_2_11_4=1	# boolean indicator
-				else 
-					# echo "ERROR ====>>> HiC-pro should have version >= 2.11.4 !!! FitHiChIP quits !!!"
-					# errcond=1
-					echo "===>> installed HiC-pro version: "${HiCProVersion}
-					HiCPro_version_ge_2_11_4=0
-				fi
-			else
-				num1=`echo $HiCProVersion | awk -F'[.]' '{print $1}' -`
-				num2=`echo $HiCProVersion | awk -F'[.]' '{print $2}' -`
-				if [[ $num1 -gt 2 ]]; then
-					echo "Installed HiC-pro version: "${HiCProVersion}
-					HiCPro_version_ge_2_11_4=1	# boolean indicator
-				elif [[ $num1 -eq 2 && $num2 -gt 11 ]]; then
-					echo "Installed HiC-pro version: "${HiCProVersion}
-					HiCPro_version_ge_2_11_4=1	# boolean indicator
-				else 
-					# echo "ERROR ====>>> HiC-pro should have version >= 2.11.4 !!! FitHiChIP quits !!!"
-					# errcond=1
-					echo "===>> installed HiC-pro version: "${HiCProVersion}
-					HiCPro_version_ge_2_11_4=0		
-				fi	
-			fi
-		fi 	# end dummy if
-
 	fi
 fi
 
@@ -744,6 +703,33 @@ if [[ ! -z $InpInitialInteractionBedFile ]]; then
 	fi
 	BINDARG+=("-v$(dirname $InpInitialInteractionBedFile):$(dirname $InpInitialInteractionBedFile)")
 fi
+
+if [[ ! -z $InpHiCFile ]]; then
+	if [ ! -f $InpHiCFile ]; then
+		echo 'ERROR ===>>>> .hic contact matrix file is provided as input : '$InpHiCFile
+		echo 'However, no such file exists - check input file and path - FitHiChIP quits !!'
+		exit 1
+	fi	
+	if [[ "${InpHiCFile:0:1}" != / && "${InpHiCFile:0:2}" != ~[/a-z] ]]; then
+		# relative path - convert to absolute path
+		InpHiCFile="$(cd $(dirname $InpHiCFile); pwd)/$(basename $InpHiCFile)"
+	fi
+	BINDARG+=("-v$(dirname $InpHiCFile):$(dirname $InpHiCFile)")
+fi
+
+if [[ ! -z $InpCoolFile ]]; then
+	if [ ! -f $InpCoolFile ]; then
+		echo 'ERROR ===>>>> .cool contact matrix file is provided as input : '$InpCoolFile
+		echo 'However, no such file exists - check input file and path - FitHiChIP quits !!'
+		exit 1
+	fi	
+	if [[ "${InpCoolFile:0:1}" != / && "${InpCoolFile:0:2}" != ~[/a-z] ]]; then
+		# relative path - convert to absolute path
+		InpCoolFile="$(cd $(dirname $InpCoolFile); pwd)/$(basename $InpCoolFile)"
+	fi
+	BINDARG+=("-v$(dirname $InpCoolFile):$(dirname $InpCoolFile)")
+fi
+
 
 if [[ ! -z $PeakFILE ]]; then
 	if [ ! -f $PeakFILE ]; then
