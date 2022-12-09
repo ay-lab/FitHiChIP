@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="English" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Welcome to FitHiChIP! &mdash; FitHiChIP 0.1 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Installation" href="usage/installation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="#" class="icon icon-home"> FitHiChIP
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="usage/installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage/quickstart.html">Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage/configuration.html">Setting up configuration file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage/output.html">Details of FitHiChIP outputs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage/DiffLoops.html">Differential analysis of HiChIP loops</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage/Utilities.html">Various utility scripts / functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage/FAQ.html">Frequently asked question</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">FitHiChIP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home"></a> &raquo;</li>
+      <li>Welcome to FitHiChIP!</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="welcome-to-fithichip">
+<h1>Welcome to FitHiChIP!<a class="headerlink" href="#welcome-to-fithichip" title="Permalink to this heading"></a></h1>
+<p><strong>Developers</strong>: Sourya Bhattacharyya, Ferhat Ay</p>
+<p><strong>Institution</strong>: Division of Vaccine Discovery, La Jolla Institute for Immunology, La Jolla, CA 92037, USA</p>
+<div class="section" id="utilities-of-fithichip-at-a-glance">
+<h2>Utilities of FitHiChIP at a glance<a class="headerlink" href="#utilities-of-fithichip-at-a-glance" title="Permalink to this heading"></a></h2>
+<blockquote>
+<div><ul class="simple">
+<li><dl class="simple">
+<dt>FitHiChIP derives the statistically significant CIS interactions from a given <strong>HiChIP / PLAC-seq</strong>, and now for <strong>Hi-C</strong> data as well.</dt><dd><ul>
+<li><p>CIS Interactions within a specified distance range (default = 20 Kb to 2 Mb: can be user defined) and for a specified fixed size bin size, are computed.</p></li>
+<li><p>Distance decay model proposed in the method FitHiC (Ay and Noble, Genome Research  2014) together with a novel bias (coverage / ICE) regression model is used to find the statistical significant interactions.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Processing HiChIP / PLAC-seq requires specifying ChIP-seq peaks corresponding to the target protein or histone modifications of interest.</dt><dd><ul>
+<li><p>Either user can provide ChIP-seq peak files from ENCODE, ROADMAP, or any other reference.</p></li>
+<li><p>Alternatively, <strong>FitHiChIP supports calling peaks from HiChIP data</strong>, which can be used to find out the interactions involving peaks (enriched) segments.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>FitHiChIP also supports finding <strong>differential HiChIP contacts</strong> between two different categories of HiChIP data, having one or more replicates.</p></li>
+<li><p>FitHiChIP also proposes a basic implementation of <strong>simulating HiChIP contact map given a reference HiC contact map and a ChIP-seq alignment file</strong>, with respect to specified number of reads. (<strong>Note</strong>: this implementation is still in basic stage; output HiChIP heatmap shows explicit bias towards low range contacts.)</p></li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="repository">
+<h2>Repository<a class="headerlink" href="#repository" title="Permalink to this heading"></a></h2>
+<p>FitHiChIP is hosted in <a class="reference external" href="https://github.com/ay-lab/FitHiChIP">https://github.com/ay-lab/FitHiChIP</a></p>
+</div>
+<div class="section" id="execution">
+<h2>Execution<a class="headerlink" href="#execution" title="Permalink to this heading"></a></h2>
+<p>Details of execution commands and parameters are provided in the below mentioned links:</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="usage/installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="usage/installation.html#option-1-install-from-source-in-github">Option 1: Install from source in GitHub</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage/installation.html#option-2-running-fithichip-with-docker-or-singularity">Option 2: Running FitHiChIP with Docker or Singularity</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="usage/quickstart.html">Quick start</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="usage/quickstart.html#description-of-the-test-data">Description of the test data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage/quickstart.html#configuration-parameters-according-to-the-test-data">Configuration parameters according to the test data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage/quickstart.html#sample-logs-from-the-console-corresponding-to-the-testdata">Sample logs from the console, corresponding to the TestData</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage/quickstart.html#output-file-description">Output file description</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="usage/configuration.html">Setting up configuration file</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="usage/configuration.html#input-hichip-contact-matrix-file-different-formats-supported">Input HiChIP contact matrix file - different formats supported</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage/configuration.html#other-files-directories">Other files / directories</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage/configuration.html#execution-options">Execution options</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="usage/output.html">Details of FitHiChIP outputs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="usage/output.html#summary-html-file">Summary HTML file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage/output.html#details-of-output-files">Details of output files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage/output.html#details-of-fithichip-significant-interactions">Details of FitHiChIP significant interactions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage/output.html#details-of-merge-filtering-output">Details of merge filtering output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage/output.html#visualizing-significant-interactions-in-epigenome-browsers">Visualizing significant interactions in epigenome browsers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage/output.html#visualizing-significant-interactions-after-merge-filtering-in-epigenome-browsers">Visualizing significant interactions (after merge filtering) in epigenome browsers</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="usage/DiffLoops.html">Differential analysis of HiChIP loops</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="usage/DiffLoops.html#basics">Basics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage/DiffLoops.html#options">Options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage/DiffLoops.html#example-1">Example 1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage/DiffLoops.html#example-2">Example 2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage/DiffLoops.html#details-of-differential-analysis-outputs">Details of differential analysis outputs</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="usage/Utilities.html">Various utility scripts / functions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="usage/Utilities.html#generating-contact-matrices-of-different-resolution-bin-size">1. generating contact matrices of different resolution (bin size)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage/Utilities.html#inferring-peaks-from-hichip-data-for-use-in-the-hichip-pipeline">2. inferring peaks from HiChIP data (for use in the HiChIP pipeline)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage/Utilities.html#merging-a-set-of-chip-seq-alignment-files">3. merging a set of ChIP-seq alignment files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage/Utilities.html#producing-fithichip-loops-with-different-fdr-thresholds">4. Producing FitHiChIP loops with different FDR thresholds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage/Utilities.html#applying-merge-filtering-on-any-set-of-significant-loops-generated-by-fithichip-or-any-other-loop-calling-method">5. Applying merge filtering on any set of significant loops (generated by FitHiChIP or any other loop calling method)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage/Utilities.html#visualization-of-the-significant-loops-in-washu-epigenome-browser">6. Visualization of the significant loops in WashU epigenome browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage/Utilities.html#simulating-hichip-contact-matrix-from-hic-and-chip-seq-data">7. Simulating HiChIP contact matrix from HiC and ChIP-seq data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage/Utilities.html#applying-fithichip-on-capture-hic-data">8. Applying FitHiChIP on capture HiC data</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="usage/FAQ.html">Frequently asked question</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="usage/FAQ.html#how-do-i-cite-fithichip">How do I cite FitHiChIP?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage/FAQ.html#i-do-not-know-anything-about-hichip-what-should-i-do">I do not know anything about HiChIP. What should I do?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage/FAQ.html#how-to-install-hic-pro-in-the-system">How to install HiC-pro in the system?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage/FAQ.html#how-to-visualize-the-fithichip-loops-in-genome-browser">How to visualize the FitHiChIP loops in genome browser?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage/FAQ.html#what-type-of-input-data-formats-are-supported-in-fithichip">What type of input data formats are supported in FitHiChIP?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage/FAQ.html#what-type-of-hichip-interactions-are-supported-in-fithichip">What type of HiChIP interactions are supported in FitHiChIP?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage/FAQ.html#does-fithichip-support-processing-hic-data">Does FitHiChIP support processing HiC data?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage/FAQ.html#i-want-to-process-hichip-data-but-cannot-find-any-reference-chip-seq-file-what-should-i-do">I want to process HiChIP data, but cannot find any reference ChIP-seq file. What should I do?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage/FAQ.html#does-fithichip-support-processing-capture-hic-data">Does FitHiChIP support processing Capture-HiC data?</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="citation">
+<h2>Citation<a class="headerlink" href="#citation" title="Permalink to this heading"></a></h2>
+<p>FitHiChIP is now published at Nature Communications (&lt;<a class="reference external" href="https://www.nature.com/articles/s41467-019-11950-y">https://www.nature.com/articles/s41467-019-11950-y</a>&gt;)</p>
+<p>If you are using FitHiChIP, please cite:</p>
+<p>Sourya Bhattacharyya, Vivek Chandra, Pandurangan Vijayanand, and Ferhat Ay, <em>Identification of significant chromatin contacts from HiChIP data by FitHiChIP</em>, Nature Communications, Vol 10, No 4221, 2019, DOI:  &lt;<a class="reference external" href="https://doi.org/10.1038/s41467-019-11950-y">https://doi.org/10.1038/s41467-019-11950-y</a>&gt;</p>
+</div>
+<div class="section" id="support">
+<h2>Support<a class="headerlink" href="#support" title="Permalink to this heading"></a></h2>
+<p>For any queries or problems, user can report an issue in GitHub (&lt;<a class="reference external" href="https://github.com/ay-lab/FitHiChIP">https://github.com/ay-lab/FitHiChIP</a>&gt;). Alternatively, user can mail us in:</p>
+<ul class="simple">
+<li><p>Sourya Bhattacharyya &lt;<a class="reference external" href="mailto:sourya&#37;&#52;&#48;lji&#46;org">sourya<span>&#64;</span>lji<span>&#46;</span>org</a>&gt;</p></li>
+<li><p>Ferhat Ay &lt;<a class="reference external" href="mailto:ferhatay&#37;&#52;&#48;lji&#46;org">ferhatay<span>&#64;</span>lji<span>&#46;</span>org</a>&gt;</p></li>
+</ul>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="usage/installation.html" class="btn btn-neutral float-right" title="Installation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2019, Sourya Bhattacharyya, Ferhat Ay.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

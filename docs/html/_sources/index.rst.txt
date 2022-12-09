@@ -1,0 +1,78 @@
+.. FitHiChIP_Doc documentation master file, created by
+   sphinx-quickstart on Thu Jan 17 15:35:54 2019.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
+
+.. :caption: Contents:
+
+Welcome to FitHiChIP!
+=======================
+
+**Developers**: Sourya Bhattacharyya, Ferhat Ay
+
+**Institution**: Division of Vaccine Discovery, La Jolla Institute for Immunology, La Jolla, CA 92037, USA
+
+
+Utilities of FitHiChIP at a glance
+------------------------------------
+
+	- FitHiChIP derives the statistically significant CIS interactions from a given **HiChIP / PLAC-seq**, and now for **Hi-C** data as well.
+		- CIS Interactions within a specified distance range (default = 20 Kb to 2 Mb: can be user defined) and for a specified fixed size bin size, are computed. 
+		- Distance decay model proposed in the method FitHiC (Ay and Noble, Genome Research  2014) together with a novel bias (coverage / ICE) regression model is used to find the statistical significant interactions.
+	
+	- Processing HiChIP / PLAC-seq requires specifying ChIP-seq peaks corresponding to the target protein or histone modifications of interest. 
+		- Either user can provide ChIP-seq peak files from ENCODE, ROADMAP, or any other reference. 
+		- Alternatively, **FitHiChIP supports calling peaks from HiChIP data**, which can be used to find out the interactions involving peaks (enriched) segments.
+	
+	- FitHiChIP also supports finding **differential HiChIP contacts** between two different categories of HiChIP data, having one or more replicates.
+
+	- FitHiChIP also proposes a basic implementation of **simulating HiChIP contact map given a reference HiC contact map and a ChIP-seq alignment file**, with respect to specified number of reads. (**Note**: this implementation is still in basic stage; output HiChIP heatmap shows explicit bias towards low range contacts.)	
+
+Repository 
+-----------
+
+FitHiChIP is hosted in https://github.com/ay-lab/FitHiChIP
+
+
+Execution
+----------
+
+Details of execution commands and parameters are provided in the below mentioned links:
+
+.. toctree::
+	:maxdepth: 2
+	
+	usage/installation
+	usage/quickstart
+	usage/configuration
+	usage/output	
+	usage/DiffLoops
+	usage/Utilities
+	usage/FAQ
+
+.. usage/optional
+
+
+Citation
+-----------
+FitHiChIP is now published at Nature Communications (<https://www.nature.com/articles/s41467-019-11950-y>)
+
+If you are using FitHiChIP, please cite:
+
+Sourya Bhattacharyya, Vivek Chandra, Pandurangan Vijayanand, and Ferhat Ay, *Identification of significant chromatin contacts from HiChIP data by FitHiChIP*, Nature Communications, Vol 10, No 4221, 2019, DOI:  <https://doi.org/10.1038/s41467-019-11950-y>
+
+	
+Support
+-----------
+
+For any queries or problems, user can report an issue in GitHub (<https://github.com/ay-lab/FitHiChIP>). Alternatively, user can mail us in:
+
+- Sourya Bhattacharyya <sourya@lji.org>
+- Ferhat Ay <ferhatay@lji.org>
+
+.. Indices and tables
+.. ==================
+
+.. * :ref:`genindex`
+.. * :ref:`modindex`
+.. * :ref:`search`
