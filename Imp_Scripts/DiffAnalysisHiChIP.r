@@ -27,7 +27,6 @@ PLOTWIDTH=10
 PLOTHEIGHT=6
 
 NUMFEAT <- 2
-NUMCOL_SEGMENT_UNIONLOOP <- 12
 TSS_OFFSET <- 5000
 THR_DEFAULT_BCV <- 0.4
 
@@ -41,19 +40,49 @@ DiffLoopWashUConvert <- function(inpfile, WashUfile) {
 	}
 }
 
-LoopWashUCreate <- function(categoryDir, CategoryList, allLoop_file) {
+DiffLoop_UCSC_Convert <- function(inpfile, UCSCfile, ChrSizeFile, bedToBigBedExec, interact_as_file) {
+	tempUCSCFile <- paste0(UCSCfile, "_temp")
+	n <- GetNumLines(inpfile)
+	if (n > 1) {		
+		system(paste0("awk -F\'[\t]\' -v c=\"#0000FF\" \'{if (NR>1) {print $1\"\t\"(($2+$3)/2-1)\"\t\"(($5+$6)/2+1)\"\t.\t10\t\"$7\"\t.\t\"c\"\t\"$1\"\t\"(($2+$3)/2-1)\"\t\"(($2+$3)/2+1)\"\t.\t.\t\"$4\"\t\"(($5+$6)/2-1)\"\t\"(($5+$6)/2+1)\"\t.\t.\"}}\' ", inpfile, " | sort -k1,1 -k2,2n -k3,3n > ", tempUCSCFile))
+		system(paste0(bedToBigBedExec, " -as=", interact_as_file, " -type=bed5+13 ", tempUCSCFile, " ", ChrSizeFile, " ", UCSCfile))
+		system(paste("rm", tempUCSCFile))
+	}
+}
+
+DiffLoop_IGV_Convert <- function(inpfile, IGVfile) {
+	n <- GetNumLines(inpfile)
+	if (n > 1) {
+		system(paste0("awk -F[\'\t\'] \'function min(x,y) {return x < y ? x : y} {if (NR>1) {print $1\"\t\"(($2+$3)/2-1)\"\t\"(($2+$3)/2+1)\"\t\"$4\"\t\"(($5+$6)/2-1)\"\t\"(($5+$6)/2+1)\"\t-\t10\t.\t.\"}}\' ", inpfile, " | sort -k1,1 -k2,2n -k5,5n > ", IGVfile))
+	}
+}
+
+Loops_Make_Compatible_Epigenome_Browsers <- function(categoryDir, CategoryList, allLoop_file, ChrSizeFile, bedToBigBedExec, interact_as_file) {
 	exclloopfile_cat1 <- paste0(categoryDir, '/DiffLoops_Excl_', CategoryList[1], '.bed')
 	exclloopfile_cat2 <- paste0(categoryDir, '/DiffLoops_Excl_', CategoryList[2], '.bed')
 	system(paste("awk \'(NR==1) || (($(NF-1)>0) && ($NF==0))\' ", allLoop_file, ">", exclloopfile_cat1))
 	system(paste("awk \'(NR==1) || (($(NF-1)==0) && ($NF>0))\' ", allLoop_file, ">", exclloopfile_cat2))
-	WashUDir <- paste0(categoryDir, '/WashU_Files')
-	system(paste("mkdir -p", WashUDir))
+	
 	WashU_allLoop_file <- paste0(categoryDir, '/DiffLoops_WashU.bed')
 	DiffLoopWashUConvert(allLoop_file, WashU_allLoop_file)
-	WashU_exclloopfile_cat1 <- paste0(categoryDir, '/DiffLoops_Excl_', CategoryList[1], '_WashU.bed')
+	UCSC_allLoop_file <- paste0(categoryDir, '/DiffLoops_UCSC.bed')
+	DiffLoop_UCSC_Convert(allLoop_file, UCSC_allLoop_file, ChrSizeFile, bedToBigBedExec, interact_as_file)
+	IGV_allLoop_file <- paste0(categoryDir, '/DiffLoops_IGV.bed')
+	DiffLoop_IGV_Convert(allLoop_file, IGV_allLoop_file)
+	
+	WashU_exclloopfile_cat1 <- paste0(categoryDir, '/DiffLoops_Excl_', CategoryList[1], '_WashU.bed')	
 	DiffLoopWashUConvert(exclloopfile_cat1, WashU_exclloopfile_cat1)
+	UCSC_exclloopfile_cat1 <- paste0(categoryDir, '/DiffLoops_Excl_', CategoryList[1], '_UCSC.bed')
+	DiffLoop_UCSC_Convert(exclloopfile_cat1, UCSC_exclloopfile_cat1, ChrSizeFile, bedToBigBedExec, interact_as_file)
+	IGV_exclloopfile_cat1 <- paste0(categoryDir, '/DiffLoops_Excl_', CategoryList[1], '_IGV.bed')
+	DiffLoop_IGV_Convert(exclloopfile_cat1, IGV_exclloopfile_cat1)
+	
 	WashU_exclloopfile_cat2 <- paste0(categoryDir, '/DiffLoops_Excl_', CategoryList[2], '_WashU.bed')
 	DiffLoopWashUConvert(exclloopfile_cat2, WashU_exclloopfile_cat2)	
+	UCSC_exclloopfile_cat2 <- paste0(categoryDir, '/DiffLoops_Excl_', CategoryList[2], '_UCSC.bed')
+	DiffLoop_UCSC_Convert(exclloopfile_cat2, UCSC_exclloopfile_cat2, ChrSizeFile, bedToBigBedExec, interact_as_file)
+	IGV_exclloopfile_cat2 <- paste0(categoryDir, '/DiffLoops_Excl_', CategoryList[2], '_IGV.bed')
+	DiffLoop_IGV_Convert(exclloopfile_cat2, IGV_exclloopfile_cat2)	
 }
 
 #======================================================
@@ -371,11 +400,12 @@ ApplyEdgeR <- function(ALLLoopData, MainDir, CountData, CategoryList, ReplicaCou
 # parameters:
 # UnionLoopFile: file containing merged set of loops from all input replicates and all categories
 # AllLoopList: Loops with FitHiChIP significance for different input replicates and categories
-# ChIPCovFileList: ChIP-seq coverage file list (one per input category) for the bin size of loops
 # AllRepLabels: labels of individual replicates of individual categories
 # CategoryList: two categories experimented
+# ChIPCovFile1: Scaled ChIP-seq coverage file for the first category. Otherwise, "None"
+# ChIPCovFile2: Scaled ChIP-seq coverage file for the second category. Otherwise, "None"
 #================================
-FillFeatureValues <- function(UnionLoopFile, AllLoopList, BinSize, ChIPCovFileList, AllRepLabels, CategoryList) {
+FillFeatureValues <- function(UnionLoopFile, AllLoopList, BinSize, AllRepLabels, CategoryList, ChIPCovFile1, ChIPCovFile2) {
 
 	# counter of chromosomes processed
 	valid_chr_count <- 0
@@ -399,8 +429,7 @@ FillFeatureValues <- function(UnionLoopFile, AllLoopList, BinSize, ChIPCovFileLi
 		ExtractChrData(UnionLoopFile, chrName, UnionLoopTempFile1, header=FALSE)
 		nreadCurr <- GetNumLines(UnionLoopTempFile1)
 		if (nreadCurr == 0) {
-			# check if there is no loop for the current chromosome
-			# in such case, continue
+			# no loop for the current chromosome - continue
 			next
 		}
 		
@@ -441,9 +470,6 @@ FillFeatureValues <- function(UnionLoopFile, AllLoopList, BinSize, ChIPCovFileLi
 				system(paste0("awk -v b=", BinSize, " \'{if ((NR>1) && ($1==\"", chrName, "\")) {print ($2/b)\"\t\"($5/b)\"\t\"$7\"\t\"$NF}}\' ", inpfile, " > ", InpTempFitHiChIPLoopFile))		
 			}
 
-			# # extract the input data for the current chromosome			
-			# ExtractChrData(inpfile, chrName, InpTempFitHiChIPLoopFile, header=TRUE)
-
 			# check the number of loops for the current chromosome 
 			# and for the current sample
 			nreadInp <- GetNumLines(InpTempFitHiChIPLoopFile)
@@ -466,13 +492,6 @@ FillFeatureValues <- function(UnionLoopFile, AllLoopList, BinSize, ChIPCovFileLi
 				rawccvec[Match_RowIdx] <- mergeDF$RawCC
 				qvec[Match_RowIdx] <- mergeDF$qval
 
-				# # find the overlap between the merged loops and input sample FitHiChIP loops
-				# CurrOv <- OverlapLoop(MergedIntTempData, InpTempData)
-
-				# # dump the feature vectors
-				# rawccvec[CurrOv$A_AND_B] <- InpTempData[CurrOv$B_AND_A, 7]				
-				# qvec[CurrOv$A_AND_B] <- InpTempData[CurrOv$B_AND_A, ncol(InpTempData)]
-			
 			}	# end number of reads condition
 
 			# assign the feature vectors for the current input file
@@ -490,95 +509,100 @@ FillFeatureValues <- function(UnionLoopFile, AllLoopList, BinSize, ChIPCovFileLi
 		}
 
 		#=====================
-		# process the ChIP-seq coverage files given for two input categories
+		# process the ChIP-seq coverage files given for two input categories (if available)
 		#=====================
-  		# list of vectors for storing the features of individual loops
-  		# with respect to one interacting segment, and for the current chromosome
-  		Seg1_ChIP_Coverage <- list()
-		Seg2_ChIP_Coverage <- list()
+		if ((ChIPCovFile1 != "None") & (ChIPCovFile2 != "None")) {
+			ChIPCovFileList <- c(ChIPCovFile1, ChIPCovFile2)
 
-		Seg1_ChIP_Label <- rep('HD', nrow(MergedIntTempData))
-		Seg2_ChIP_Label <- rep('HD', nrow(MergedIntTempData))
+	  		# list of vectors for storing the features of individual loops
+	  		# with respect to one interacting segment, and for the current chromosome
+	  		Seg1_ChIP_Coverage <- list()
+			Seg2_ChIP_Coverage <- list()
 
-		# stores temporary ChIP coverage for the current chromosome
-		InpTempChIPCoverageFile <- paste0(dirname(UnionLoopFile), '/temp_CurrChr_InpChIPCoverageFile.bed')
+			Seg1_ChIP_Label <- rep('HD', nrow(MergedIntTempData))
+			Seg2_ChIP_Label <- rep('HD', nrow(MergedIntTempData))
 
-		for (i in (1:length(ChIPCovFileList))) {
-			seg1_chip_coverage_vec <- rep(0, nrow(MergedIntTempData))
-			seg2_chip_coverage_vec <- rep(0, nrow(MergedIntTempData))
+			# stores temporary ChIP coverage for the current chromosome
+			InpTempChIPCoverageFile <- paste0(dirname(UnionLoopFile), '/temp_CurrChr_InpChIPCoverageFile.bed')
 
-			currcovfile <- ChIPCovFileList[i]
-			cat(sprintf("\n Merging reference ChIP-seq coverage values: file number : %s  file name : %s ", i, currcovfile))
+			for (i in (1:length(ChIPCovFileList))) {
+				seg1_chip_coverage_vec <- rep(0, nrow(MergedIntTempData))
+				seg2_chip_coverage_vec <- rep(0, nrow(MergedIntTempData))
 
-			# # extract the coverage information only for the current chromosome
-			# # check the first field of chromosome name
-			# # and second and third fields as integers
-			# system(paste0("awk \'(($1==\"", chrName, "\") && ($2 ~ /^[0-9]+$/) && ($3 ~ /^[0-9]+$/))\' ", currcovfile, " > ", InpTempChIPCoverageFile))
+				currcovfile <- ChIPCovFileList[i]
+				cat(sprintf("\n Merging reference ChIP-seq coverage values: file number : %s  file name : %s ", i, currcovfile))
 
-			# extract the coverage information only for the current chromosome
-			# check the first field of chromosome name
-			# and second and third fields as integers
-			# extract the bin number and the coverage information (assume 4th field)
-			# also extract the 5th field (bin label; LD, HD or LD)
-			system(paste0("awk -v b=", BinSize, " \'{if (($1==\"", chrName, "\") && ($2 ~ /^[0-9]+$/) && ($3 ~ /^[0-9]+$/)) {print ($2/b)\"\t\"$4\"\t\"$5}}\' ", currcovfile, " > ", InpTempChIPCoverageFile))
+				# # extract the coverage information only for the current chromosome
+				# # check the first field of chromosome name
+				# # and second and third fields as integers
+				# system(paste0("awk \'(($1==\"", chrName, "\") && ($2 ~ /^[0-9]+$/) && ($3 ~ /^[0-9]+$/))\' ", currcovfile, " > ", InpTempChIPCoverageFile))
 
-			# read the ChIP coverage for the current sample and for the current chromosome
-			# ChIPCoverageData <- read.table(InpTempChIPCoverageFile, header=F, sep="\t", stringsAsFactors=F)
-			ChIPCoverageData <- data.table::fread(InpTempChIPCoverageFile, header=F, sep="\t", stringsAsFactors=F)
+				# extract the coverage information only for the current chromosome
+				# check the first field of chromosome name
+				# and second and third fields as integers
+				# extract the bin number and the coverage information (assume 4th field)
+				# also extract the 5th field (bin label; LD, HD or LD)
+				system(paste0("awk -v b=", BinSize, " \'{if (($1==\"", chrName, "\") && ($2 ~ /^[0-9]+$/) && ($3 ~ /^[0-9]+$/)) {print ($2/b)\"\t\"$4\"\t\"$5}}\' ", currcovfile, " > ", InpTempChIPCoverageFile))
 
-			# *** Note: the below mentioned MATCH operation is only possible 
-			# since we perform exact overlap of the segments
+				# read the ChIP coverage for the current sample and for the current chromosome
+				# ChIPCoverageData <- read.table(InpTempChIPCoverageFile, header=F, sep="\t", stringsAsFactors=F)
+				ChIPCoverageData <- data.table::fread(InpTempChIPCoverageFile, header=F, sep="\t", stringsAsFactors=F)
 
-			# get the overlap of the first interacting bin of AllLoop_BinDF
-			# with the bins in ChIPCoverageData
-			m <- match(AllLoop_BinDF[,1], ChIPCoverageData[,1])
-			idx_Loop <- which(!is.na(m))
-			idx_Cov <- m[idx_Loop]
-			# copy in the segment 1 ChIP coverage vector
-			seg1_chip_coverage_vec[idx_Loop] <- ChIPCoverageData[idx_Cov, 2]
-			if (i == 1) {
-				Seg1_ChIP_Label[idx_Loop] <- ChIPCoverageData[idx_Cov, ncol(ChIPCoverageData)]
+				# *** Note: the below mentioned MATCH operation is only possible 
+				# since we perform exact overlap of the segments
+
+				# get the overlap of the first interacting bin of AllLoop_BinDF
+				# with the bins in ChIPCoverageData
+				m <- match(AllLoop_BinDF[,1], ChIPCoverageData[,1])
+				idx_Loop <- which(!is.na(m))
+				idx_Cov <- m[idx_Loop]
+				# copy in the segment 1 ChIP coverage vector
+				seg1_chip_coverage_vec[idx_Loop] <- ChIPCoverageData[idx_Cov, 2]
+				if (i == 1) {
+					Seg1_ChIP_Label[idx_Loop] <- ChIPCoverageData[idx_Cov, ncol(ChIPCoverageData)]
+				}
+
+				# get the overlap of the second interacting bin of AllLoop_BinDF
+				# with the bins in ChIPCoverageData
+				m <- match(AllLoop_BinDF[,2], ChIPCoverageData[,1])
+				idx_Loop <- which(!is.na(m))
+				idx_Cov <- m[idx_Loop]
+				# copy in the segment 2 ChIP coverage vector
+				seg2_chip_coverage_vec[idx_Loop] <- ChIPCoverageData[idx_Cov, 2]
+				if (i == 1) {
+					Seg2_ChIP_Label[idx_Loop] <- ChIPCoverageData[idx_Cov, ncol(ChIPCoverageData)]
+				}
+
+				# # overlap of the current set of merged loops (for the current chromosome)
+				# # and the 1D segments (for the current chromosome)
+				# ov1 <- Overlap1D(MergedIntTempData[,1:3], ChIPCoverageData[,1:3], boundary=1, offset=0, uniqov=FALSE)
+				# ov2 <- Overlap1D(MergedIntTempData[,4:6], ChIPCoverageData[,1:3], boundary=1, offset=0, uniqov=FALSE)
+
+				# # assign the ChIP coverage of overlapping bins 
+				# # we assume that 4th field of ChIP coverage file stores the coverage information
+				# seg1_chip_coverage_vec[ov1$A_AND_B] <- ChIPCoverageData[ov1$B_AND_A, 4]
+				# seg2_chip_coverage_vec[ov2$A_AND_B] <- ChIPCoverageData[ov2$B_AND_A, 4]
+
+				# assign the feature vectors for the current input file
+				# into the final list of feature arrays
+				Seg1_ChIP_Coverage[[i]] <- seg1_chip_coverage_vec
+				Seg2_ChIP_Coverage[[i]] <- seg2_chip_coverage_vec
+
+				# # assign the 1D label as well
+				# if (i == 1) {
+				# 	Seg1_ChIP_Label[ov1$A_AND_B] <- ChIPCoverageData[ov1$B_AND_A, ncol(ChIPCoverageData)]
+				# 	Seg2_ChIP_Label[ov2$A_AND_B] <- ChIPCoverageData[ov2$B_AND_A, ncol(ChIPCoverageData)]
+				# }
+
+				cat(sprintf("\n ***** Assigned reference ChIP-seq coverage information for the file index: %s for the chromosome : %s ***** \n", i, chrName))
 			}
 
-			# get the overlap of the second interacting bin of AllLoop_BinDF
-			# with the bins in ChIPCoverageData
-			m <- match(AllLoop_BinDF[,2], ChIPCoverageData[,1])
-			idx_Loop <- which(!is.na(m))
-			idx_Cov <- m[idx_Loop]
-			# copy in the segment 2 ChIP coverage vector
-			seg2_chip_coverage_vec[idx_Loop] <- ChIPCoverageData[idx_Cov, 2]
-			if (i == 1) {
-				Seg2_ChIP_Label[idx_Loop] <- ChIPCoverageData[idx_Cov, ncol(ChIPCoverageData)]
+			# delete the temporary file
+			if (file.exists(InpTempChIPCoverageFile) == TRUE) {
+				system(paste("rm", InpTempChIPCoverageFile))
 			}
 
-			# # overlap of the current set of merged loops (for the current chromosome)
-			# # and the 1D segments (for the current chromosome)
-			# ov1 <- Overlap1D(MergedIntTempData[,1:3], ChIPCoverageData[,1:3], boundary=1, offset=0, uniqov=FALSE)
-			# ov2 <- Overlap1D(MergedIntTempData[,4:6], ChIPCoverageData[,1:3], boundary=1, offset=0, uniqov=FALSE)
-
-			# # assign the ChIP coverage of overlapping bins 
-			# # we assume that 4th field of ChIP coverage file stores the coverage information
-			# seg1_chip_coverage_vec[ov1$A_AND_B] <- ChIPCoverageData[ov1$B_AND_A, 4]
-			# seg2_chip_coverage_vec[ov2$A_AND_B] <- ChIPCoverageData[ov2$B_AND_A, 4]
-
-			# assign the feature vectors for the current input file
-			# into the final list of feature arrays
-			Seg1_ChIP_Coverage[[i]] <- seg1_chip_coverage_vec
-			Seg2_ChIP_Coverage[[i]] <- seg2_chip_coverage_vec
-
-			# # assign the 1D label as well
-			# if (i == 1) {
-			# 	Seg1_ChIP_Label[ov1$A_AND_B] <- ChIPCoverageData[ov1$B_AND_A, ncol(ChIPCoverageData)]
-			# 	Seg2_ChIP_Label[ov2$A_AND_B] <- ChIPCoverageData[ov2$B_AND_A, ncol(ChIPCoverageData)]
-			# }
-
-			cat(sprintf("\n ***** Assigned reference ChIP-seq coverage information for the file index: %s for the chromosome : %s ***** \n", i, chrName))
-		}
-
-		# delete the temporary file
-		if (file.exists(InpTempChIPCoverageFile) == TRUE) {
-			system(paste("rm", InpTempChIPCoverageFile))
-		}
+		}	# end ChIP-seq coverage file processing condition
 
 		#=======================
 		# now for the current chromosome
@@ -589,46 +613,39 @@ FillFeatureValues <- function(UnionLoopFile, AllLoopList, BinSize, ChIPCovFileLi
 
 		namesvec <- c("chr1", "start1", "end1", "chr2", "start2", "end2")
 
-		# insert the ChIP-seq coverage information
-		for (i in (1:2)) {
-			MergedIntTempData <- cbind.data.frame(MergedIntTempData, Seg1_ChIP_Coverage[[i]], Seg2_ChIP_Coverage[[i]])
+		## insert the ChIP-seq information (if available)
+		if ((ChIPCovFile1 != "None") & (ChIPCovFile2 != "None")) {	
+			## ChIP-seq coverage information
+			for (i in (1:2)) {
+				MergedIntTempData <- cbind.data.frame(MergedIntTempData, Seg1_ChIP_Coverage[[i]], Seg2_ChIP_Coverage[[i]])
+			}
+			# insert the ChIP coverage differential labels (HD / LD / ND)
+			MergedIntTempData <- cbind.data.frame(MergedIntTempData, Seg1_ChIP_Label, Seg2_ChIP_Label)
+			# update the column labels as well
+			namesvec <- c(namesvec, paste0(CategoryList[1], c('_ChIPCov1', '_ChIPCov2')), paste0(CategoryList[2], c('_ChIPCov1', '_ChIPCov2')), 'Bin1_Label', 'Bin2_Label')
 		}
-
-		# insert the ChIP coverage differential labels (HD / LD / ND)
-		MergedIntTempData <- cbind.data.frame(MergedIntTempData, Seg1_ChIP_Label, Seg2_ChIP_Label)
-
-		# update the column labels as well
-		namesvec <- c(namesvec, paste0(CategoryList[1], c('_ChIPCov1', '_ChIPCov2')), paste0(CategoryList[2], c('_ChIPCov1', '_ChIPCov2')), 'Bin1_Label', 'Bin2_Label')
 
 		# insert for individual samples (replicates within categories)
 		# different feature values
 		# note that this is for a single chromosome
 		for (i in (1:length(AllLoopList))) { 
 			MergedIntTempData <- cbind.data.frame(MergedIntTempData, RawCC_Categ[[i]], QVal_Categ[[i]])
-		}
-
-		# column names
+		}		
 		appendnamevec <- c()
 		for (i in (1:length(AllRepLabels))) {
 			for (v in c('_RawCC', '_QVal')) {
 				appendnamevec <- c(appendnamevec, paste0(AllRepLabels[i], v))
 			}
 		}
-		namesvec <- c(namesvec, appendnamevec)
-
-		# assign the column names into the data frame created for the current chromosome
+		namesvec <- c(namesvec, appendnamevec)		
 		colnames(MergedIntTempData) <- namesvec
 
 		# now write this data frame in the temporary master sheet file
-		# sourya - should be modified - 
-		# we need to insert a boolean variable to see if chromosome specific writing is enabled or not
-		# if (chr_idx == 1) {
 		if (valid_chr_count == 1) {
 			write.table(MergedIntTempData, temp_final_UnionLoopFile, row.names=F, col.names=T, sep="\t", quote=F, append=F)
 		} else {
 			write.table(MergedIntTempData, temp_final_UnionLoopFile, row.names=F, col.names=F, sep="\t", quote=F, append=T)
 		}
-
 	} 	# end chromosome index loop
 
 	# rename the temporary master sheet file in the final file
@@ -651,7 +668,7 @@ option_list = list(
 
 	make_option(c("--CovThr"), type="integer", action="store", default=25, help="Threshold signifying the max allowed deviation of ChIP coverage between two categories, to consider those bins as ND (i.e. no difference). Default is 25, means 25% deviation of ChIP coverage is set as maximum, for a bin to be classified as ND. If user chooses 50, 50% maximum ChIP seq coverage deviation would be allowed."),
 
-	make_option(c("--ChIPAlignFileList"), type="character", default=NULL, help="Comma or colon separated list of ChIP-seq files, either alignment (BAM) format, or in bedgraph (4 column) format. Default is NULL. User can 1) either provide two files, one for each input category, 2) or provide ChIP seq alignment / coverage files one for each input sample (i.e. for all input replicates). Mandatory parameter."),
+	make_option(c("--ChIPAlignFileList"), type="character", default=NULL, help="Comma or colon separated list of ChIP-seq files, either alignment (BAM) format, or in bedgraph (4 column) format. Default is NULL. User can 1) either provide two files, one for each input category, 2) or provide ChIP seq alignment / coverage files one for each input sample (i.e. for all input replicates)."),
 
 	make_option(c("--OutDir"), type="character", default=NULL, help="Base Output directory. Mandatory parameter."),
 
@@ -695,11 +712,8 @@ if (is.null(opt$ChrSizeFile)) {
 if (!is.null(opt$ChIPAlignFileList)) {
 	ChIPAlignFileList <- as.character(unlist(strsplit(opt$ChIPAlignFileList,"[,:]")))
 	if ((length(ChIPAlignFileList) != 2) & (length(ChIPAlignFileList) != length(AllLoopList))) {
-		stop("ERROR !!!!!!! Number of ChIP-seq alignment files in the --ChIPAlignFileList parameter should be either 2 (one for each category) or should be equal to the number of samples !! quit !!! \n", call.=FALSE)
+		stop("ERROR !!!!!!! If ChIP-seq alignment files are provided, their count should be either 2 (one for each category) or should be equal to the number of samples (each sample having one ChIP-seq file) !! quit !!! \n", call.=FALSE)
 	}
-} else {
-	print_help(opt_parser)
-	stop("ERROR !!!!!!! Option --ChIPAlignFileList is empty. User should provide either 2 (one for each category) ChIP seq alignment files, or the number of files should be equal to the number of samples. Exit !!! \n", call.=FALSE)
 }
 
 if (is.null(opt$OutDir)) {
@@ -758,11 +772,23 @@ AllRepLabels <- c(paste0(CategoryList[1], '_', ReplicaLabels1), paste0(CategoryL
 # create the base output directory
 system(paste("mkdir -p", opt$OutDir))
 
-# count the number of ChIP-seq alignment files
-if (length(ChIPAlignFileList) == 2) {
-	ChIPAlignFileCountVec <- c(1,1)
+# count the number of ChIP-seq alignment files (if provided)
+if (!is.null(opt$ChIPAlignFileList)) {
+	if (length(ChIPAlignFileList) == 2) {
+		ChIPAlignFileCountVec <- c(1,1)
+	} else {
+		ChIPAlignFileCountVec <- ReplicaCount
+	}
 } else {
-	ChIPAlignFileCountVec <- ReplicaCount
+	ChIPAlignFileList <- c()
+	ChIPAlignFileCountVec <- c(0,0)
+}
+
+## number of fields in the output differential file before the contact information comes
+if (!is.null(opt$ChIPAlignFileList)) {
+	NUMCOL_SEGMENT_UNIONLOOP <- 12
+} else {
+	NUMCOL_SEGMENT_UNIONLOOP <- 6
 }
 
 #=========================
@@ -776,147 +802,217 @@ if (tools::file_ext(AllLoopList[1]) == "gz") {
 cat(sprintf("\n **** Bin size of FitHiChIP loops : %s \n", BinSize))
 
 #=========================
+## required for UCSC compatible browser file creation
+#=========================
+bedToBigBedExec <- system(paste("which bedToBigBed"), intern = TRUE)
+if (length(bedToBigBedExec) == 0) {
+	## download the "bedToBigBed" utility from UCSC
+	system(paste("wget http://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/bedToBigBed"))
+	bedToBigBedExec <- paste0(getwd(), '/bedToBigBed')
+}
+
+## download the interact.as utility from UCSC
+interact_as_file <- paste0(getwd(), '/interact.as')
+if (file.exists(interact_as_file) == FALSE) {
+	system(paste("wget https://genome.ucsc.edu/goldenPath/help/examples/interact/interact.as"))
+}
+
+#=========================
+# paste the configuration options within this execution
+#=========================
+fp_out <- file(paste0(opt$OutDir, '/Input_Parameters_', gsub("-","_",gsub(" ","_",format(Sys.time(), "%F %H-%M"))), '.log'), "w")
+
+outtext <- paste0("\n ********* Listing all the input parameters ****** ")
+writeLines(outtext, con=fp_out, sep="\n")
+
+outtext <- paste0("\n ===>>> All FitHiChIP input loop files (without significant thresholding) : \n ", paste(AllLoopList, collapse="\n"))
+writeLines(outtext, con=fp_out, sep="\n")
+
+outtext <- paste0("\n ===>>> FDR threshold of FitHiChIP loops: ", FDR_Th_FitHiChIP)
+writeLines(outtext, con=fp_out, sep="\n")
+
+outtext <- paste0("\n ===>>> Output directory: ", opt$OutDir)
+writeLines(outtext, con=fp_out, sep="\n")
+
+outtext <- paste0("\n ===>>> Input categories : \t ", paste(CategoryList, collapse="\t"))
+writeLines(outtext, con=fp_out, sep="\n")
+
+outtext <- paste0("\n ===>>> Count of replicates for first category : ", ReplicaCount[1], " and for the second category : ", ReplicaCount[2])
+writeLines(outtext, con=fp_out, sep="\n")
+
+outtext <- paste0("\n ===>>> Labels associated with replicates of category 1 : \t ", paste(ReplicaLabels1, collapse="\t"))
+writeLines(outtext, con=fp_out, sep="\n")
+
+outtext <- paste0("\n ===>>> Labels associated with replicates of category 2 : \t ", paste(ReplicaLabels2, collapse="\t"))
+writeLines(outtext, con=fp_out, sep="\n")
+
+outtext <- paste0("\n ===>>> FDR threshold for differential analysis (DESeq / EdgeR) : ", FDR_Th_DESeq)
+writeLines(outtext, con=fp_out, sep="\n")
+
+outtext <- paste0("\n ===>>> Fold change threshold (logarithm base 2 of the input) for differential analysis (DESeq / EdgeR) : ", FOLD_Change_Thr)
+writeLines(outtext, con=fp_out, sep="\n")
+
+if (!is.null(opt$ChIPAlignFileList)) {
+
+	outtext <- paste0("\n ===>>> Threshold of ChIP-seq coverage difference: ", opt$CovThr, " percent \n")
+	writeLines(outtext, con=fp_out, sep="\n")
+
+	outtext <- paste0("\n ===>>> Files containing ChIP alignment information : \n ", paste(ChIPAlignFileList, collapse="\n"))
+	writeLines(outtext, con=fp_out, sep="\n")
+
+}
+
+outtext <- paste0("\n ===>>> bcv option (constant) for differential analysis (specific to EdgeR) : ", opt$bcv)
+writeLines(outtext, con=fp_out, sep="\n")
+
+# close the output text file
+close(fp_out)
+
+#=========================
 # read both input ChIP coverage files and scale + combine those coverage values
 # consider only chromosomes common to both categories
 #=========================
-MergedChIPCovFile <- paste0(opt$OutDir, '/ChIP_Coverage_ALL.bed')
+if (!is.null(opt$ChIPAlignFileList)) {
+	MergedChIPCovFile <- paste0(opt$OutDir, '/ChIP_Coverage_ALL.bed')
 
-tempfile1 <- paste0(opt$OutDir, '/ChIP_Coverage_temp1.bed')
-tempfile2 <- paste0(opt$OutDir, '/ChIP_Coverage_temp2.bed')
+	tempfile1 <- paste0(opt$OutDir, '/ChIP_Coverage_temp1.bed')
+	tempfile2 <- paste0(opt$OutDir, '/ChIP_Coverage_temp2.bed')
 
-# first get the binned distribution of specified chromosome size file
-TargetBinnedChrFile <- paste0(opt$OutDir, '/Binned_Chromosome_Size_RefGenome.bed')
-system(paste("bedtools makewindows -g", opt$ChrSizeFile, "-w", BinSize, ">", TargetBinnedChrFile))
+	# first get the binned distribution of specified chromosome size file
+	TargetBinnedChrFile <- paste0(opt$OutDir, '/Binned_Chromosome_Size_RefGenome.bed')
+	system(paste("bedtools makewindows -g", opt$ChrSizeFile, "-w", BinSize, ">", TargetBinnedChrFile))
 
-# process individual alignment files and first get the ChIP seq coverage for those files
-# using the TargetBinnedChrFile
-for (i in (1:length(ChIPAlignFileList))) {
-	if (tools::file_ext(ChIPAlignFileList[i]) == "bam") {
-		cat(sprintf("\n ===>> Merging ChIP coverage - processing ChIP-seq alignment file in BAM format : %s ====>> \n", ChIPAlignFileList[i]))
-	} else if (tools::file_ext(ChIPAlignFileList[i]) == "gz") {
-		cat(sprintf("\n ===>> Merging ChIP coverage - processing ChIP-seq alignment file in gzipped bedgraph (4 column) format : %s ====>> \n", ChIPAlignFileList[i]))
-	} else {
-		cat(sprintf("\n ===>> Merging ChIP coverage - processing ChIP-seq alignment file in bedgraph (4 column) format : %s ====>> \n", ChIPAlignFileList[i]))
-	}
-
-	if (tools::file_ext(ChIPAlignFileList[i]) == "gz") {
-		# gzipped bedgraph format
-		if (i == 1) {			
-			system(paste("zcat", ChIPAlignFileList[i], "| bedtools coverage -a", TargetBinnedChrFile, "-b stdin -counts >", MergedChIPCovFile))
+	# process individual alignment files and first get the ChIP seq coverage for those files
+	# using the TargetBinnedChrFile
+	for (i in (1:length(ChIPAlignFileList))) {
+		if (tools::file_ext(ChIPAlignFileList[i]) == "bam") {
+			cat(sprintf("\n ===>> Merging ChIP coverage - processing ChIP-seq alignment file in BAM format : %s ====>> \n", ChIPAlignFileList[i]))
+		} else if (tools::file_ext(ChIPAlignFileList[i]) == "gz") {
+			cat(sprintf("\n ===>> Merging ChIP coverage - processing ChIP-seq alignment file in gzipped bedgraph (4 column) format : %s ====>> \n", ChIPAlignFileList[i]))
 		} else {
-			system(paste("zcat", ChIPAlignFileList[i], "| bedtools coverage -a", TargetBinnedChrFile, "-b stdin -counts | cut -f4 >", tempfile1))
-			system(paste("paste", MergedChIPCovFile, tempfile1, ">", tempfile2))
-			system(paste("mv", tempfile2, MergedChIPCovFile))			
+			cat(sprintf("\n ===>> Merging ChIP coverage - processing ChIP-seq alignment file in bedgraph (4 column) format : %s ====>> \n", ChIPAlignFileList[i]))
 		}
+
+		if (tools::file_ext(ChIPAlignFileList[i]) == "gz") {
+			# gzipped bedgraph format
+			if (i == 1) {			
+				system(paste("zcat", ChIPAlignFileList[i], "| bedtools coverage -a", TargetBinnedChrFile, "-b stdin -counts >", MergedChIPCovFile))
+			} else {
+				system(paste("zcat", ChIPAlignFileList[i], "| bedtools coverage -a", TargetBinnedChrFile, "-b stdin -counts | cut -f4 >", tempfile1))
+				system(paste("paste", MergedChIPCovFile, tempfile1, ">", tempfile2))
+				system(paste("mv", tempfile2, MergedChIPCovFile))			
+			}
+		} else {
+			# either BAM file or plain bedgraph format
+			if (i == 1) {			
+				system(paste("bedtools coverage -a", TargetBinnedChrFile, "-b", ChIPAlignFileList[i], "-counts >", MergedChIPCovFile))
+			} else {			
+				system(paste("bedtools coverage -a", TargetBinnedChrFile, "-b", ChIPAlignFileList[i], "-counts | cut -f4 >", tempfile1))
+				system(paste("paste", MergedChIPCovFile, tempfile1, ">", tempfile2))
+				system(paste("mv", tempfile2, MergedChIPCovFile))
+			}		
+		}
+	}	# end input file loop
+
+	# now scale the ChIP coverages according to different categories
+	Merged_ChIPCovData <- data.table::fread(MergedChIPCovFile, header=F, sep="\t", stringsAsFactors=F)
+
+	# ChIP coverage of the first category - row means operation
+	if (ChIPAlignFileCountVec[1] > 1) {
+		ChIPCovCat1 <- rowMeans(Merged_ChIPCovData[, 4:(4+ChIPAlignFileCountVec[1]-1)])
 	} else {
-		# either BAM file or plain bedgraph format
-		if (i == 1) {			
-			system(paste("bedtools coverage -a", TargetBinnedChrFile, "-b", ChIPAlignFileList[i], "-counts >", MergedChIPCovFile))
-		} else {			
-			system(paste("bedtools coverage -a", TargetBinnedChrFile, "-b", ChIPAlignFileList[i], "-counts | cut -f4 >", tempfile1))
-			system(paste("paste", MergedChIPCovFile, tempfile1, ">", tempfile2))
-			system(paste("mv", tempfile2, MergedChIPCovFile))
-		}		
+		ChIPCovCat1 <- Merged_ChIPCovData[, 4]
 	}
-}	# end input file loop
 
-# now scale the ChIP coverages according to different categories
-Merged_ChIPCovData <- data.table::fread(MergedChIPCovFile, header=F, sep="\t", stringsAsFactors=F)
+	# ChIP coverage of the second category - row means operation
+	if (ChIPAlignFileCountVec[2] > 1) {
+		ChIPCovCat2 <- rowMeans(Merged_ChIPCovData[, (4+ChIPAlignFileCountVec[1]):(4+ChIPAlignFileCountVec[1]+ChIPAlignFileCountVec[2]-1)])
+	} else {
+		ChIPCovCat2 <- Merged_ChIPCovData[, (4+ChIPAlignFileCountVec[1])]	
+	}
 
-# ChIP coverage of the first category - row means operation
-if (ChIPAlignFileCountVec[1] > 1) {
-	ChIPCovCat1 <- rowMeans(Merged_ChIPCovData[, 4:(4+ChIPAlignFileCountVec[1]-1)])
-} else {
-	ChIPCovCat1 <- Merged_ChIPCovData[, 4]
-}
+	# scaling factor to be applied on the coverage values of first category
+	scaling_factor <- (sum(ChIPCovCat2) * 1.0) / sum(ChIPCovCat1)
 
-# ChIP coverage of the second category - row means operation
-if (ChIPAlignFileCountVec[2] > 1) {
-	ChIPCovCat2 <- rowMeans(Merged_ChIPCovData[, (4+ChIPAlignFileCountVec[1]):(4+ChIPAlignFileCountVec[1]+ChIPAlignFileCountVec[2]-1)])
-} else {
-	ChIPCovCat2 <- Merged_ChIPCovData[, (4+ChIPAlignFileCountVec[1])]	
-}
+	cat(sprintf("\n ===>> Scaling ChIP coverage - scaling_factor : %s ====>> \n", scaling_factor))
 
-# scaling factor to be applied on the coverage values of first category
-scaling_factor <- (sum(ChIPCovCat2) * 1.0) / sum(ChIPCovCat1)
+	# scale the ChIP-seq coverage of the first category
+	for (i in (1:ChIPAlignFileCountVec[1])) { 
+		Merged_ChIPCovData[, (4+i-1)] <- as.integer(round(Merged_ChIPCovData[, (4+i-1)] * scaling_factor))
+	}
 
-cat(sprintf("\n ===>> Scaling ChIP coverage - scaling_factor : %s ====>> \n", scaling_factor))
+	# now write the scaled coverage values
+	colnames(Merged_ChIPCovData) <- c('chr', 'start', 'end', paste0(CategoryList[1], '_ChIPCov_', seq(1,ChIPAlignFileCountVec[1])), paste0(CategoryList[2], '_ChIPCov_', seq(1,ChIPAlignFileCountVec[2])))
+	write.table(Merged_ChIPCovData, MergedChIPCovFile, row.names=F, col.names=T, sep="\t", quote=F, append=F)
 
-# scale the ChIP-seq coverage of the first category
-for (i in (1:ChIPAlignFileCountVec[1])) { 
-	Merged_ChIPCovData[, (4+i-1)] <- as.integer(round(Merged_ChIPCovData[, (4+i-1)] * scaling_factor))
-}
+	# now remove the temporary files
+	if (file.exists(tempfile1) == TRUE) {
+		system(paste("rm", tempfile1))
+	}
+	if (file.exists(tempfile2) == TRUE) {
+		system(paste("rm", tempfile2))
+	}	
 
-# now write the scaled coverage values
-colnames(Merged_ChIPCovData) <- c('chr', 'start', 'end', paste0(CategoryList[1], '_ChIPCov_', seq(1,ChIPAlignFileCountVec[1])), paste0(CategoryList[2], '_ChIPCov_', seq(1,ChIPAlignFileCountVec[2])))
-write.table(Merged_ChIPCovData, MergedChIPCovFile, row.names=F, col.names=T, sep="\t", quote=F, append=F)
+	cat(sprintf("\n\n *** Performed scaling of ChIP coverage values for uniform ChIP coverage *** \n\n"))
 
-# now remove the temporary files
-if (file.exists(tempfile1) == TRUE) {
-	system(paste("rm", tempfile1))
-}
-if (file.exists(tempfile2) == TRUE) {
-	system(paste("rm", tempfile2))
-}	
+	#========================
+	# now apply EdgeR on the scaled ChIP coverage values of both categories
+	# to get the non-differential 1D bins
+	#========================
 
-cat(sprintf("\n\n *** Performed scaling of ChIP coverage values for uniform ChIP coverage *** \n\n"))
+	ChIPEdgeRDir <- paste0(opt$OutDir, '/ChIP_Coverage_EdgeR')
+	system(paste("mkdir -p", ChIPEdgeRDir))
 
-#========================
-# now apply EdgeR on the scaled ChIP coverage values of both categories
-# to get the non-differential 1D bins
-#========================
+	# construct the count matrix for applying to EdgeR
+	# consists of bin indices, midpoints and their coverages (scaled) for both categories
+	CountData_1D <- cbind.data.frame(seq(1,nrow(Merged_ChIPCovData)), Merged_ChIPCovData[,1], (Merged_ChIPCovData[,2] + Merged_ChIPCovData[,3])/2, Merged_ChIPCovData[,4:ncol(Merged_ChIPCovData)])
+	colnames(CountData_1D) <- c("Idx", "chr", "mid", colnames(Merged_ChIPCovData)[4:ncol(Merged_ChIPCovData)])
+	CountDataColNames_1D <- colnames(CountData_1D)
 
-ChIPEdgeRDir <- paste0(opt$OutDir, '/ChIP_Coverage_EdgeR')
-system(paste("mkdir -p", ChIPEdgeRDir))
+	# dump the count matrix 
+	CountDataFile_1D <- paste0(ChIPEdgeRDir, '/count_matrix_1D.bed')
+	write.table(CountData_1D, CountDataFile_1D, row.names=F, col.names=T, quote=F, sep="\t", append=F)
 
-# construct the count matrix for applying to EdgeR
-# consists of bin indices, midpoints and their coverages (scaled) for both categories
-CountData_1D <- cbind.data.frame(seq(1,nrow(Merged_ChIPCovData)), Merged_ChIPCovData[,1], (Merged_ChIPCovData[,2] + Merged_ChIPCovData[,3])/2, Merged_ChIPCovData[,4:ncol(Merged_ChIPCovData)])
-colnames(CountData_1D) <- c("Idx", "chr", "mid", colnames(Merged_ChIPCovData)[4:ncol(Merged_ChIPCovData)])
-CountDataColNames_1D <- colnames(CountData_1D)
+	# apply the EdgeR routine on the 1D bins
+	# Note: here we supply the parameter ChIPAlignFileCountVec
+	# which contains the number of ChIP-seq alignment files provided
+	# for coverage estimation 
+	ApplyEdgeR(Merged_ChIPCovData, ChIPEdgeRDir, CountData_1D[, 4:ncol(CountData_1D)], CategoryList, ChIPAlignFileCountVec, FDR_Th_DESeq, FOLD_Change_Thr, 'ChIP_Coverage')
 
-# dump the count matrix 
-CountDataFile_1D <- paste0(ChIPEdgeRDir, '/count_matrix_1D.bed')
-write.table(CountData_1D, CountDataFile_1D, row.names=F, col.names=T, quote=F, sep="\t", append=F)
+	# file containing non-differential ChIP-seq bins (EdgeR)
+	ChIP_1D_EdgeR_NonSigFile <- paste0(ChIPEdgeRDir, '/ChIP_Coverage_EdgeR_Default_NonSIG.bed')
+	ChIP_1D_EdgeR_NonSigData <- data.table::fread(ChIP_1D_EdgeR_NonSigFile, header=T, sep="\t", stringsAsFactors=F)
 
-# apply the EdgeR routine on the 1D bins
-# Note: here we supply the parameter ChIPAlignFileCountVec
-# which contains the number of ChIP-seq alignment files provided
-# for coverage estimation 
-ApplyEdgeR(Merged_ChIPCovData, ChIPEdgeRDir, CountData_1D[, 4:ncol(CountData_1D)], CategoryList, ChIPAlignFileCountVec, FDR_Th_DESeq, FOLD_Change_Thr, 'ChIP_Coverage')
+	cat(sprintf("\n\n *** Performed EdgeR on ChIP coverage *** \n\n"))
 
-# file containing non-differential ChIP-seq bins (EdgeR)
-ChIP_1D_EdgeR_NonSigFile <- paste0(ChIPEdgeRDir, '/ChIP_Coverage_EdgeR_Default_NonSIG.bed')
-ChIP_1D_EdgeR_NonSigData <- data.table::fread(ChIP_1D_EdgeR_NonSigFile, header=T, sep="\t", stringsAsFactors=F)
+	# get the 1D bins having very low deviation in their ChIP-seq coverage
+	# subject to the input parameter threshold 
+	MaxCovVec <- pmax(Merged_ChIPCovData[,4], Merged_ChIPCovData[,5])
+	MinCovVec <- pmin(Merged_ChIPCovData[,4], Merged_ChIPCovData[,5])
+	BinIdxLowCovDiff <- which(MinCovVec > ((1 - ChIP_Cov_Thr) * MaxCovVec))
 
-cat(sprintf("\n\n *** Performed EdgeR on ChIP coverage *** \n\n"))
+	# label the ChIP bins as HD, LD or ND
+	# depending on their EdgeR output, and ChIP coverage comparison
+	ov <- Overlap1D(Merged_ChIPCovData[, 1:3], ChIP_1D_EdgeR_NonSigData[, 1:3])
 
-# get the 1D bins having very low deviation in their ChIP-seq coverage
-# subject to the input parameter threshold 
-MaxCovVec <- pmax(Merged_ChIPCovData[,4], Merged_ChIPCovData[,5])
-MinCovVec <- pmin(Merged_ChIPCovData[,4], Merged_ChIPCovData[,5])
-BinIdxLowCovDiff <- which(MinCovVec > ((1 - ChIP_Cov_Thr) * MaxCovVec))
+	ND_Label_Idx <- intersect(ov$A_AND_B, BinIdxLowCovDiff)
+	LD_Label_Idx <- setdiff(ov$A_AND_B, ND_Label_Idx)
+	HD_Label_Idx <- setdiff(setdiff(seq(1, nrow(Merged_ChIPCovData)), LD_Label_Idx), ND_Label_Idx)
+	cat(sprintf("\n Number of 1D bins: %s \n number of 1D bins classified as HD: %s \n number of 1D bins classified as LD: %s \n number of 1D bins classified as ND: %s ", nrow(Merged_ChIPCovData), length(HD_Label_Idx), length(LD_Label_Idx), length(ND_Label_Idx)))
 
-# label the ChIP bins as HD, LD or ND
-# depending on their EdgeR output, and ChIP coverage comparison
-ov <- Overlap1D(Merged_ChIPCovData[, 1:3], ChIP_1D_EdgeR_NonSigData[, 1:3])
+	# assign the 1D label information
+	ChIPLabelVec <- rep('HD', nrow(Merged_ChIPCovData))
+	ChIPLabelVec[ND_Label_Idx] <- 'ND'
+	ChIPLabelVec[LD_Label_Idx] <- 'LD'
 
-ND_Label_Idx <- intersect(ov$A_AND_B, BinIdxLowCovDiff)
-LD_Label_Idx <- setdiff(ov$A_AND_B, ND_Label_Idx)
-HD_Label_Idx <- setdiff(setdiff(seq(1, nrow(Merged_ChIPCovData)), LD_Label_Idx), ND_Label_Idx)
-cat(sprintf("\n Number of 1D bins: %s \n number of 1D bins classified as HD: %s \n number of 1D bins classified as LD: %s \n number of 1D bins classified as ND: %s ", nrow(Merged_ChIPCovData), length(HD_Label_Idx), length(LD_Label_Idx), length(ND_Label_Idx)))
+	# append the 1D label in the merged ChIP coverage data
+	# and write back to the merged ChIP coverage file
+	CN <- colnames(Merged_ChIPCovData)
+	Merged_ChIPCovData <- cbind.data.frame(Merged_ChIPCovData, ChIPLabelVec)
+	colnames(Merged_ChIPCovData) <- c(CN, 'Label')
+	write.table(Merged_ChIPCovData, MergedChIPCovFile, row.names=F, col.names=T, sep="\t", quote=F, append=F)
 
-# assign the 1D label information
-ChIPLabelVec <- rep('HD', nrow(Merged_ChIPCovData))
-ChIPLabelVec[ND_Label_Idx] <- 'ND'
-ChIPLabelVec[LD_Label_Idx] <- 'LD'
-
-# append the 1D label in the merged ChIP coverage data
-# and write back to the merged ChIP coverage file
-CN <- colnames(Merged_ChIPCovData)
-Merged_ChIPCovData <- cbind.data.frame(Merged_ChIPCovData, ChIPLabelVec)
-colnames(Merged_ChIPCovData) <- c(CN, 'Label')
-write.table(Merged_ChIPCovData, MergedChIPCovFile, row.names=F, col.names=T, sep="\t", quote=F, append=F)
+}	# end if ChIP-seq alignment files are provided
 
 #==========================
 # prepare the union of input loops
@@ -924,6 +1020,7 @@ write.table(Merged_ChIPCovData, MergedChIPCovFile, row.names=F, col.names=T, sep
 UnionLoopFile <- paste0(opt$OutDir, '/MasterSheet_', CategoryList[1], '_', CategoryList[2], '_Loops.bed')
 
 # if (file.exists(UnionLoopFile) == FALSE) {
+if (1) {
 
 	tempLoopFile1 <- paste0(opt$OutDir, '/tempLoop1.bed')
 	 
@@ -948,94 +1045,54 @@ UnionLoopFile <- paste0(opt$OutDir, '/MasterSheet_', CategoryList[1], '_', Categ
 	system(paste("rm", tempLoopFile1))
 
 	#===================
-	# for individual loops, fill the features from input HiChIP loops
-	# for different replicates for input categories
-	# like contact count, bias, significance, isPeak
 	# Note: here we create two new files for storing the scaled ChIP coverage values
 	# and send it as arguments
 	# when multiple ChIP-seq alignment files are provided as input
 	# we use the mean of the ChIP-seq coverages
 	#===================
-	scaled_ChIPCovFile1 <- paste0(opt$OutDir, '/scaled_ChIP_Coverage_', CategoryList[1], '.bed')
-	scaled_ChIPCovFile2 <- paste0(opt$OutDir, '/scaled_ChIP_Coverage_', CategoryList[2], '.bed')
+	if (!is.null(opt$ChIPAlignFileList)) {
+		scaled_ChIPCovFile1 <- paste0(opt$OutDir, '/scaled_ChIP_Coverage_', CategoryList[1], '.bed')
+		scaled_ChIPCovFile2 <- paste0(opt$OutDir, '/scaled_ChIP_Coverage_', CategoryList[2], '.bed')
 
-	# mean scaled ChIP coverage of the first category
-	if (ChIPAlignFileCountVec[1] > 1) {
-		meanScaledChIPCovCat1 <- rowMeans(Merged_ChIPCovData[, 4:(4+ChIPAlignFileCountVec[1]-1)])
-	} else {
-		meanScaledChIPCovCat1 <- Merged_ChIPCovData[, 4]
+		# mean scaled ChIP coverage of the first category
+		if (ChIPAlignFileCountVec[1] > 1) {
+			meanScaledChIPCovCat1 <- rowMeans(Merged_ChIPCovData[, 4:(4+ChIPAlignFileCountVec[1]-1)])
+		} else {
+			meanScaledChIPCovCat1 <- Merged_ChIPCovData[, 4]
+		}
+		# mean scaled ChIP coverage of the second category
+		if (ChIPAlignFileCountVec[2] > 1) {
+			meanScaledChIPCovCat2 <- rowMeans(Merged_ChIPCovData[, (4+ChIPAlignFileCountVec[1]):(4+ChIPAlignFileCountVec[1]+ChIPAlignFileCountVec[2]-1)])
+		} else {
+			meanScaledChIPCovCat2 <- Merged_ChIPCovData[, (4+ChIPAlignFileCountVec[1])]
+		}
+
+		# create two data frames using the scaled mean of ChIP coverage values
+		covdf1 <- cbind.data.frame(Merged_ChIPCovData[, 1:3], meanScaledChIPCovCat1, Merged_ChIPCovData[, ncol(Merged_ChIPCovData)])
+		colnames(covdf1) <- c(colnames(Merged_ChIPCovData)[1:3], paste0(CategoryList[1], '_meanChIPCov'), 'Label')
+
+		covdf2 <- cbind.data.frame(Merged_ChIPCovData[, 1:3], meanScaledChIPCovCat2, Merged_ChIPCovData[, ncol(Merged_ChIPCovData)])
+		colnames(covdf2) <- c(colnames(Merged_ChIPCovData)[1:3], paste0(CategoryList[2], '_meanChIPCov'), 'Label')
+
+		write.table(covdf1, scaled_ChIPCovFile1, row.names=F, col.names=T, sep="\t", quote=F, append=F)
+		write.table(covdf2, scaled_ChIPCovFile2, row.names=F, col.names=T, sep="\t", quote=F, append=F)
 	}
-	# mean scaled ChIP coverage of the second category
-	if (ChIPAlignFileCountVec[2] > 1) {
-		meanScaledChIPCovCat2 <- rowMeans(Merged_ChIPCovData[, (4+ChIPAlignFileCountVec[1]):(4+ChIPAlignFileCountVec[1]+ChIPAlignFileCountVec[2]-1)])
+
+	##===========
+	# for individual loops, fill the features from input HiChIP loops
+	# for different replicates for input categories
+	# like contact count, bias, significance, isPeak
+	# and also the new set of ChIP coverage files (if available)
+	##===========
+	if (!is.null(opt$ChIPAlignFileList)) {
+		FillFeatureValues(UnionLoopFile, AllLoopList, BinSize, AllRepLabels, CategoryList, scaled_ChIPCovFile1, scaled_ChIPCovFile2)
 	} else {
-		meanScaledChIPCovCat2 <- Merged_ChIPCovData[, (4+ChIPAlignFileCountVec[1])]
+		FillFeatureValues(UnionLoopFile, AllLoopList, BinSize, AllRepLabels, CategoryList, "None", "None")
 	}
 
-	# create two data frames using the scaled mean of ChIP coverage values
-	covdf1 <- cbind.data.frame(Merged_ChIPCovData[, 1:3], meanScaledChIPCovCat1, Merged_ChIPCovData[, ncol(Merged_ChIPCovData)])
-	colnames(covdf1) <- c(colnames(Merged_ChIPCovData)[1:3], paste0(CategoryList[1], '_meanChIPCov'), 'Label')
-
-	covdf2 <- cbind.data.frame(Merged_ChIPCovData[, 1:3], meanScaledChIPCovCat2, Merged_ChIPCovData[, ncol(Merged_ChIPCovData)])
-	colnames(covdf2) <- c(colnames(Merged_ChIPCovData)[1:3], paste0(CategoryList[2], '_meanChIPCov'), 'Label')
-
-	write.table(covdf1, scaled_ChIPCovFile1, row.names=F, col.names=T, sep="\t", quote=F, append=F)
-	write.table(covdf2, scaled_ChIPCovFile2, row.names=F, col.names=T, sep="\t", quote=F, append=F)
-
-	# now call the feature value function with the new set of ChIP coverage files
-	FillFeatureValues(UnionLoopFile, AllLoopList, BinSize, c(scaled_ChIPCovFile1, scaled_ChIPCovFile2), AllRepLabels, CategoryList)
-
-# }	# end if
+}	# end if
 
 cat(sprintf("\n\n *** Created master sheet of loops *** \n\n"))
-
-
-#=========================
-# paste the configuration options within this execution
-#=========================
-fp_out <- file(paste0(opt$OutDir, '/Input_Parameters_', gsub("-","_",gsub(" ","_",format(Sys.time(), "%F %H-%M"))), '.log'), "w")
-
-outtext <- paste0("\n ********* Listing all the input parameters ****** ")
-writeLines(outtext, con=fp_out, sep="\n")
-
-outtext <- paste0("\n ===>>> All FitHiChIP input loop files (without significant thresholding) : \n ", paste(AllLoopList, collapse="\n"))
-writeLines(outtext, con=fp_out, sep="\n")
-
-outtext <- paste0("\n ===>>> Threshold of ChIP-seq coverage difference: ", opt$CovThr, " percent \n")
-writeLines(outtext, con=fp_out, sep="\n")
-
-outtext <- paste0("\n ===>>> FDR threshold of FitHiChIP loops: ", FDR_Th_FitHiChIP)
-writeLines(outtext, con=fp_out, sep="\n")
-
-outtext <- paste0("\n ===>>> Files containing ChIP alignment information : \n ", paste(ChIPAlignFileList, collapse="\n"))
-writeLines(outtext, con=fp_out, sep="\n")
-
-outtext <- paste0("\n ===>>> Output directory: ", opt$OutDir)
-writeLines(outtext, con=fp_out, sep="\n")
-
-outtext <- paste0("\n ===>>> Input categories : \t ", paste(CategoryList, collapse="\t"))
-writeLines(outtext, con=fp_out, sep="\n")
-
-outtext <- paste0("\n ===>>> Count of replicates for first category : ", ReplicaCount[1], " and for the second category : ", ReplicaCount[2])
-writeLines(outtext, con=fp_out, sep="\n")
-
-outtext <- paste0("\n ===>>> Labels associated with replicates of category 1 : \t ", paste(ReplicaLabels1, collapse="\t"))
-writeLines(outtext, con=fp_out, sep="\n")
-
-outtext <- paste0("\n ===>>> Labels associated with replicates of category 2 : \t ", paste(ReplicaLabels2, collapse="\t"))
-writeLines(outtext, con=fp_out, sep="\n")
-
-outtext <- paste0("\n ===>>> FDR threshold for differential analysis (DESeq / EdgeR) : ", FDR_Th_DESeq)
-writeLines(outtext, con=fp_out, sep="\n")
-
-outtext <- paste0("\n ===>>> Fold change threshold (logarithm base 2 of the input) for differential analysis (DESeq / EdgeR) : ", FOLD_Change_Thr)
-writeLines(outtext, con=fp_out, sep="\n")
-
-outtext <- paste0("\n ===>>> bcv option (constant) for differential analysis (specific to EdgeR) : ", opt$bcv)
-writeLines(outtext, con=fp_out, sep="\n")
-
-# close the output text file
-close(fp_out)
 
 #===================
 # read the master sheet for all loops  and their features
@@ -1059,7 +1116,6 @@ EdgeROutFile <- paste0(DiffLoopDir, '/Loops_EdgeR_Default_SIG.bed')
 
 # raw count data (RawCC)
 CountData <- MasterSheetData[, RawCC_ColList]
-
 CountDataColNames <- colnames(CountData)
 
 # first write a text file which will contain the interacting segments 
@@ -1100,49 +1156,48 @@ ApplyEdgeR(MasterSheetData, DiffLoopDir, CountData[, 7:ncol(CountData)], Categor
 cat(sprintf("\n\n *** Applied EdgeR for differential loop finding *** \n\n"))
 
 #============================
-# now find out the differential loops involving categories ND-ND, LD-ND, LD-LD, HD-LD/ND, and HD-HD
-# for all the EdgeR based differential loops
+## now find out the differential loops involving categories ND-ND, LD-ND, LD-LD, HD-LD/ND, and HD-HD
+## for all the EdgeR based differential loops
+## applicable only if we have reference ChIP-seq alignment files
 #============================
-categoryDir <- paste0(DiffLoopDir, '/ND_ND')
-system(paste("mkdir -p", categoryDir))
-allLoop_file <- paste0(categoryDir, '/DiffLoops.bed')
-system(paste("awk \'(NR==1) || (($11==\"ND\") && ($12==\"ND\"))\' ", EdgeROutFile, ">", allLoop_file))
-system(paste("awk \'(NR==1) || ($(NF-5)<=0)\' ", allLoop_file, ">", paste0(categoryDir, '/DiffLoops_Up_', CategoryList[1], '.bed')))
-system(paste("awk \'(NR==1) || ($(NF-5)>0)\' ", allLoop_file, ">", paste0(categoryDir, '/DiffLoops_Up_', CategoryList[2], '.bed')))
+if (!is.null(opt$ChIPAlignFileList)) {
 
+	categoryDir <- paste0(DiffLoopDir, '/ND_ND')
+	system(paste("mkdir -p", categoryDir))
+	allLoop_file <- paste0(categoryDir, '/DiffLoops.bed')
+	system(paste("awk \'(NR==1) || (($11==\"ND\") && ($12==\"ND\"))\' ", EdgeROutFile, ">", allLoop_file))
+	system(paste("awk \'(NR==1) || ($(NF-5)<=0)\' ", allLoop_file, ">", paste0(categoryDir, '/DiffLoops_Up_', CategoryList[1], '.bed')))
+	system(paste("awk \'(NR==1) || ($(NF-5)>0)\' ", allLoop_file, ">", paste0(categoryDir, '/DiffLoops_Up_', CategoryList[2], '.bed')))
 
-categoryDir <- paste0(DiffLoopDir, '/LD_ND')
-system(paste("mkdir -p", categoryDir))
-allLoop_file <- paste0(categoryDir, '/DiffLoops.bed')
-system(paste("awk \'(NR==1) || ((($11==\"LD\") && ($12==\"ND\")) || (($11==\"ND\") && ($12==\"LD\")))\' ", EdgeROutFile, ">", allLoop_file))
-system(paste("awk \'(NR==1) || ($(NF-5)<=0)\' ", allLoop_file, ">", paste0(categoryDir, '/DiffLoops_Up_', CategoryList[1], '.bed')))
-system(paste("awk \'(NR==1) || ($(NF-5)>0)\' ", allLoop_file, ">", paste0(categoryDir, '/DiffLoops_Up_', CategoryList[2], '.bed')))
+	categoryDir <- paste0(DiffLoopDir, '/LD_ND')
+	system(paste("mkdir -p", categoryDir))
+	allLoop_file <- paste0(categoryDir, '/DiffLoops.bed')
+	system(paste("awk \'(NR==1) || ((($11==\"LD\") && ($12==\"ND\")) || (($11==\"ND\") && ($12==\"LD\")))\' ", EdgeROutFile, ">", allLoop_file))
+	system(paste("awk \'(NR==1) || ($(NF-5)<=0)\' ", allLoop_file, ">", paste0(categoryDir, '/DiffLoops_Up_', CategoryList[1], '.bed')))
+	system(paste("awk \'(NR==1) || ($(NF-5)>0)\' ", allLoop_file, ">", paste0(categoryDir, '/DiffLoops_Up_', CategoryList[2], '.bed')))
 
+	categoryDir <- paste0(DiffLoopDir, '/LD_LD')
+	system(paste("mkdir -p", categoryDir))
+	allLoop_file <- paste0(categoryDir, '/DiffLoops.bed')
+	system(paste("awk \'(NR==1) || (($11==\"LD\") && ($12==\"LD\"))\' ", EdgeROutFile, ">", allLoop_file))
+	system(paste("awk \'(NR==1) || ($(NF-5)<=0)\' ", allLoop_file, ">", paste0(categoryDir, '/DiffLoops_Up_', CategoryList[1], '.bed')))
+	system(paste("awk \'(NR==1) || ($(NF-5)>0)\' ", allLoop_file, ">", paste0(categoryDir, '/DiffLoops_Up_', CategoryList[2], '.bed')))
 
-categoryDir <- paste0(DiffLoopDir, '/LD_LD')
-system(paste("mkdir -p", categoryDir))
-allLoop_file <- paste0(categoryDir, '/DiffLoops.bed')
-system(paste("awk \'(NR==1) || (($11==\"LD\") && ($12==\"LD\"))\' ", EdgeROutFile, ">", allLoop_file))
-system(paste("awk \'(NR==1) || ($(NF-5)<=0)\' ", allLoop_file, ">", paste0(categoryDir, '/DiffLoops_Up_', CategoryList[1], '.bed')))
-system(paste("awk \'(NR==1) || ($(NF-5)>0)\' ", allLoop_file, ">", paste0(categoryDir, '/DiffLoops_Up_', CategoryList[2], '.bed')))
+	categoryDir <- paste0(DiffLoopDir, '/HD_HD')
+	system(paste("mkdir -p", categoryDir))
+	allLoop_file <- paste0(categoryDir, '/DiffLoops.bed')
+	system(paste("awk \'(NR==1) || (($11==\"HD\") && ($12==\"HD\"))\' ", EdgeROutFile, ">", allLoop_file))
+	system(paste("awk \'(NR==1) || ($(NF-5)<=0)\' ", allLoop_file, ">", paste0(categoryDir, '/DiffLoops_Up_', CategoryList[1], '.bed')))
+	system(paste("awk \'(NR==1) || ($(NF-5)>0)\' ", allLoop_file, ">", paste0(categoryDir, '/DiffLoops_Up_', CategoryList[2], '.bed')))
 
+	categoryDir <- paste0(DiffLoopDir, '/HD_LD_or_ND')
+	system(paste("mkdir -p", categoryDir))
+	allLoop_file <- paste0(categoryDir, '/DiffLoops.bed')
+	system(paste("awk \'(NR==1) || ((($11==\"HD\") && ($12!=\"HD\")) || (($11!=\"HD\") && ($12==\"HD\")))\' ", EdgeROutFile, ">", allLoop_file))
+	system(paste("awk \'(NR==1) || ($(NF-5)<=0)\' ", allLoop_file, ">", paste0(categoryDir, '/DiffLoops_Up_', CategoryList[1], '.bed')))
+	system(paste("awk \'(NR==1) || ($(NF-5)>0)\' ", allLoop_file, ">", paste0(categoryDir, '/DiffLoops_Up_', CategoryList[2], '.bed')))
 
-categoryDir <- paste0(DiffLoopDir, '/HD_HD')
-system(paste("mkdir -p", categoryDir))
-allLoop_file <- paste0(categoryDir, '/DiffLoops.bed')
-system(paste("awk \'(NR==1) || (($11==\"HD\") && ($12==\"HD\"))\' ", EdgeROutFile, ">", allLoop_file))
-system(paste("awk \'(NR==1) || ($(NF-5)<=0)\' ", allLoop_file, ">", paste0(categoryDir, '/DiffLoops_Up_', CategoryList[1], '.bed')))
-system(paste("awk \'(NR==1) || ($(NF-5)>0)\' ", allLoop_file, ">", paste0(categoryDir, '/DiffLoops_Up_', CategoryList[2], '.bed')))
-
-
-categoryDir <- paste0(DiffLoopDir, '/HD_LD_or_ND')
-system(paste("mkdir -p", categoryDir))
-allLoop_file <- paste0(categoryDir, '/DiffLoops.bed')
-system(paste("awk \'(NR==1) || ((($11==\"HD\") && ($12!=\"HD\")) || (($11!=\"HD\") && ($12==\"HD\")))\' ", EdgeROutFile, ">", allLoop_file))
-system(paste("awk \'(NR==1) || ($(NF-5)<=0)\' ", allLoop_file, ">", paste0(categoryDir, '/DiffLoops_Up_', CategoryList[1], '.bed')))
-system(paste("awk \'(NR==1) || ($(NF-5)>0)\' ", allLoop_file, ">", paste0(categoryDir, '/DiffLoops_Up_', CategoryList[2], '.bed')))
-
-
+}	# end ChIP-seq alignment condition
 
 #============================
 # now find out the differential loops overlapping with FitHiChIP loops
@@ -1157,34 +1212,41 @@ OneSample_SigRepl_Loop_file <- paste0(DiffLoopDir, '/DiffLoops_ALL.bed')
 system(paste("awk \'((NR==1) || ($(NF-1)>0) || ($NF>0))\' ", EdgeROutFile, ">", OneSample_SigRepl_Loop_file))
 WashU_OneSample_SigRepl_Loop_file <- paste0(DiffLoopDir, '/DiffLoops_ALL_WashU.bed')
 DiffLoopWashUConvert(OneSample_SigRepl_Loop_file, WashU_OneSample_SigRepl_Loop_file)
+UCSC_OneSample_SigRepl_Loop_file <- paste0(DiffLoopDir, '/DiffLoops_ALL_UCSC.bed')
+DiffLoop_UCSC_Convert(OneSample_SigRepl_Loop_file, UCSC_OneSample_SigRepl_Loop_file, opt$ChrSizeFile, bedToBigBedExec, interact_as_file)
+IGV_OneSample_SigRepl_Loop_file <- paste0(DiffLoopDir, '/DiffLoops_ALL_IGV.bed')
+DiffLoop_IGV_Convert(OneSample_SigRepl_Loop_file, IGV_OneSample_SigRepl_Loop_file)
 
-categoryDir <- paste0(DiffLoopDir, '/ND_ND')
-system(paste("mkdir -p", categoryDir))
-allLoop_file <- paste0(categoryDir, '/DiffLoops.bed')
-system(paste("awk \'(NR==1) || (($11==\"ND\") && ($12==\"ND\"))\' ", OneSample_SigRepl_Loop_file, ">", allLoop_file))
-LoopWashUCreate(categoryDir, CategoryList, allLoop_file)
+if (!is.null(opt$ChIPAlignFileList)) {
 
-categoryDir <- paste0(DiffLoopDir, '/LD_ND')
-system(paste("mkdir -p", categoryDir))
-allLoop_file <- paste0(categoryDir, '/DiffLoops.bed')
-system(paste("awk \'(NR==1) || ((($11==\"LD\") && ($12==\"ND\")) || (($11==\"ND\") && ($12==\"LD\")))\' ", OneSample_SigRepl_Loop_file, ">", allLoop_file))
-LoopWashUCreate(categoryDir, CategoryList, allLoop_file)
+	categoryDir <- paste0(DiffLoopDir, '/ND_ND')
+	system(paste("mkdir -p", categoryDir))
+	allLoop_file <- paste0(categoryDir, '/DiffLoops.bed')
+	system(paste("awk \'(NR==1) || (($11==\"ND\") && ($12==\"ND\"))\' ", OneSample_SigRepl_Loop_file, ">", allLoop_file))
+	Loops_Make_Compatible_Epigenome_Browsers(categoryDir, CategoryList, allLoop_file, opt$ChrSizeFile, bedToBigBedExec, interact_as_file)
 
-categoryDir <- paste0(DiffLoopDir, '/LD_LD')
-system(paste("mkdir -p", categoryDir))
-allLoop_file <- paste0(categoryDir, '/DiffLoops.bed')
-system(paste("awk \'(NR==1) || (($11==\"LD\") && ($12==\"LD\"))\' ", OneSample_SigRepl_Loop_file, ">", allLoop_file))
-LoopWashUCreate(categoryDir, CategoryList, allLoop_file)
+	categoryDir <- paste0(DiffLoopDir, '/LD_ND')
+	system(paste("mkdir -p", categoryDir))
+	allLoop_file <- paste0(categoryDir, '/DiffLoops.bed')
+	system(paste("awk \'(NR==1) || ((($11==\"LD\") && ($12==\"ND\")) || (($11==\"ND\") && ($12==\"LD\")))\' ", OneSample_SigRepl_Loop_file, ">", allLoop_file))
+	Loops_Make_Compatible_Epigenome_Browsers(categoryDir, CategoryList, allLoop_file, opt$ChrSizeFile, bedToBigBedExec, interact_as_file)
 
-categoryDir <- paste0(DiffLoopDir, '/HD_HD')
-system(paste("mkdir -p", categoryDir))
-allLoop_file <- paste0(categoryDir, '/DiffLoops.bed')
-system(paste("awk \'(NR==1) || (($11==\"HD\") && ($12==\"HD\"))\' ", OneSample_SigRepl_Loop_file, ">", allLoop_file))
-LoopWashUCreate(categoryDir, CategoryList, allLoop_file)
+	categoryDir <- paste0(DiffLoopDir, '/LD_LD')
+	system(paste("mkdir -p", categoryDir))
+	allLoop_file <- paste0(categoryDir, '/DiffLoops.bed')
+	system(paste("awk \'(NR==1) || (($11==\"LD\") && ($12==\"LD\"))\' ", OneSample_SigRepl_Loop_file, ">", allLoop_file))
+	Loops_Make_Compatible_Epigenome_Browsers(categoryDir, CategoryList, allLoop_file, opt$ChrSizeFile, bedToBigBedExec, interact_as_file)
 
-categoryDir <- paste0(DiffLoopDir, '/HD_LD_or_ND')
-system(paste("mkdir -p", categoryDir))
-allLoop_file <- paste0(categoryDir, '/DiffLoops.bed')
-system(paste("awk \'(NR==1) || ((($11==\"HD\") && ($12!=\"HD\")) || (($11!=\"HD\") && ($12==\"HD\")))\' ", OneSample_SigRepl_Loop_file, ">", allLoop_file))
-LoopWashUCreate(categoryDir, CategoryList, allLoop_file)
+	categoryDir <- paste0(DiffLoopDir, '/HD_HD')
+	system(paste("mkdir -p", categoryDir))
+	allLoop_file <- paste0(categoryDir, '/DiffLoops.bed')
+	system(paste("awk \'(NR==1) || (($11==\"HD\") && ($12==\"HD\"))\' ", OneSample_SigRepl_Loop_file, ">", allLoop_file))
+	Loops_Make_Compatible_Epigenome_Browsers(categoryDir, CategoryList, allLoop_file, opt$ChrSizeFile, bedToBigBedExec, interact_as_file)
 
+	categoryDir <- paste0(DiffLoopDir, '/HD_LD_or_ND')
+	system(paste("mkdir -p", categoryDir))
+	allLoop_file <- paste0(categoryDir, '/DiffLoops.bed')
+	system(paste("awk \'(NR==1) || ((($11==\"HD\") && ($12!=\"HD\")) || (($11!=\"HD\") && ($12==\"HD\")))\' ", OneSample_SigRepl_Loop_file, ">", allLoop_file))
+	Loops_Make_Compatible_Epigenome_Browsers(categoryDir, CategoryList, allLoop_file, opt$ChrSizeFile, bedToBigBedExec, interact_as_file)
+
+}	# end ChIP-seq alignment condition
