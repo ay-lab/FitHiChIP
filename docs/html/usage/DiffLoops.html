@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="English" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Differential analysis of HiChIP loops &mdash; FitHiChIP 0.1 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Various utility scripts / functions" href="Utilities.html" />
+    <link rel="prev" title="Details of FitHiChIP outputs" href="output.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> FitHiChIP
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Setting up configuration file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="output.html">Details of FitHiChIP outputs</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Differential analysis of HiChIP loops</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#basics">Basics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#options">Options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#example-1">Example 1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#example-2">Example 2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#details-of-differential-analysis-outputs">Details of differential analysis outputs</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Utilities.html">Various utility scripts / functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FAQ.html">Frequently asked question</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">FitHiChIP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Differential analysis of HiChIP loops</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/usage/DiffLoops.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="differential-analysis-of-hichip-loops">
+<h1>Differential analysis of HiChIP loops<a class="headerlink" href="#differential-analysis-of-hichip-loops" title="Permalink to this heading"></a></h1>
+<p>FitHiChIP also supports finding differential HiChIP loops between two categories (such as two different cell types), each with one or multiple replicates.</p>
+<p>The script <strong>Differential_Analysis_Script.sh</strong> contains command to execute differential analysis.</p>
+<p>Source code of the differential analysis is provided in <strong>Imp_Scripts/DiffAnalysisHiChIP.r</strong></p>
+<div class="section" id="basics">
+<h2>Basics<a class="headerlink" href="#basics" title="Permalink to this heading"></a></h2>
+<p>The objective is to find differential HiChIP loops among two categories (each with one or more replicates).</p>
+<p>In addition, if user provides ChIP-seq alignment files for the input categories (details below), the interacting 1D bins in these differential loops are categorized as <em>differential</em> or <em>non-differential</em> 1D (ChIP) bins.</p>
+<p>Specifically, the code categorizes 1D bins in three classes, depending on their difference in ChIP-seq coverage among the two input categories:</p>
+<blockquote>
+<div><ol class="arabic">
+<li><p><strong>HD</strong> (i.e. high difference) - when the 1D bin is differential (by EdgeR) according to its ChIP-seq coverage in the two input categories.</p></li>
+<li><p><strong>ND</strong> (i.e. no difference) -  when the 1D bin is non-differential (by EdgeR) and has &lt; X% difference in ChIP-seq coverage in the two input categories.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Here X is by default 25, and is determined by the parameter <em>--CovThr</em> (mentioned below)</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p><strong>LD</strong> (i.e. low difference) - when the 1D bin is non-differential (by EdgeR) but has &gt;= X% difference in ChIP-seq coverage in the two input categories, where X is determined by the parameter <em>--CovThr</em>.</p></li>
+</ol>
+</div></blockquote>
+<p>Output differential loops are categorized in the following five classes:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p><strong>HD-HD</strong> - when both interacting bins in the differential loops belong in the class <strong>HD</strong></p></li>
+<li><p><strong>ND-ND</strong> - when both interacting bins in the differential loops belong in the class <strong>ND</strong></p></li>
+<li><p><strong>LD-LD</strong> - when both interacting bins in the differential loops belong in the class <strong>LD</strong></p></li>
+<li><p><strong>ND-LD</strong> - when one interacting bin in the differential loops belong in the class <strong>ND</strong>, while the other bin belongs within <strong>LD</strong></p></li>
+<li><p><strong>HD-LDorND</strong> - when one interacting bin in the differential loops belong in the class <strong>HD</strong>, while the other bin belongs in either <strong>LD</strong> or <strong>ND</strong>.</p></li>
+</ol>
+</div></blockquote>
+<p>The category <strong>ND-ND</strong> (category 2) corresponds to the differential loops involving non-differential 1D bins. That is, differential loops solely due to the changes in 3D (looping).</p>
+</div>
+<div class="section" id="options">
+<h2>Options<a class="headerlink" href="#options" title="Permalink to this heading"></a></h2>
+<p>Parameters associated with this script is:</p>
+<dl class="option-list">
+<dt><kbd><span class="option">--AllLoopList</span></kbd></dt>
+<dd><ul class="simple">
+<li><p>Comma or colon separated list of loops with FitHiChIP significance (FDR) values, for all categories and all replicates.</p></li>
+<li><p>User should provide the file <strong>*PREFIX*.interactions_FitHiC.bed</strong> (please check the page <a class="reference internal" href="output.html#details-of-fithichip-outputs"><span class="std std-ref">Details of FitHiChIP outputs</span></a>). <strong>Mandatory parameter</strong>.</p></li>
+<li><p>Files can be in gzipped format as well.</p></li>
+</ul>
+</dd>
+<dt><kbd><span class="option">--ChrSizeFile</span></kbd></dt>
+<dd><ul class="simple">
+<li><p>File having the chromosome sizes for the reference genome.</p></li>
+<li><p><strong>Mandatory parameter</strong>.</p></li>
+</ul>
+</dd>
+<dt><kbd><span class="option">--FDRThr</span></kbd></dt>
+<dd><ul class="simple">
+<li><p>FDR significance threshold for FitHiChIP loops. Default = 0.01.</p></li>
+</ul>
+</dd>
+<dt><kbd><span class="option">--ChIPAlignFileList</span></kbd></dt>
+<dd><ul class="simple">
+<li><p>** Optional parameter **</p></li>
+<li><p>Comma or colon separated list of ChIP-seq alignment files.</p></li>
+<li><p>Either two files, one for each category, are to be given.</p></li>
+<li><p>Or, provide ChIP seq alignment files one for each sample.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<ul class="simple">
+<li><p>ChIP-seq alignment files matching with the given HiChIP data (cell type, histone modifications of interest) can be downloaded from ENCODE (<a class="reference external" href="https://www.encodeproject.org/">https://www.encodeproject.org/</a>).</p></li>
+<li><p><strong>File can either be in BAM or Bedgraph (4-column) format</strong>.</p></li>
+</ul>
+</div>
+</dd>
+<dt><kbd><span class="option">--CovThr</span></kbd></dt>
+<dd><ul class="simple">
+<li><p>Applicable if <strong>ChIPAlignFileList</strong> parameter is not NULL.</p></li>
+<li><p>Maximum difference of ChIP-seq coverage (in percentage) between two categories to label a non-differential (by EdgeR) 1D bin as <strong>ND</strong> (i.e. no difference).</p></li>
+<li><p>Default = 25, means non-differential 1D bins with difference of ChIP coverage &lt; 25% are considered as <strong>ND</strong>.</p></li>
+<li><p>In such a case, non-differential 1D bins with difference of ChIP coverage &gt;= 25% are considered as <strong>LD</strong> (i.e. low difference).</p></li>
+</ul>
+</dd>
+<dt><kbd><span class="option">--OutDir</span></kbd></dt>
+<dd><ul class="simple">
+<li><p>Output directory to contain differential analysis results.</p></li>
+<li><p><strong>Mandatory parameter</strong>.</p></li>
+</ul>
+</dd>
+<dt><kbd><span class="option">--CategoryList</span></kbd></dt>
+<dd><ul class="simple">
+<li><p>Comma or colon separated list of strings, representing labels of two categories.</p></li>
+<li><p>Default: Category1, Category2.</p></li>
+</ul>
+</dd>
+<dt><kbd><span class="option">--ReplicaCount</span></kbd></dt>
+<dd><ul class="simple">
+<li><p>Comma or colon separated list representing the count of samples (replicates) belonging to individual categories.</p></li>
+<li><p>Default: 1,1 (means one replicate per sample exists).</p></li>
+</ul>
+</dd>
+<dt><kbd><span class="option">--ReplicaLabels1</span></kbd></dt>
+<dd><ul class="simple">
+<li><p>Comma or colon separated list of the label of replicates for the first category.</p></li>
+<li><p>Default: R1,R2, etc.</p></li>
+</ul>
+</dd>
+<dt><kbd><span class="option">--ReplicaLabels2</span></kbd></dt>
+<dd><ul class="simple">
+<li><p>Comma or colon separated list of the label of replicates for the second category.</p></li>
+<li><p>Default: R1,R2, etc.</p></li>
+</ul>
+</dd>
+<dt><kbd><span class="option">--FoldChangeThr</span></kbd></dt>
+<dd><ul class="simple">
+<li><p>EdgeR fold change threshold.</p></li>
+<li><p>Default = 2 means log2(2) = 1 is employed as the fold change threshold on the EdgeR output.</p></li>
+</ul>
+</dd>
+<dt><kbd><span class="option">--DiffFDRThr</span></kbd></dt>
+<dd><ul class="simple">
+<li><p>FDR threshold for EdgeR.</p></li>
+<li><p>Default is 0.05, means that loops with FDR &lt; 0.05, and fold change &gt;= log2(FoldChangeThr) would be considered as differential.</p></li>
+</ul>
+</dd>
+<dt><kbd><span class="option">--bcv</span></kbd></dt>
+<dd><ul class="simple">
+<li><p>If number of replicates is 1 for either of the input categories, this value is the square-root-dispersion.</p></li>
+<li><p>Default and recommended value is 0.4. For details, please see the EdgeR manual.</p></li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="example-1">
+<h2>Example 1<a class="headerlink" href="#example-1" title="Permalink to this heading"></a></h2>
+<p>Assume the following input conditions:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>Two input categories of HiChIP data, denoted as <em>cat1</em> and <em>cat2</em>.</p></li>
+<li><p>Each category has two replicates, denoted as <em>repl1</em> and <em>repl2</em>.</p></li>
+<li><p>hg19 as the reference genome</p></li>
+<li><p>One ChIP-seq alignment file for each category.</p></li>
+</ol>
+</div></blockquote>
+<p>Then, the command for differential analysis would be:</p>
+<blockquote>
+<div><p>Rscript <strong>Imp_Scripts/DiffAnalysisHiChIP.r</strong> \</p>
+<p class="attribution">—AllLoopList <em>cat1_repl1_file,cat1_repl2_file,cat2_repl1_File,cat2_repl2_file</em> \</p>
+</div></blockquote>
+<blockquote>
+<div><p>--ChrSizeFile <em>TestData/chrom_hg19.sizes</em> --FDRThr 0.01 --CovThr 25 \</p>
+<p class="attribution">—ChIPAlignFileList <em>cat1_ChIPAlign.bam,cat2_ChIPAlign.bam</em> \</p>
+</div></blockquote>
+<blockquote>
+<div><p>--OutDir <em>/home/user/diffanalysis/outdir</em> \</p>
+<p class="attribution">—CategoryList CellLine1,CellLine2 \</p>
+</div></blockquote>
+<blockquote>
+<div><p>--ReplicaCount 2,2 --ReplicaLabels1 R1,R2 --ReplicaLabels2 R1,R2 \</p>
+<p class="attribution">—FoldChangeThr 2 --DiffFDRThr 0.05 --bcv 0.4</p>
+</div></blockquote>
+<blockquote>
+<div><ul class="simple">
+<li><p>Here, <em>cat1_repl1_file</em> denotes the loops (containing FitHiChIP significance values) of category 1, replicate 1. Similar notations for the other files.</p></li>
+<li><p>In the parameter --AllLoopList, all the samples of category 1 should be specified first, followed by the samples in category 2</p></li>
+<li><p>User can also specify the files using colons (:) as a separator instead of comma.</p></li>
+<li><p>The file <em>cat1_ChIPAlign.bam</em> represents ChIP-seq alignment file for the category 1. Similar notation for category 2.</p></li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="example-2">
+<h2>Example 2<a class="headerlink" href="#example-2" title="Permalink to this heading"></a></h2>
+<p>Assume the following input conditions:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>Two input categories denoted as <em>cat1</em> and <em>cat2</em>.</p></li>
+<li><p>Each category has two replicates, denoted as <em>repl1</em> and <em>repl2</em>.</p></li>
+<li><p>hg19 is the reference genome</p></li>
+<li><p>One ChIP-seq alignment file for individual samples.</p></li>
+</ol>
+</div></blockquote>
+<p>Then, the command for differential analysis would be:</p>
+<blockquote>
+<div><p>Rscript <strong>Imp_Scripts/DiffAnalysisHiChIP.r</strong> \</p>
+<p class="attribution">—AllLoopList <em>cat1_repl1_file,cat1_repl2_file,cat2_repl1_File,cat2_repl2_file</em> \</p>
+</div></blockquote>
+<blockquote>
+<div><p>--ChrSizeFile <em>TestData/chrom_hg19.sizes</em> --FDRThr 0.01 --CovThr 25 \</p>
+<p class="attribution">—ChIPAlignFileList <em>cat1_R1_ChIPAlign.bam,cat1_R2_ChIPAlign.bam,cat2_R1_ChIPAlign.bam,cat2_R2_ChIPAlign.bam</em> \</p>
+</div></blockquote>
+<blockquote>
+<div><p>--OutDir <em>/home/user/diffanalysis/outdir</em> \</p>
+<p class="attribution">—CategoryList CellLine1,CellLine2 \</p>
+</div></blockquote>
+<blockquote>
+<div><p>--ReplicaCount 2,2 --ReplicaLabels1 R1,R2 --ReplicaLabels2 R1,R2 \</p>
+<p class="attribution">—FoldChangeThr 2 --DiffFDRThr 0.05 --bcv 0.4</p>
+</div></blockquote>
+<blockquote>
+<div><ul class="simple">
+<li><p>Here, <em>cat1_R1_ChIPAlign.bam</em> denotes the ChIP-seq alignment for replicate 1 of the category 1. Similar notations for the other files.</p></li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="details-of-differential-analysis-outputs">
+<h2>Details of differential analysis outputs<a class="headerlink" href="#details-of-differential-analysis-outputs" title="Permalink to this heading"></a></h2>
+<p>Within the specified output directory <strong>OutDir</strong>, following files / folders are generated by the differential analysis:</p>
+<blockquote>
+<div><ol class="arabic">
+<li><p><strong>Input_Parameters*.log</strong> : lists the input command line options.</p></li>
+<li><p><strong>MasterSheet_*Loops.bed</strong> :</p>
+<blockquote>
+<div><p>Union of all FitHiChIP loops of the given categories and samples, with the respective contact counts and interaction significance values.</p>
+</div></blockquote>
+</li>
+<li><p><strong>EdgeR_Loops_Ov_FitHiChIP_Sig_One_Repl</strong> :</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Folder containing the EdgeR differential loops which are significant (in terms of FitHiChIP FDR threshold) in at least one input sample.</p></li>
+<li><p>The file <strong>DiffLoops.bed</strong> contains differential loops.</p></li>
+</ul>
+<p>** If ChIP-seq alignment files are provided **</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Underlying folders have name <strong>X-Y</strong> where <strong>X</strong> and <strong>Y</strong> denote the type of 1D bin (LD, ND or HD) according to their ChIP-coverage specific differential analysis.</p></li>
+<li><p>Within each folder, file <strong>DiffLoops.bed</strong> contains differential loops of the particular category.</p></li>
+<li><p>Files <strong>DiffLoops_Excl_*.bed</strong> contain differential loops exclusive to one category (i.e. significant in only that category).</p></li>
+</ul>
+</div></blockquote>
+</div></blockquote>
+</li>
+</ol>
+</div></blockquote>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="output.html" class="btn btn-neutral float-left" title="Details of FitHiChIP outputs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="Utilities.html" class="btn btn-neutral float-right" title="Various utility scripts / functions" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2019, Sourya Bhattacharyya, Ferhat Ay.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

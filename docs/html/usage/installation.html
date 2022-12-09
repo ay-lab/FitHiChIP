@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="English" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Installation &mdash; FitHiChIP 0.1 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Quick start" href="quickstart.html" />
+    <link rel="prev" title="Welcome to FitHiChIP!" href="../index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> FitHiChIP
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#option-1-install-from-source-in-github">Option 1: Install from source in GitHub</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#option-2-running-fithichip-with-docker-or-singularity">Option 2: Running FitHiChIP with Docker or Singularity</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Setting up configuration file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="output.html">Details of FitHiChIP outputs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DiffLoops.html">Differential analysis of HiChIP loops</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Utilities.html">Various utility scripts / functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FAQ.html">Frequently asked question</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">FitHiChIP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Installation</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/usage/installation.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Permalink to this heading"></a></h1>
+<div class="section" id="option-1-install-from-source-in-github">
+<h2>Option 1: Install from source in GitHub<a class="headerlink" href="#option-1-install-from-source-in-github" title="Permalink to this heading"></a></h2>
+<p>FitHiChIP is hosted in <a class="reference external" href="https://github.com/ay-lab/FitHiChIP">https://github.com/ay-lab/FitHiChIP</a></p>
+<p>Open a bash terminal, go to (or create) the directory to contain the FitHiChIP source code, and then type the following command in the terminal:</p>
+<p><strong>git clone https://github.com/ay-lab/FitHiChIP.git</strong></p>
+<p>Alternatively, user can download the ZIP from GitHub, and extract.</p>
+<p><strong>Prerequisite softwares / packages / libraries</strong></p>
+<p>FitHiChIP requires the following packages / libraries to be installed first:</p>
+<ol class="arabic">
+<li><p><strong>Python3</strong> (&gt;= version 3.4)</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Note: Since version 9.1, FitHiChIP is upgraded to support python3 instead of the deprecated python2</p></li>
+</ul>
+<p>Following python libraries are to be installed:</p>
+<ul>
+<li><p><strong>OptionParser</strong> (from the library optparse; available in Python installation)</p></li>
+<li><p><strong>gzip</strong> (available in Python installation)</p></li>
+<li><p><strong>networkx</strong> (available in <a class="reference external" href="https://networkx.github.io/">https://networkx.github.io/</a>).</p>
+<blockquote>
+<div><div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Can be installed by the command <em>pip install networkx</em></p>
+</div>
+</div></blockquote>
+</li>
+<li><p><strong>numpy</strong> (required for installing the package HiC-pro)</p>
+<blockquote>
+<div><div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Can be installed by the command <em>pip install numpy</em></p>
+</div>
+</div></blockquote>
+</li>
+<li><p><strong>hicstraw</strong> (required for processing .hic files)</p>
+<blockquote>
+<div><div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Can be installed by the command <em>pip install hicstraw</em></p>
+</div>
+</div></blockquote>
+</li>
+<li><p><strong>cooler</strong> (required for processing .cool or .mcool files)</p>
+<blockquote>
+<div><div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Can be installed by the command <em>pip install cooler</em> (or check the documentation: <a class="reference external" href="https://cooler.readthedocs.io/en/latest/quickstart.html#installation">https://cooler.readthedocs.io/en/latest/quickstart.html#installation</a>)</p>
+</div>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+</li>
+<li><p><strong>R</strong> (&gt;= 3.4.3)</p>
+<blockquote>
+<div><div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>User may follow <a class="reference external" href="https://www.datacamp.com/community/tutorials/installing-R-windows-mac-ubuntu">https://www.datacamp.com/community/tutorials/installing-R-windows-mac-ubuntu</a> for step by step installation of R.</p>
+</div>
+<ul>
+<li><p>In addition, user needs to install the following packages (needs to type the following command in an R terminal):</p>
+<blockquote>
+<div><p><strong>install.packages(c(&quot;optparse&quot;, &quot;ggplot2&quot;, &quot;data.table&quot;, &quot;splines&quot;, &quot;fdrtool&quot;, &quot;parallel&quot;, &quot;tools&quot;, &quot;plyr&quot;, &quot;dplyr&quot;))</strong></p>
+</div></blockquote>
+</li>
+<li><p>Further, user needs to install the following Bioconductor packages:</p>
+<blockquote>
+<div><ul>
+<li><p><strong>GenomicRanges</strong> <a class="reference external" href="https://bioconductor.org/packages/release/bioc/html/GenomicRanges.html">https://bioconductor.org/packages/release/bioc/html/GenomicRanges.html</a></p></li>
+<li><p><strong>EdgeR</strong> <a class="reference external" href="https://bioconductor.org/packages/release/bioc/html/edgeR.html">https://bioconductor.org/packages/release/bioc/html/edgeR.html</a></p>
+<blockquote>
+<div><div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>These two packages are required for differential analysis of FitHiChIP loops.</p>
+<p>User should check their R version, and Bioconductor version, to install the appropriate versions of these packages.</p>
+</div>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+</li>
+<li><p><strong>bedtools</strong> (version &gt;= 2.26.0) <a class="reference external" href="http://bedtools.readthedocs.io/en/latest/">http://bedtools.readthedocs.io/en/latest/</a></p></li>
+<li><p><strong>samtools</strong> (version &gt;= 1.6) <a class="reference external" href="http://www.htslib.org/">http://www.htslib.org/</a></p>
+<blockquote>
+<div><div class="versionadded">
+<p><span class="versionmodified added">New in version 6.0: </span></p>
+<ul class="simple">
+<li><p>Also install <strong>htslib</strong> (version &gt;= 1.6) specifically for the utilities <strong>bgzip</strong> and <strong>tabix</strong></p></li>
+</ul>
+</div>
+</div></blockquote>
+</li>
+<li><p><strong>Bowtie2</strong> (available in <a class="reference external" href="http://bowtie-bio.sourceforge.net/bowtie2/index.shtml">http://bowtie-bio.sourceforge.net/bowtie2/index.shtml</a>)</p></li>
+<li><p><strong>HiC-pro</strong> (<a class="reference external" href="https://github.com/nservant/HiC-Pro">https://github.com/nservant/HiC-Pro</a>)</p>
+<blockquote>
+<div><div class="admonition note">
+<p class="admonition-title">Note</p>
+<ul class="simple">
+<li><p>Required <strong>version 2.11.4 or later</strong> (we recommend using the latest version of HiCPro).</p></li>
+<li><p>Upon extracting the GitHub archieve of HiC-pro, user needs to edit the file <strong>config-install.txt</strong> and specify the installed paths of mentioned packages.</p></li>
+<li><dl class="simple">
+<dt>Then, in a command line terminal, user should type the following commands:</dt><dd><ul>
+<li><p>make configure</p></li>
+<li><p>make CONFIG_SYS=config-install.txt install</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<ul class="simple">
+<li><p>Installation of HiC-pro is <strong>mandatory</strong>.</p></li>
+</ul>
+</div>
+</div></blockquote>
+</li>
+<li><p><strong>macs2</strong> for peak calling <a class="reference external" href="https://github.com/taoliu/MACS">https://github.com/taoliu/MACS</a></p>
+<blockquote>
+<div><div class="admonition note">
+<p class="admonition-title">Note</p>
+<ul class="simple">
+<li><p>To check if the above packages are installed, user can type the name of each package in the command line terminal</p></li>
+<li><p>FitHiChIP is tested in linux environment, and requires bash for executing the main script.</p></li>
+</ul>
+</div>
+</div></blockquote>
+</li>
+</ol>
+<p><strong>Run FitHiChIP:</strong></p>
+<blockquote>
+<div><p>Use the following command:</p>
+<p><strong>bash ./FitHiChIP_HiCPro.sh -C /Your/Config/Files/Path</strong></p>
+</div></blockquote>
+</div>
+<div class="section" id="option-2-running-fithichip-with-docker-or-singularity">
+<h2>Option 2: Running FitHiChIP with Docker or Singularity<a class="headerlink" href="#option-2-running-fithichip-with-docker-or-singularity" title="Permalink to this heading"></a></h2>
+<p>To not deal with any dependencies and be sure that program will execute correctly, we have prepared images for you to run your analysis in.</p>
+<p><strong>Choose a container system:</strong></p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Most popular option is <strong>Docker</strong> (<a class="reference external" href="https://www.docker.com/">https://www.docker.com/</a>).</p></li>
+<li><p>But if you are running FitHiChIP on a cluster, you likely won't have docker installed. In that case, you can use the <strong>Singularity</strong> (<a class="reference external" href="https://sylabs.io/singularity/">https://sylabs.io/singularity/</a>) option.</p></li>
+</ul>
+</div></blockquote>
+<p><strong>Install Docker:</strong></p>
+<blockquote>
+<div><p>If you choose to use Docker for executing FitHiChIP, you can check whether you have docker installed by typing this command in the terminal.</p>
+<blockquote>
+<div><p><strong>docker run hello-world</strong></p>
+</div></blockquote>
+<ul class="simple">
+<li><p>If you see the hello text you are good to continue.</p></li>
+<li><p>If you get an error that says it couldn't connect to the Docker daemon, make sure you have the docker daemon running.</p></li>
+<li><p>If you get an error that says command isn't recognised, install docker by following the instructions located here: <a class="reference external" href="https://docs.docker.com/install/">https://docs.docker.com/install/</a></p></li>
+</ul>
+</div></blockquote>
+<p><strong>Use Singularity</strong></p>
+<blockquote>
+<div><p>Singularity is used in environments where the users aren't trusted with the system priviliges required by Docker such as computing clusters. You can check if you have singularity installed with this command:</p>
+<blockquote>
+<div><p><strong>singularity version</strong></p>
+</div></blockquote>
+<p>If you don't have it installed in your computing environment, contact the system managers.</p>
+</div></blockquote>
+<p><strong>Get the FitHiChIP scripts from Github:</strong></p>
+<p>Either download the contents of FitHiChIP Github repository or clone the repository using these commands:</p>
+<blockquote>
+<div><p><strong>git clone https://github.com/ay-lab/FitHiChIP/</strong></p>
+<p><strong>cd ./FitHiChIP</strong></p>
+</div></blockquote>
+<p><strong>Run FitHiChIP:</strong></p>
+<blockquote>
+<div><p>Use one of these commands depending on your choice of using Docker or Singularity:</p>
+<p>For Docker, use the following command:</p>
+<blockquote>
+<div><p><strong>bash ./FitHiChIP_Docker.sh -C /Your/Config/Files/Path</strong></p>
+</div></blockquote>
+<p>For Singularity, use the following command:</p>
+<blockquote>
+<div><p><strong>bash ./FitHiChIP_Singularity.sh -C /Your/Config/Files/Path</strong></p>
+</div></blockquote>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Your first run will likely take longer than average as you will download the image to run FitHiChIP in.</p>
+</div>
+</div></blockquote>
+<p><strong>Output:</strong></p>
+<blockquote>
+<div><p>If there are no errors, you will see a success message and FitHiChIP results will be located in the output directory you specified in the configuration file.</p>
+</div></blockquote>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../index.html" class="btn btn-neutral float-left" title="Welcome to FitHiChIP!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="quickstart.html" class="btn btn-neutral float-right" title="Quick start" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2019, Sourya Bhattacharyya, Ferhat Ay.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="English" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Details of FitHiChIP outputs &mdash; FitHiChIP 0.1 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Differential analysis of HiChIP loops" href="DiffLoops.html" />
+    <link rel="prev" title="Setting up configuration file" href="configuration.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> FitHiChIP
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Setting up configuration file</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Details of FitHiChIP outputs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#summary-html-file">Summary HTML file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#details-of-output-files">Details of output files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#details-of-fithichip-significant-interactions">Details of FitHiChIP significant interactions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#details-of-merge-filtering-output">Details of merge filtering output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#visualizing-significant-interactions-in-epigenome-browsers">Visualizing significant interactions in epigenome browsers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#visualizing-significant-interactions-after-merge-filtering-in-epigenome-browsers">Visualizing significant interactions (after merge filtering) in epigenome browsers</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="DiffLoops.html">Differential analysis of HiChIP loops</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Utilities.html">Various utility scripts / functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FAQ.html">Frequently asked question</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">FitHiChIP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Details of FitHiChIP outputs</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/usage/output.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="details-of-fithichip-outputs">
+<h1>Details of FitHiChIP outputs<a class="headerlink" href="#details-of-fithichip-outputs" title="Permalink to this heading"></a></h1>
+<div class="section" id="summary-html-file">
+<h2>Summary HTML file<a class="headerlink" href="#summary-html-file" title="Permalink to this heading"></a></h2>
+<p>Successful execution of FitHiChIP pipeline generates an HTML file <strong>Summary_results_FitHiChIP.html</strong> within the output directory <strong>OutDir</strong> specified in the configuration file. This file lists the output files containing significant interactions from the FitHiChIP pipeline, according to the given input parameters.</p>
+</div>
+<div class="section" id="details-of-output-files">
+<h2>Details of output files<a class="headerlink" href="#details-of-output-files" title="Permalink to this heading"></a></h2>
+<p>Here we describe all the files and folders existing within the specified output directory <strong>OutDir</strong>.</p>
+<p>User should additionally open this page <a class="reference internal" href="configuration.html#setting-up-configuration-file"><span class="std std-ref">Setting up configuration file</span></a> to tally with the configuration parameters:</p>
+<blockquote>
+<div><ol class="arabic">
+<li><p><strong>Parameters.txt</strong>: file listing the parameters used.</p></li>
+<li><p><strong>HiCPro_Matrix_BinSize&quot;BINSIZE&quot;</strong>:</p>
+<blockquote>
+<div><p>Where &quot;BINSIZE&quot; is specified in the input parameter.</p>
+<p>This directory contains the interaction matrix files (named as <em>Matrix_abs.bed</em> and <em>Matrix.matrix</em>) generated from the input interaction files, provided that these matrix and interval files are not provided as input.</p>
+<ul>
+<li><p><strong>L_&quot;l&quot;_U&quot;u&quot;</strong>: folder name according to the distance thresholds &quot;l&quot; and &quot;u&quot; specified in the configuration file.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><strong>*.cis.interactions.DistThr.bed</strong>: File containing CIS interactions within the distance range from &quot;l&quot; to &quot;u&quot;.</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+</li>
+<li><p><strong>NormFeatures</strong>:</p>
+<blockquote>
+<div><p>Folder containing various statistical features computed for individual genomic intervals / bins (with respect to the specified &quot;BINSIZE&quot;).</p>
+<ul>
+<li><p>User should specifically look at the file <strong>*.AllBin_CompleteFeat.bed</strong>, which has the following format:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Columns 1 to 3: chromosome bin.</p></li>
+<li><p>Column 4: Coverage of this bin (number of reads mapped onto it)</p></li>
+<li><p>Column 5: if 1, this bin is a <em>peak-bin</em> (overlapping with the reference peaks, as provided in the configuration file); otherwise (0) <em>non-peak bin</em>.</p></li>
+<li><p>Column 6: Bias value of a bin; either coverage or ICE bias, depending on the input options.</p></li>
+<li><p>Columns 7 and 8: unused columns.</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+</li>
+<li><p><strong>FitHiChIP_&quot;INTTYPE&quot;_b&quot;BINSIZE&quot;_L&quot;l&quot;_U&quot;u&quot;</strong></p>
+<blockquote>
+<div><p>Folder according to the specified foreground (type of interactions to be reported), bin size, and the distance thresholds.</p>
+<ul>
+<li><p>INTTYPE is a string with one of the following values:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>ALL2ALL (when the parameter <em>IntType</em> = 4)</p></li>
+<li><p>Peak2Peak (parameter <em>IntType</em> = 1),</p></li>
+<li><p>Peak2NonPeak (parameter <em>IntType</em> = 2), or</p></li>
+<li><p>Peak2ALL (parameter <em>IntType</em> = 3).</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>Within this folder, a directory structure of the following name (pattern) is created:</p>
+<blockquote>
+<div><p><strong>P2PBckgr_[UseP2PBackgrnd]/[BiasType]</strong></p>
+</div></blockquote>
+</li>
+</ul>
+<p>Where:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>[UseP2PBackgrnd]: Value of the parameter <em>UseP2PBackgrnd</em> - 0 (loose background) or 1 (stringent background).</p></li>
+<li><p>[BiasType]: A string, either &quot;Coverage_Bias&quot; or &quot;ICE_Bias&quot;, according to the parameter <em>BiasType</em>.</p></li>
+</ul>
+</div></blockquote>
+<ul>
+<li><p>Within this directory, following files/folders are important:</p>
+<blockquote>
+<div><ul>
+<li><p><strong>FitHiC_BiasCorr</strong>: Directory containing the significant interactions:</p>
+<blockquote>
+<div><ul>
+<li><p><strong>Bin_Info.log</strong>: Equal occupancy bins employed in FitHiChIP</p></li>
+<li><p><strong>configuration.txt</strong>: list of configuration parameters for calling significant interactions from FitHiChIP</p></li>
+<li><p><strong>*PREFIX*.interactions_FitHiC.bed</strong>: Lists all input interactions along with their significance (p-value and FDR) computed using FitHiChIP.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Value of <strong>PREFIX</strong> is provided in the configuration parameter.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>Important:</strong> For differential analysis of HiChIP loops (page <a class="reference internal" href="DiffLoops.html#differential-analysis-of-hichip-loops"><span class="std std-ref">Differential analysis of HiChIP loops</span></a>), this file (containing all interactions along with FitHiChIP significance values) is to be provided as input.</p>
+</div>
+</div></blockquote>
+</li>
+<li><p><strong>*PREFIX*.interactions_FitHiC_Q&quot;qval&quot;.bed</strong>:</p>
+<blockquote>
+<div><p>FitHiChIP generated set of significant interactions according to the q-value threshold (QVALUE) specified in input parameter.</p>
+<p>For example, if QVALUE=0.01 (default), the file name becomes <strong>*PREFIX*.interactions_FitHiC_Q0.01.bed</strong>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<ol class="arabic simple">
+<li><p><strong>Important:</strong> This file is the set of significant interactions generated by FitHiChIP, without any merge filtering.</p></li>
+<li><p>For peak-to-all foreground (default output mode), if <strong>UseP2PBackgrnd</strong> = 0, then these loops refer to FitHiChIP(L) output.</p></li>
+<li><p>If <strong>UseP2PBackgrnd</strong> = 1, these loops refer to FitHiChIP(S) output.</p></li>
+</ol>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If user requires loops filtered by a FDR threshold different from the parameter QVALUE (say the custom threshold is 0.05 and the QVALUE is 0.01), user may employ the following awk script to generate the significant interactions.</p>
+<blockquote>
+<div><p><strong>awk '$NF&lt;0.05' *PREFIX*.interactions_FitHiC.bed &gt; FitHiChIP_out_Q0.05.bed</strong></p>
+</div></blockquote>
+</div>
+</div></blockquote>
+</li>
+<li><p><strong>Merge_Nearby_Interactions</strong>:</p>
+<blockquote>
+<div><p>Directory containing the output of merge filtering operation, if the parameter <em>MergeInt</em> = 1.</p>
+<ul>
+<li><p><strong>*PREFIX*.interactions_FitHiC_Q&quot;qval&quot;_MergeNearContacts.bed</strong>:</p>
+<blockquote>
+<div><p>FitHiChIP significant loops returned after the merge filtering operation.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<ol class="arabic simple">
+<li><p>For peak-to-all foreground (default output mode), if <strong>UseP2PBackgrnd</strong> = 0, this set of loops refer to FitHiChIP(L+M) output.</p></li>
+<li><p>If <strong>UseP2PBackgrnd</strong> = 1, this set of loops refer to FitHiChIP(S+M) output.</p></li>
+</ol>
+</div>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+</li>
+</ol>
+</div></blockquote>
+</div>
+<div class="section" id="details-of-fithichip-significant-interactions">
+<h2>Details of FitHiChIP significant interactions<a class="headerlink" href="#details-of-fithichip-significant-interactions" title="Permalink to this heading"></a></h2>
+<p>As mentioned above, the file <strong>*PREFIX*.interactions_FitHiC.bed</strong> contains all the loops and their significance values.</p>
+<p>The file <strong>*PREFIX*.interactions_FitHiC_Q&quot;qval&quot;.bed</strong> contains the significant interactions with respect to the specified FDR threshold <strong>qval</strong></p>
+<p>Both of these files contain the following fields:</p>
+<blockquote>
+<div><ol class="arabic">
+<li><p>Fields 1 to 6: interacting bins for a given interaction.</p></li>
+<li><p>Field 7: contact count.</p></li>
+<li><p>Fields 8 to 13: various properties of the first interacting bin. This include the HiChIP coverage, whether the bin overlaps with ChIP-seq peak (isPeak), bias (coverage or ICE depending on the bias parameter), mappability, GC content, and number of restriction sites.</p>
+<blockquote>
+<div><div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Currently, the values of mappability, GC content, and number of restriction sites are set as 0. We did not remove the fields though, to keep the same output format.</p>
+</div>
+</div></blockquote>
+</li>
+<li><p>Fields 14 to 19: respective properties for the second interacting bin.</p></li>
+<li><p>Field 20 (p): spline fit probability.</p></li>
+<li><p>Field 21 (exp_cc_Bias): expected contact count of the current interaction, after applying bias regression.</p></li>
+<li><p>Fields 22 and 23: probability computed from the &quot;exp_cc_Bias&quot; value, and binomial distribution based refined probability value.</p></li>
+<li><p>Field 24: final FitHiChiP p-value of the current interaction.</p></li>
+<li><p>Field 25: final FitHiChiP q-value of the current interaction.</p></li>
+</ol>
+</div></blockquote>
+</div>
+<div class="section" id="details-of-merge-filtering-output">
+<h2>Details of merge filtering output<a class="headerlink" href="#details-of-merge-filtering-output" title="Permalink to this heading"></a></h2>
+<p>As mentioned above, the file <strong>*PREFIX*.interactions_FitHiC_Q&quot;qval&quot;_MergeNearContacts.bed</strong> within the directory <strong>Merge_Nearby_Interactions</strong> contains the significant loops returned after merge filtering operation.</p>
+<p>This file contains the following fields:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>First 6 fields are the interacting bins corresponding to the retained set of interactions (after merge filtering).</p></li>
+<li><p>Next 3 fields denote the contact count, p-value and q-value of the retained interactions.</p></li>
+<li><p>bin1_low and bin1_high denotes the lower and upper coordinates of the first set of interacting bins (x axis of the proposed connected component model). For example, if the set of bins (x-1, y-1), (x, y) and (x+1,y+1) are provided as inputs, bin1_low becomes (x-1) * BINSIZE while bin1_high becomes (x+1) * BINSIZE.</p></li>
+<li><p>bin2_low and bin2_high, denotes the lower and upper coordinates of the second set of interacting bins. Considering the previous example, bin2_low = (y-1) * BINSIZE and bin2_high = (y+1) * BINSIZE</p></li>
+<li><p>sumCC denotes the sum of contact counts of all the significant interactions applied to the connected component model, with respect to the current retained interaction. Considering the above example, sumCC would be equal to the contact counts of interactions (x-1, y-1), (x, y) and (x+1,y+1).</p></li>
+<li><p>StrongConn is between 0 and 1, and denotes the fraction of all possible interactions within the connected component which are significant. Considering the above example, the connected component enclosing the bins (x-1), x, and (x+1) at one end, and the bins (y-1), y, and (y+1) at the other end, can have at most 9 interactions, out of which 3 are significant. So, StrongConn is 0.33 in this case. Higher value of StrongConn indicates dense connected region.</p></li>
+</ol>
+</div></blockquote>
+</div>
+<div class="section" id="visualizing-significant-interactions-in-epigenome-browsers">
+<h2>Visualizing significant interactions in epigenome browsers<a class="headerlink" href="#visualizing-significant-interactions-in-epigenome-browsers" title="Permalink to this heading"></a></h2>
+<p>FitHiChIP produces multiple output files compatible to various epigenome browsers.</p>
+<blockquote>
+<div><p><strong>*PREFIX*.interactions_FitHiC_Q&quot;qval&quot;_WashU.bed.gz</strong></p>
+<blockquote>
+<div><p>File compatible to WashU epigenome browser.</p>
+<p>To visualize this interaction as a browser track, user needs to perform the following steps:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>Open <a class="reference external" href="https://epigenomegateway.wustl.edu/browser/">https://epigenomegateway.wustl.edu/browser/</a> in a browser.</p></li>
+<li><p>Select reference genome. For the test data, human (hg19) is the reference genome.</p></li>
+<li><p>select <strong>Tracks</strong> -&gt; <strong>upload Local Track</strong></p></li>
+<li><p>Choose track file type: <strong>longrange</strong></p></li>
+<li><p>Choose track file: select both <strong>*_WashU.bed.gz</strong> and <strong>*_WashU.bed.gz.tbi</strong> files <strong>together (2 files)</strong>.</p></li>
+<li><p>Close the track upload box (click at the (X) sign in the right corner)</p></li>
+<li><p>Now the track is displayed in the browser window. Right click on the track name, and select <strong>DISPLAY MODE</strong> as <strong>ARC</strong></p></li>
+</ol>
+</div></blockquote>
+</div></blockquote>
+<p><strong>*PREFIX*.interactions_FitHiC_Q&quot;qval&quot;_UCSC.bed</strong></p>
+<blockquote>
+<div><p>FitHiChIP output file compatible to UCSC genome browser. The file is in bigBed format (or precisely BigInteract format).</p>
+</div></blockquote>
+<p><strong>*PREFIX*.interactions_FitHiC_Q&quot;qval&quot;_IGV.bed</strong></p>
+<blockquote>
+<div><p>FitHiChIP output file compatible to IGV genome browser.</p>
+</div></blockquote>
+</div></blockquote>
+</div>
+<div class="section" id="visualizing-significant-interactions-after-merge-filtering-in-epigenome-browsers">
+<h2>Visualizing significant interactions (after merge filtering) in epigenome browsers<a class="headerlink" href="#visualizing-significant-interactions-after-merge-filtering-in-epigenome-browsers" title="Permalink to this heading"></a></h2>
+<blockquote>
+<div><p><strong>*PREFIX*.interactions_FitHiC_Q&quot;qval&quot;_MergeNearContacts_WashU.bed.gz</strong></p>
+<blockquote>
+<div><p>File compatible to WashU epigenome browser.</p>
+</div></blockquote>
+<p><strong>*PREFIX*.interactions_FitHiC_Q&quot;qval&quot;_MergeNearContacts_UCSC.bed</strong></p>
+<blockquote>
+<div><p>File compatible to UCSC genome browser.</p>
+</div></blockquote>
+<p><strong>*PREFIX*.interactions_FitHiC_Q&quot;qval&quot;_MergeNearContacts_IGV.bed</strong></p>
+<blockquote>
+<div><p>File compatible to IGV genome browser.</p>
+</div></blockquote>
+</div></blockquote>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="configuration.html" class="btn btn-neutral float-left" title="Setting up configuration file" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="DiffLoops.html" class="btn btn-neutral float-right" title="Differential analysis of HiChIP loops" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2019, Sourya Bhattacharyya, Ferhat Ay.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="English" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Setting up optional parameters &mdash; FitHiChIP 0.1 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> FitHiChIP
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Setting up configuration file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="output.html">Details of FitHiChIP outputs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DiffLoops.html">Differential analysis of HiChIP loops</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Utilities.html">Various utility scripts / functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FAQ.html">Frequently asked question</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">FitHiChIP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Setting up optional parameters</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/usage/optional.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="setting-up-optional-parameters">
+<h1>Setting up optional parameters<a class="headerlink" href="#setting-up-optional-parameters" title="Permalink to this heading"></a></h1>
+<p>Parameters like fasta sequence, mappability file or restriction fragment file are optional (can be left blank in the configuration file). However, if user wants to provide those files for statistical analysis purpose, he / she can apply following instructions:</p>
+<div class="section" id="downloading-reference-genome-fasta-sequence">
+<h2>Downloading reference genome fasta sequence<a class="headerlink" href="#downloading-reference-genome-fasta-sequence" title="Permalink to this heading"></a></h2>
+<blockquote>
+<div><ul class="simple">
+<li><p>Used to compute the GC content information of respective bins.</p></li>
+<li><p>First, user may download the reference genome in 2 bit format, by using the following link: &lt;<a class="reference external" href="http://hgdownload.soe.ucsc.edu/goldenPath/hg19/bigZips/hg19.2bit">http://hgdownload.soe.ucsc.edu/goldenPath/hg19/bigZips/hg19.2bit</a>&gt;</p></li>
+<li><p>Subsequently, an utility program &quot;twoBitToFa&quot; (UCSC basic tools) may be used to extract .fa file(s) from this archieve. The program can be downloaded from the link: &lt;<a class="reference external" href="http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/">http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/</a>&gt;</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For a detailed description, please refer to <a class="reference external" href="http://hgdownload.soe.ucsc.edu/goldenPath/hg19/bigZips/">http://hgdownload.soe.ucsc.edu/goldenPath/hg19/bigZips/</a></p>
+</div>
+<ul class="simple">
+<li><p>Index the converted fasta file (to create .fai file)</p></li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="downloading-the-mappability-file-corresponding-to-the-reference-genome">
+<h2>Downloading the mappability file (corresponding to the reference genome)<a class="headerlink" href="#downloading-the-mappability-file-corresponding-to-the-reference-genome" title="Permalink to this heading"></a></h2>
+<blockquote>
+<div><ul>
+<li><p>Can be downloaded in BigWig format: &lt;<a class="reference external" href="http://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeMapability/wgEncodeCrgMapabilityAlign50mer.bigWig">http://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeMapability/wgEncodeCrgMapabilityAlign50mer.bigWig</a>&gt;</p></li>
+<li><p>Convert it to bedgraph format, using the UCSC utilty &quot;BigWigToBedgraph&quot; by using the following command:</p>
+<blockquote>
+<div><p>BigWigToBedgraph wgEncodeCrgMapabilityAlign50mer.bigWig wgEncodeCrgMapabilityAlign50mer.bedGraph</p>
+</div></blockquote>
+</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Fasta sequence and mappability files depend on the reference genome. User needs to check and download appropriate files according to the reference genome used.</p>
+</div>
+</div></blockquote>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2019, Sourya Bhattacharyya, Ferhat Ay.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

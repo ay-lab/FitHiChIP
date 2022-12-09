@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="English" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Setting up configuration file &mdash; FitHiChIP 0.1 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Details of FitHiChIP outputs" href="output.html" />
+    <link rel="prev" title="Quick start" href="quickstart.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> FitHiChIP
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick start</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Setting up configuration file</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#input-hichip-contact-matrix-file-different-formats-supported">Input HiChIP contact matrix file - different formats supported</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#other-files-directories">Other files / directories</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#execution-options">Execution options</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="output.html">Details of FitHiChIP outputs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DiffLoops.html">Differential analysis of HiChIP loops</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Utilities.html">Various utility scripts / functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FAQ.html">Frequently asked question</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">FitHiChIP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Setting up configuration file</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/usage/configuration.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="setting-up-configuration-file">
+<h1>Setting up configuration file<a class="headerlink" href="#setting-up-configuration-file" title="Permalink to this heading"></a></h1>
+<p>As mentioned in the Quick Start module, FitHiChIP is executed by typing the following command in a bash terminal (assuming the executable is in current directory):</p>
+<blockquote>
+<div><p>sh FitHiChIP_HiCPro.sh -C configuration_file_name</p>
+</div></blockquote>
+<p>Here we mention the parameters and recommended values to be provided in the configuration file. Each entry of the configuration file has the following format:</p>
+<blockquote>
+<div><p>Param=ParamValue</p>
+</div></blockquote>
+<p>where,</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>&quot;Param&quot; indicates one parameter (variable)</p></li>
+<li><p>&quot;ParamValue&quot; is the corresponding value (numeric or string format).</p></li>
+</ul>
+</div></blockquote>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>We recommend users to mention absolute paths of files / folders in the configuration file.</p>
+</div>
+<div class="section" id="input-hichip-contact-matrix-file-different-formats-supported">
+<h2>Input HiChIP contact matrix file - different formats supported<a class="headerlink" href="#input-hichip-contact-matrix-file-different-formats-supported" title="Permalink to this heading"></a></h2>
+<blockquote>
+<div><p>FitHiChIP supports input HiChIP interaction files via <strong>one of four possible options</strong>:</p>
+<p>** Option 1: HiC-pro compatible input **</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Using the <strong>ValidPairs=</strong>  option, user can provide the valid pairs generated by HiC-pro pipeline.</p></li>
+<li><p>The file can be either in <strong>simple text</strong> format, or can be <strong>gzipped</strong>.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Usually, name of the valid pairs file generated from HiC-pro pipeline is <strong>${HICPRODIR}/hic_results/data/rawdata/rawdata.allValidPairs</strong> where <strong>${HICPRODIR}</strong> is the directory containing HiC-pro output.</p>
+</div>
+<ul>
+<li><p>Additionally, user can specify the following two parameters (optional) to provide HiC-pro compatible bin intervals and contact matrix files.</p>
+<blockquote>
+<div><ul>
+<li><p>Using the <strong>Interval=</strong> option, user can put the file depicting the bins / intervals of the interaction matrix.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>This file is generated from HiC-pro, specifically its utility function <strong>build_matrix</strong> applied on the valid pairs file.</p></li>
+<li><p>Size of an interval depends on the bin size.</p></li>
+<li><p>Individual bins are also assigned a distinct number.</p></li>
+<li><p>By default, name of this file ends with a suffix <strong>_abs.bed</strong></p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<ul class="simple">
+<li><p>Chromosome information need to be alphanumeric (similar to the valid pairs option).</p></li>
+</ul>
+</div>
+</div></blockquote>
+</li>
+<li><p>Using the <strong>Matrix=</strong> option, user can put the number of interactions (contacts) among the bins listed in the <strong>Interval</strong> file.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>The file has three columns: 1) first interacting bin number, 2) second interacting bin number, 3) contact count between those two bins.</p></li>
+<li><p>Generated by applying HiC-pro pipeline utility function <strong>build_matrix</strong> on the valid pairs file.</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p>** Option 2: Tab delimited contact matrix format **</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Using the <strong>Bed=</strong> option, user can put a tab delimited text file containing the binned intervals and their contact counts.</p></li>
+<li><p>Of the format:        chr1    start1          end1    chr2    start2          end2    contact</p></li>
+<li><p>Can be generated from any HiC or HiChIP data processing pipelines, or custom scripts.</p></li>
+<li><p>Useful when the user have processed contact matrix information from any other pipeline.</p></li>
+</ul>
+</div></blockquote>
+<p>** Option 3: .hic formatted contact file **</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Using the <strong>HIC=</strong> option, user can put a .hic file (Juicebox / Juicer tools compatible) containing the contact matrix information.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The .hic file should contain the target resolution which is to be specified in the <strong>BINSIZE</strong> parameter (mentioned below).</p>
+</div>
+</div></blockquote>
+<p>** Option 4: .cool / .mcool formatted contact file **</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Using the <strong>COOL=</strong> option, user can put a .cool or .mcool file containing the contact matrix information.</p></li>
+<li><p>Supports various HiChIP datasets from 4DNucleome portal.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Like .hic files, the .cool / .mcool file should contain the target resolution which is to be specified in the <strong>BINSIZE</strong> parameter (mentioned below).</p>
+</div>
+</div></blockquote>
+</div></blockquote>
+</div>
+<div class="section" id="other-files-directories">
+<h2>Other files / directories<a class="headerlink" href="#other-files-directories" title="Permalink to this heading"></a></h2>
+<blockquote>
+<div><p><strong>PeakFile=</strong></p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Reference ChIP-seq or HiChIP peak file.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Mandatory parameter provided the user is analyzing HiChIP data and if the option <strong>IntType</strong> (mentioned below) is 1, 2, 3 or 5.</p>
+</div>
+<ul class="simple">
+<li><p>User may use pre-computed ChIP-seq peaks in ENCODE (<a class="reference external" href="https://www.encodeproject.org/">https://www.encodeproject.org/</a>),</p></li>
+<li><p>or, user may compute HiChIP peaks and use them (described in the page <a class="reference internal" href="Utilities.html#various-utility-scripts-functions"><span class="std std-ref">Various utility scripts / functions</span></a>).</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<ol class="arabic simple">
+<li><p>user may employ <strong>macs2</strong>, or the tool <strong>hichipper</strong> (Lareau et al 2018) to compute the peaks from HiChIP data, and provide the bed formatted peak file as an input to FitHiChIP.</p></li>
+<li><p>If MACS2 is employed, .narrowPeak formatted peak file is to be provided.</p></li>
+</ol>
+</div>
+</div></blockquote>
+<p><strong>OutDir=</strong></p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Output directory which would contain all the results.</p></li>
+<li><p>Default: present working directory.</p></li>
+</ul>
+</div></blockquote>
+<p><strong>ChrSizeFile</strong></p>
+<blockquote>
+<div><ul class="simple">
+<li><p>File containing the chromosome size corresponding to the reference genome. <strong>Mandatory parameter.</strong></p></li>
+<li><p>For example, the file <strong>chrom_hg19.sizes</strong> within the folder &quot;TestData&quot; is applicable for the reference genome hg19.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<ol class="arabic simple">
+<li><p>Chromosome size file for the reference genome hg38 can be obtained from the link: <a class="reference external" href="https://hgdownload.cse.ucsc.edu/goldenpath/hg38/bigZips/hg38.chrom.sizes">https://hgdownload.cse.ucsc.edu/goldenpath/hg38/bigZips/hg38.chrom.sizes</a></p></li>
+<li><p>Another option is to use the utility &quot;fetchChromSizes&quot; from UCSC (<a class="reference external" href="https://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/fetchChromSizes">https://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/fetchChromSizes</a>) and specify the reference genome information, to download corresponding chromosome size file.</p></li>
+</ol>
+</div>
+</div></blockquote>
+</div></blockquote>
+</div>
+<div class="section" id="execution-options">
+<h2>Execution options<a class="headerlink" href="#execution-options" title="Permalink to this heading"></a></h2>
+<blockquote>
+<div><p><strong>CircularGenome=</strong></p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Boolean variable indicating if the reference genome is circular.</p></li>
+<li><p>0, by default.</p></li>
+<li><p>If 1 (circular genome), calculation of genomic distance is slightly different</p></li>
+</ul>
+</div></blockquote>
+<p><strong>IntType=</strong></p>
+<blockquote>
+<div><p>Type of interaction (foreground) reported by FitHiChIP. Options are:</p>
+<ol class="arabic simple">
+<li><p><strong>peak to peak</strong>: contacts between all pairs of peak segments (subject to fixed size binning)</p></li>
+<li><p><strong>peak to non peak</strong>: contacts between pairs of segments such that one is a peak and the other is a non-peak segment</p></li>
+<li><p><strong>peak to all (default)</strong>: here one interacting segment is a peak, while the other can be a peak or a non-peak. Thus, encapsulates options 1 and 2.</p></li>
+<li><p><strong>all to all</strong>: Interactions between every possible pairs of segments, similar to Hi-C.</p></li>
+<li><p>Everything from 1 to 4. That is, all of the above mentioned interactions are computed.</p></li>
+</ol>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Default is 3, i.e. peak-to-all (both peak-to-peak and peak-to-nonpeak interactions are reported by FitHiChIP)</p>
+</div>
+</div></blockquote>
+<p><strong>BINSIZE=</strong></p>
+<blockquote>
+<div><p>Size of the bins, depicting the resolution employed. Default= 5000 (means 5 Kb resolution)</p>
+</div></blockquote>
+<p><strong>LowDistThr=</strong></p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Lower distance threshold of interaction between two intervals (CIS).</p></li>
+<li><p>Default: 20000 (indicates 20 Kb).</p></li>
+<li><p>Interactions below this distance threshold will not be considered for statistical significance.</p></li>
+</ul>
+</div></blockquote>
+<p><strong>UppDistThr=</strong></p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Upper distance threshold of interaction between two intervals (CIS).</p></li>
+<li><p>Default: 2000000 (indicates 2 Mb).</p></li>
+<li><p>Interactions above this distance threshold will not be considered for statistical significance.</p></li>
+</ul>
+</div></blockquote>
+<p><strong>QVALUE=</strong></p>
+<blockquote>
+<div><ul class="simple">
+<li><p>FDR (q-value) cutoff for detecting significant interactions.</p></li>
+<li><p>Default: 0.01</p></li>
+</ul>
+</div></blockquote>
+<p><strong>UseP2PBackgrnd=</strong></p>
+<blockquote>
+<div><p>Can be 0 or 1. Applicable only for peak to all interactions (IntType = 3).</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>1: peak to peak (or stringent) background (locus pairs) are used for contact probability estimation. Refers to FitHiChIP(S)</p></li>
+<li><p>0: peak to all (or loose) background (locus pairs) are used for contact probability estimation. Refers to FitHiChIP(L)</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<ul class="simple">
+<li><p>We recommend users to execute FitHiChIP using both loose and stringent settings.</p></li>
+<li><p>Specifically, for low to moderate sequencing depth, use 0, whereas for very high sequencing depth, employ a value 1.</p></li>
+</ul>
+</div>
+</div></blockquote>
+</div></blockquote>
+<p><strong>BiasType=</strong></p>
+<blockquote>
+<div><p>Can be 1 or 2. Indicates the type of bias correction used.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>A value of 1 means that coverage bias regression is used (default).</p></li>
+<li><p>Value of 2 means that ICE bias regression is computed.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Results in the manuscript employ BiasType=1</p>
+</div>
+</div></blockquote>
+</div></blockquote>
+<p><strong>MergeInt=</strong></p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Has the value 0 or 1.</p></li>
+<li><p>If 1, merge filtering (+M) is enabled. Otherwise (0) not.</p></li>
+<li><p><strong>We recommend setting this value as 1.</strong></p></li>
+</ul>
+</div></blockquote>
+<p><strong>PREFIX=</strong></p>
+<blockquote>
+<div><p>Prefix string used before any output file name. Default = &quot;FitHiChIP&quot;</p>
+</div></blockquote>
+<p><strong>OverWrite=</strong></p>
+<blockquote>
+<div><p>A binary variable (1/0).</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>If 1, overwrites existing FitHiChIP output files.</p></li>
+<li><p>Otherwise (0) skips re-computing existing outputs.</p></li>
+</ul>
+</div></blockquote>
+</div></blockquote>
+</div></blockquote>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="quickstart.html" class="btn btn-neutral float-left" title="Quick start" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="output.html" class="btn btn-neutral float-right" title="Details of FitHiChIP outputs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2019, Sourya Bhattacharyya, Ferhat Ay.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
