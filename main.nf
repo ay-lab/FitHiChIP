@@ -22,6 +22,8 @@ vp = file(params.ValidPairs)
 interval = file(params.Interval)
 matrix = file(params.Matrix)
 bed = file(params.Bed)
+HIC = file(params.HIC)
+COOL = file(params.COOL)
 peakfile = file(params.PeakFile)
 chrsize = file(params.ChrSizeFile)
 
@@ -45,6 +47,12 @@ process prepare_config {
     
     if (bed.exists()) 
         cstr = cstr + "Bed=${bed}\n"
+
+    if (HIC.exists()) 
+        cstr = cstr + "HIC=${HIC}\n"
+
+    if (COOL.exists()) 
+        cstr = cstr + "COOL=${COOL}\n"                
     
     if (peakfile.exists()) 
         cstr = cstr + "PeakFile=${peakfile}\n"
