@@ -28,6 +28,19 @@ Matrix=
 ##============
 Bed=
 
+##============
+## option 4: If HiChIP data is provided in .hic format
+## Make sure that the .hic file contains the target resolution which is provided in the BINSIZE parameter (below)
+##============
+HIC=
+
+##============
+## option 5: If HiChIP data is provided in .cool / .mcool format
+## Make sure that the .cool or .mcool file contains the target resolution which is provided in the BINSIZE parameter (below)
+##============
+COOL=
+
+
 ##********
 ## File containing chromomosome size information corresponding to the reference genome.
 ##********
