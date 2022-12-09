@@ -12,7 +12,7 @@ La Jolla, CA 92037, USA
 FitHiChIP analyzes HiChIP / PLAC-seq data and derives the statistical significant CIS interactions.
 
 
-Detailed documentation of FitHiChIP is provided in 
+A comprehensive documentation of FitHiChIP is provided in 
 
 https://ay-lab.github.io/FitHiChIP/
 
