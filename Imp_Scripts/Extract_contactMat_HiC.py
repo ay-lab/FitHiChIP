@@ -9,16 +9,35 @@
 
 import numpy as np
 import hicstraw
+from optparse import OptionParser
 
-## input HiC file
-InpDir = "/home/sourya"
-InpHiCFile = InpDir + "/GSM2487542_H3K27ac_HiChIP.hic"
 
-## output file
-OutFile = InpDir + "/GSM2487542_H3K27ac_HiChIP.bed"
+parser = OptionParser()
+parser.add_option("-i", "--hicfile", dest="InpHiCFile", help="Input HiC File")
+parser.add_option("-o", "--outfile", dest="OutFile", help="Output File compatible for FitHiChIP")
+parser.add_option("-c", "--chromsizefile", dest="chromsizefile", help="Chromosome size file for the reference genome")
+parser.add_option("-r", "--resolution", action="store", dest="Resolution", default=5000, help="Target contact matrix resolution. Default = 5000 (5 Kb)")
 
-## bin size (target resolution)
-TARGETRES = 5000
+(options, args) = parser.parse_args()
+
+
+# ## input HiC file
+# InpDir = "/home/sourya"
+# InpHiCFile = InpDir + "/GSM2487542_H3K27ac_HiChIP.hic"
+
+# ## output file
+# OutFile = InpDir + "/GSM2487542_H3K27ac_HiChIP.bed"
+
+# ## bin size (target resolution)
+# TARGETRES = 5000
+
+InpHiCFile = options.InpHiCFile
+OutFile = options.OutFile
+TARGETRES = int(options.Resolution)
+
+print("Input -  InpHiCFile : " + InpHiCFile)
+print("Input -  OutFile : " + OutFile)
+print("Input -  TARGETRES : " + str(TARGETRES))
 
 ## first read the input .hic file
 hic = hicstraw.HiCFile(InpHiCFile)
@@ -32,13 +51,13 @@ resolution_values = hic.getResolutions()
 print(resolution_values)
 if TARGETRES not in resolution_values:
 	TARGETRES = min(resolution_values)
-	print(" modified TARGETRES : " + TARGETRES)
+	print(" modified TARGETRES : " + str(TARGETRES))
 
 ## chromosomes
 chromlist = hic.getChromosomes()
 
 ## dump the chromosome list and chromosome length
-ChromListFile = InpDir + "/Chromsize.txt"
+ChromListFile = options.chromsizefile
 with open(ChromListFile, 'w') as f:
 	for chrom in chromlist:
 		if chrom.name != "All":

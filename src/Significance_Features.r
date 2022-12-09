@@ -74,7 +74,7 @@ for (i in (1:length(ChrNames))) {
 	# extract interactions for the current chromosome
 	system(paste0("awk \'{if ((NR==1) || (($1==\"", currChr, "\") && ($4==\"", currChr, "\"))) {print $0}}\' ", opt$IntFile, " > ", temp_Interaction_File_CurrChr))
 	nLoop <- as.integer(system(paste("cat", temp_Interaction_File_CurrChr, "| wc -l"), intern = TRUE))
-	cat(sprintf(" --- number of bin pairs with nonzero contacts for this chromosome : %s ", (nLoop - 1)))
+	cat(sprintf("\n ===>> number of bin pairs with nonzero contacts for this chromosome : %s ", (nLoop - 1)))
 	if (nLoop <= 1) {
 		next
 	}
@@ -82,6 +82,7 @@ for (i in (1:length(ChrNames))) {
 	# for the current chromosome
 	system(paste0("awk \'{if ($1==\"", currChr, "\") {print $0}}\' ", opt$AllFeatFile, " > ", temp_NormFeature_CurrChr))
 	nFeat <- as.integer(system(paste("cat", temp_NormFeature_CurrChr, "| wc -l"), intern = TRUE))
+	cat(sprintf("\n ===>> number of genomic 1D bins for this chromosome : %s ", nFeat))
 	if (nFeat == 0) {
 		next
 	}
@@ -116,10 +117,11 @@ for (i in (1:length(ChrNames))) {
 	# now update the column names of this data frame
 	# to correctly reflect the columns
 	# it will be printed in the final output file
-	colnames(Final_Intrc) <- c(colnames(df1), "Coverage2", "isPeak2", "Bias2", "Mapp2", "GCContent2", "RESites2")
+	colnames(Final_Intrc) <- c(colnames(df1), "Coverage2", "isPeak2", "Bias2", "Mapp2", "GCContent2", "RESites2")	
 
 	# increment the valid chromosome counter
 	valid_chr_count <- valid_chr_count + 1
+	cat(sprintf("\n ===>> valid_chr_count : %s number of entries in Final_Intrc for this chromosome : %s ", valid_chr_count, nrow(Final_Intrc)))
 
 	# write the complete interaction matrix and features in the specified output file
 	if (valid_chr_count == 1) {
