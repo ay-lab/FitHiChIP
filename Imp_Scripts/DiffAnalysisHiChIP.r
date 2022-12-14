@@ -18,7 +18,7 @@ library(ggplot2)
 library(tools)
 library(data.table)
 
-options(scipen = 10)
+options(scipen = 999)
 options(datatable.fread.datatable=FALSE)
 
 # ggplot parameters
