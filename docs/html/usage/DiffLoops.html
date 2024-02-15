@@ -1,11 +1,14 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="English" >
+<html class="writer-html5" lang="English">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Differential analysis of HiChIP loops &mdash; FitHiChIP 0.1 documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css" />
+
+  
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -27,11 +30,15 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> FitHiChIP
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            FitHiChIP
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -67,8 +74,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Differential analysis of HiChIP loops</li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Differential analysis of HiChIP loops</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/usage/DiffLoops.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -78,12 +85,12 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="differential-analysis-of-hichip-loops">
+  <section id="differential-analysis-of-hichip-loops">
 <h1>Differential analysis of HiChIP loops<a class="headerlink" href="#differential-analysis-of-hichip-loops" title="Permalink to this heading"></a></h1>
 <p>FitHiChIP also supports finding differential HiChIP loops between two categories (such as two different cell types), each with one or multiple replicates.</p>
 <p>The script <strong>Differential_Analysis_Script.sh</strong> contains command to execute differential analysis.</p>
 <p>Source code of the differential analysis is provided in <strong>Imp_Scripts/DiffAnalysisHiChIP.r</strong></p>
-<div class="section" id="basics">
+<section id="basics">
 <h2>Basics<a class="headerlink" href="#basics" title="Permalink to this heading"></a></h2>
 <p>The objective is to find differential HiChIP loops among two categories (each with one or more replicates).</p>
 <p>In addition, if user provides ChIP-seq alignment files for the input categories (details below), the interacting 1D bins in these differential loops are categorized as <em>differential</em> or <em>non-differential</em> 1D (ChIP) bins.</p>
@@ -112,8 +119,8 @@
 </ol>
 </div></blockquote>
 <p>The category <strong>ND-ND</strong> (category 2) corresponds to the differential loops involving non-differential 1D bins. That is, differential loops solely due to the changes in 3D (looping).</p>
-</div>
-<div class="section" id="options">
+</section>
+<section id="options">
 <h2>Options<a class="headerlink" href="#options" title="Permalink to this heading"></a></h2>
 <p>Parameters associated with this script is:</p>
 <dl class="option-list">
@@ -133,6 +140,11 @@
 <dt><kbd><span class="option">--FDRThr</span></kbd></dt>
 <dd><ul class="simple">
 <li><p>FDR significance threshold for FitHiChIP loops. Default = 0.01.</p></li>
+</ul>
+</dd>
+<dt><kbd><span class="option">--BackgroundFDRThr</span></kbd></dt>
+<dd><ul class="simple">
+<li><p>FDR threshold for FitHiChIP loops which will be considered for defining the background model. Default is 1, means every FitHiChIP contact in the input samples would be considered as background loops of the edgeR model. A value of 0.01 would indicate that the FitHiChIP loops with q-value &lt; 0.01 in at least one sample would be used as the background. If the input samples have very low contact counts for most of the input samples and loops, user may alter this parameter (like 0.1) to include only the significant (or moderately significant) FitHiChIP loops (in at least one input sample) to define the background model.</p></li>
 </ul>
 </dd>
 <dt><kbd><span class="option">--ChIPAlignFileList</span></kbd></dt>
@@ -207,8 +219,8 @@
 </ul>
 </dd>
 </dl>
-</div>
-<div class="section" id="example-1">
+</section>
+<section id="example-1">
 <h2>Example 1<a class="headerlink" href="#example-1" title="Permalink to this heading"></a></h2>
 <p>Assume the following input conditions:</p>
 <blockquote>
@@ -225,27 +237,40 @@
 <p class="attribution">—AllLoopList <em>cat1_repl1_file,cat1_repl2_file,cat2_repl1_File,cat2_repl2_file</em> \</p>
 </div></blockquote>
 <blockquote>
-<div><p>--ChrSizeFile <em>TestData/chrom_hg19.sizes</em> --FDRThr 0.01 --CovThr 25 \</p>
+<div><p>--ChrSizeFile <em>TestData/chrom_hg19.sizes</em> \</p>
 <p class="attribution">—ChIPAlignFileList <em>cat1_ChIPAlign.bam,cat2_ChIPAlign.bam</em> \</p>
 </div></blockquote>
 <blockquote>
-<div><p>--OutDir <em>/home/user/diffanalysis/outdir</em> \</p>
-<p class="attribution">—CategoryList CellLine1,CellLine2 \</p>
+<div><p>--FDRThr 0.01 \</p>
+<p class="attribution">—BackgroundFDRThr 0.1 \</p>
 </div></blockquote>
 <blockquote>
-<div><p>--ReplicaCount 2,2 --ReplicaLabels1 R1,R2 --ReplicaLabels2 R1,R2 \</p>
-<p class="attribution">—FoldChangeThr 2 --DiffFDRThr 0.05 --bcv 0.4</p>
+<div><p>--CovThr 25 \</p>
+<p class="attribution">—OutDir <em>/home/user/diffanalysis/outdir</em> \</p>
 </div></blockquote>
 <blockquote>
-<div><ul class="simple">
+<div><p>--CategoryList CellLine1,CellLine2 \</p>
+<p class="attribution">—ReplicaCount 2,2 \</p>
+</div></blockquote>
+<blockquote>
+<div><p>--ReplicaLabels1 R1,R2 \</p>
+<p class="attribution">—ReplicaLabels2 R1,R2 \</p>
+</div></blockquote>
+<blockquote>
+<div><p>--FoldChangeThr 2 \</p>
+<p class="attribution">—DiffFDRThr 0.05 \</p>
+</div></blockquote>
+<blockquote>
+<div><p>--bcv 0.4</p>
+<ul class="simple">
 <li><p>Here, <em>cat1_repl1_file</em> denotes the loops (containing FitHiChIP significance values) of category 1, replicate 1. Similar notations for the other files.</p></li>
 <li><p>In the parameter --AllLoopList, all the samples of category 1 should be specified first, followed by the samples in category 2</p></li>
 <li><p>User can also specify the files using colons (:) as a separator instead of comma.</p></li>
 <li><p>The file <em>cat1_ChIPAlign.bam</em> represents ChIP-seq alignment file for the category 1. Similar notation for category 2.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="example-2">
+</section>
+<section id="example-2">
 <h2>Example 2<a class="headerlink" href="#example-2" title="Permalink to this heading"></a></h2>
 <p>Assume the following input conditions:</p>
 <blockquote>
@@ -262,24 +287,29 @@
 <p class="attribution">—AllLoopList <em>cat1_repl1_file,cat1_repl2_file,cat2_repl1_File,cat2_repl2_file</em> \</p>
 </div></blockquote>
 <blockquote>
-<div><p>--ChrSizeFile <em>TestData/chrom_hg19.sizes</em> --FDRThr 0.01 --CovThr 25 \</p>
-<p class="attribution">—ChIPAlignFileList <em>cat1_R1_ChIPAlign.bam,cat1_R2_ChIPAlign.bam,cat2_R1_ChIPAlign.bam,cat2_R2_ChIPAlign.bam</em> \</p>
+<div><p>--ChrSizeFile <em>TestData/chrom_hg19.sizes</em> \</p>
+<p class="attribution">—FDRThr 0.01 \</p>
 </div></blockquote>
 <blockquote>
-<div><p>--OutDir <em>/home/user/diffanalysis/outdir</em> \</p>
-<p class="attribution">—CategoryList CellLine1,CellLine2 \</p>
+<div><p>--BackgroundFDRThr 0.1 \</p>
+<p class="attribution">—CovThr 25 \</p>
 </div></blockquote>
 <blockquote>
-<div><p>--ReplicaCount 2,2 --ReplicaLabels1 R1,R2 --ReplicaLabels2 R1,R2 \</p>
-<p class="attribution">—FoldChangeThr 2 --DiffFDRThr 0.05 --bcv 0.4</p>
+<div><p>--ChIPAlignFileList <em>cat1_R1_ChIPAlign.bam,cat1_R2_ChIPAlign.bam,cat2_R1_ChIPAlign.bam,cat2_R2_ChIPAlign.bam</em> \</p>
+<p class="attribution">—OutDir <em>/home/user/diffanalysis/outdir</em> \</p>
 </div></blockquote>
 <blockquote>
-<div><ul class="simple">
+<div><p>--CategoryList CellLine1,CellLine2 \</p>
+<p class="attribution">—ReplicaCount 2,2 --ReplicaLabels1 R1,R2 --ReplicaLabels2 R1,R2 \</p>
+</div></blockquote>
+<blockquote>
+<div><p>--FoldChangeThr 2 --DiffFDRThr 0.05 --bcv 0.4</p>
+<ul class="simple">
 <li><p>Here, <em>cat1_R1_ChIPAlign.bam</em> denotes the ChIP-seq alignment for replicate 1 of the category 1. Similar notations for the other files.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="details-of-differential-analysis-outputs">
+</section>
+<section id="details-of-differential-analysis-outputs">
 <h2>Details of differential analysis outputs<a class="headerlink" href="#details-of-differential-analysis-outputs" title="Permalink to this heading"></a></h2>
 <p>Within the specified output directory <strong>OutDir</strong>, following files / folders are generated by the differential analysis:</p>
 <blockquote>
@@ -308,8 +338,8 @@
 </li>
 </ol>
 </div></blockquote>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>

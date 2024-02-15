@@ -1,11 +1,14 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="English" >
+<html class="writer-html5" lang="English">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Details of FitHiChIP outputs &mdash; FitHiChIP 0.1 documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css" />
+
+  
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -27,11 +30,15 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> FitHiChIP
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            FitHiChIP
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -68,8 +75,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Details of FitHiChIP outputs</li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Details of FitHiChIP outputs</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/usage/output.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -79,13 +86,13 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="details-of-fithichip-outputs">
+  <section id="details-of-fithichip-outputs">
 <h1>Details of FitHiChIP outputs<a class="headerlink" href="#details-of-fithichip-outputs" title="Permalink to this heading"></a></h1>
-<div class="section" id="summary-html-file">
+<section id="summary-html-file">
 <h2>Summary HTML file<a class="headerlink" href="#summary-html-file" title="Permalink to this heading"></a></h2>
 <p>Successful execution of FitHiChIP pipeline generates an HTML file <strong>Summary_results_FitHiChIP.html</strong> within the output directory <strong>OutDir</strong> specified in the configuration file. This file lists the output files containing significant interactions from the FitHiChIP pipeline, according to the given input parameters.</p>
-</div>
-<div class="section" id="details-of-output-files">
+</section>
+<section id="details-of-output-files">
 <h2>Details of output files<a class="headerlink" href="#details-of-output-files" title="Permalink to this heading"></a></h2>
 <p>Here we describe all the files and folders existing within the specified output directory <strong>OutDir</strong>.</p>
 <p>User should additionally open this page <a class="reference internal" href="configuration.html#setting-up-configuration-file"><span class="std std-ref">Setting up configuration file</span></a> to tally with the configuration parameters:</p>
@@ -223,8 +230,8 @@
 </li>
 </ol>
 </div></blockquote>
-</div>
-<div class="section" id="details-of-fithichip-significant-interactions">
+</section>
+<section id="details-of-fithichip-significant-interactions">
 <h2>Details of FitHiChIP significant interactions<a class="headerlink" href="#details-of-fithichip-significant-interactions" title="Permalink to this heading"></a></h2>
 <p>As mentioned above, the file <strong>*PREFIX*.interactions_FitHiC.bed</strong> contains all the loops and their significance values.</p>
 <p>The file <strong>*PREFIX*.interactions_FitHiC_Q&quot;qval&quot;.bed</strong> contains the significant interactions with respect to the specified FDR threshold <strong>qval</strong></p>
@@ -249,8 +256,8 @@
 <li><p>Field 25: final FitHiChiP q-value of the current interaction.</p></li>
 </ol>
 </div></blockquote>
-</div>
-<div class="section" id="details-of-merge-filtering-output">
+</section>
+<section id="details-of-merge-filtering-output">
 <h2>Details of merge filtering output<a class="headerlink" href="#details-of-merge-filtering-output" title="Permalink to this heading"></a></h2>
 <p>As mentioned above, the file <strong>*PREFIX*.interactions_FitHiC_Q&quot;qval&quot;_MergeNearContacts.bed</strong> within the directory <strong>Merge_Nearby_Interactions</strong> contains the significant loops returned after merge filtering operation.</p>
 <p>This file contains the following fields:</p>
@@ -264,8 +271,8 @@
 <li><p>StrongConn is between 0 and 1, and denotes the fraction of all possible interactions within the connected component which are significant. Considering the above example, the connected component enclosing the bins (x-1), x, and (x+1) at one end, and the bins (y-1), y, and (y+1) at the other end, can have at most 9 interactions, out of which 3 are significant. So, StrongConn is 0.33 in this case. Higher value of StrongConn indicates dense connected region.</p></li>
 </ol>
 </div></blockquote>
-</div>
-<div class="section" id="visualizing-significant-interactions-in-epigenome-browsers">
+</section>
+<section id="visualizing-significant-interactions-in-epigenome-browsers">
 <h2>Visualizing significant interactions in epigenome browsers<a class="headerlink" href="#visualizing-significant-interactions-in-epigenome-browsers" title="Permalink to this heading"></a></h2>
 <p>FitHiChIP produces multiple output files compatible to various epigenome browsers.</p>
 <blockquote>
@@ -294,8 +301,8 @@
 <div><p>FitHiChIP output file compatible to IGV genome browser.</p>
 </div></blockquote>
 </div></blockquote>
-</div>
-<div class="section" id="visualizing-significant-interactions-after-merge-filtering-in-epigenome-browsers">
+</section>
+<section id="visualizing-significant-interactions-after-merge-filtering-in-epigenome-browsers">
 <h2>Visualizing significant interactions (after merge filtering) in epigenome browsers<a class="headerlink" href="#visualizing-significant-interactions-after-merge-filtering-in-epigenome-browsers" title="Permalink to this heading"></a></h2>
 <blockquote>
 <div><p><strong>*PREFIX*.interactions_FitHiC_Q&quot;qval&quot;_MergeNearContacts_WashU.bed.gz</strong></p>
@@ -311,8 +318,8 @@
 <div><p>File compatible to IGV genome browser.</p>
 </div></blockquote>
 </div></blockquote>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>

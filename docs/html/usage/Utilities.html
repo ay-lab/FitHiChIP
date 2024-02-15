@@ -1,11 +1,14 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="English" >
+<html class="writer-html5" lang="English">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Various utility scripts / functions &mdash; FitHiChIP 0.1 documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css" />
+
+  
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -27,11 +30,15 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> FitHiChIP
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            FitHiChIP
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -70,8 +77,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Various utility scripts / functions</li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Various utility scripts / functions</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/usage/Utilities.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -81,9 +88,9 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="various-utility-scripts-functions">
+  <section id="various-utility-scripts-functions">
 <h1>Various utility scripts / functions<a class="headerlink" href="#various-utility-scripts-functions" title="Permalink to this heading"></a></h1>
-<div class="section" id="generating-contact-matrices-of-different-resolution-bin-size">
+<section id="generating-contact-matrices-of-different-resolution-bin-size">
 <h2>1. generating contact matrices of different resolution (bin size)<a class="headerlink" href="#generating-contact-matrices-of-different-resolution-bin-size" title="Permalink to this heading"></a></h2>
 <p>The script <strong>ContactMatDiffRes.sh</strong> within the folder <strong>Imp_Scripts</strong> generates contact matrix of desired bin size given a valid pairs file generated from the HiC-pro pipeline. Parameters associated with this script is:</p>
 <blockquote>
@@ -108,8 +115,8 @@
 </div></blockquote>
 <p>A folder <strong>Matrix_BinSize${BinSize}</strong> will be created under the specified output directory. The bin specific
 interval file name is <strong>Matrix_abs.bed</strong> and the corresponding contact matrix file name is <strong>Matrix.matrix</strong></p>
-</div>
-<div class="section" id="inferring-peaks-from-hichip-data-for-use-in-the-hichip-pipeline">
+</section>
+<section id="inferring-peaks-from-hichip-data-for-use-in-the-hichip-pipeline">
 <h2>2. inferring peaks from HiChIP data (for use in the HiChIP pipeline)<a class="headerlink" href="#inferring-peaks-from-hichip-data-for-use-in-the-hichip-pipeline" title="Permalink to this heading"></a></h2>
 <p>The script <strong>PeakInferHiChIP.sh</strong> within the folder <strong>Imp_Scripts</strong> is used to infer peaks from HiChIP data. The script can be used if HiC-pro pipeline is already executed on a given pair of reads (such as .fastq.gz read pairs). The script uses <strong>macs2</strong> package for inferring the peaks. Parameters associated with this script are as follows:</p>
 <blockquote>
@@ -136,8 +143,8 @@ For mouse, specify 'mm'.</p>
 </div></blockquote>
 <p>The script uses all of the DE, SC, RE and validpairs reads generated from the HiC-pro pipeline to infer peaks.
 The folder <strong>MACS2_ExtSize</strong> within the specified output directory contains the MACS2 generated peaks.</p>
-</div>
-<div class="section" id="merging-a-set-of-chip-seq-alignment-files">
+</section>
+<section id="merging-a-set-of-chip-seq-alignment-files">
 <h2>3. merging a set of ChIP-seq alignment files<a class="headerlink" href="#merging-a-set-of-chip-seq-alignment-files" title="Permalink to this heading"></a></h2>
 <p>The script <strong>MergeBAMInferPeak.sh</strong> within the folder <strong>Imp_Scripts</strong> processes a set of ChIP-seq alignment files, to generate a merged alignment, infer peak (using MACS2) from the generated alignment, and also determines the coverage of individual bins (according to a specified fixed bin size) with respect to individual input ChIP-seq alignment files. Output of this script is used as an input to the differential analysis module (mentioned next). Parameters associated with this script are as follows:</p>
 <blockquote>
@@ -176,16 +183,16 @@ BAM files. Default = 5000 (means 5 Kb)</p>
 </li>
 </ol>
 </div></blockquote>
-</div>
-<div class="section" id="producing-fithichip-loops-with-different-fdr-thresholds">
+</section>
+<section id="producing-fithichip-loops-with-different-fdr-thresholds">
 <h2>4. Producing FitHiChIP loops with different FDR thresholds<a class="headerlink" href="#producing-fithichip-loops-with-different-fdr-thresholds" title="Permalink to this heading"></a></h2>
 <p>It is useful to obtain significant loops on different FDR threholds, without running the complete FitHiChIP module with different FDR threshold parameters.</p>
 <p>For a custom FDR threshold of 0.05, first user should apply the following awk script on the file PREFIX.interactions_FitHiC.bed (mentioned in section 4.1.4, file no C):</p>
 <blockquote>
 <div><p><strong>awk '((NR==1) || ($NF&lt;0.05))' ${PREFIX}.interactions_FitHiC.bed &gt; ${PREFIX}.interactions_FitHiC_Q0.05.bed</strong></p>
 </div></blockquote>
-</div>
-<div class="section" id="applying-merge-filtering-on-any-set-of-significant-loops-generated-by-fithichip-or-any-other-loop-calling-method">
+</section>
+<section id="applying-merge-filtering-on-any-set-of-significant-loops-generated-by-fithichip-or-any-other-loop-calling-method">
 <h2>5. Applying merge filtering on any set of significant loops (generated by FitHiChIP or any other loop calling method)<a class="headerlink" href="#applying-merge-filtering-on-any-set-of-significant-loops-generated-by-fithichip-or-any-other-loop-calling-method" title="Permalink to this heading"></a></h2>
 <p>It is useful to apply the merge filtering on any set of significant loops, not just of FitHiChIP.</p>
 <p>Assuming the source code of FitHiChIP is placed within the folder <strong>${CodeDir}</strong>, user can merge the adjacent loops using the following command:</p>
@@ -226,12 +233,12 @@ Users are advised to keep this value.</p>
 </div></blockquote>
 </div></blockquote>
 <p>The file <strong>${PREFIX}.interactions_FitHiC_Q0.05_MergeNearContacts.bed</strong> is the set of loops generated after merging adjacent ones.</p>
-</div>
-<div class="section" id="visualization-of-the-significant-loops-in-washu-epigenome-browser">
+</section>
+<section id="visualization-of-the-significant-loops-in-washu-epigenome-browser">
 <h2>6. Visualization of the significant loops in WashU epigenome browser<a class="headerlink" href="#visualization-of-the-significant-loops-in-washu-epigenome-browser" title="Permalink to this heading"></a></h2>
 <p>Check the page <a class="reference internal" href="output.html#details-of-fithichip-outputs"><span class="std std-ref">Details of FitHiChIP outputs</span></a> for a detailed description of FitHiChIP output signficant loops and their visualization in WashU epigenome browser.</p>
-</div>
-<div class="section" id="simulating-hichip-contact-matrix-from-hic-and-chip-seq-data">
+</section>
+<section id="simulating-hichip-contact-matrix-from-hic-and-chip-seq-data">
 <h2>7. Simulating HiChIP contact matrix from HiC and ChIP-seq data<a class="headerlink" href="#simulating-hichip-contact-matrix-from-hic-and-chip-seq-data" title="Permalink to this heading"></a></h2>
 <p>In FitHiChIP manuscript, we have checked its robustness by simulating HiChIP data from reference HiC and ChIP-seq data. Here we provide a brief description of such simulation procedure.</p>
 <p>The file Imp_Scripts/HiC_Simulate_by_ChIP_Coverage.r contains the simulation procedure.</p>
@@ -301,8 +308,8 @@ Users are advised to keep this value.</p>
 </ul>
 </div></blockquote>
 </div></blockquote>
-</div>
-<div class="section" id="applying-fithichip-on-capture-hic-data">
+</section>
+<section id="applying-fithichip-on-capture-hic-data">
 <h2>8. Applying FitHiChIP on capture HiC data<a class="headerlink" href="#applying-fithichip-on-capture-hic-data" title="Permalink to this heading"></a></h2>
 <p>FitHiChIP can be applied on the Promoter Capture HiC assay as well.</p>
 <p>1) First, user needs to run HiC-pro using the command:
@@ -313,8 +320,8 @@ Users are advised to keep this value.</p>
 <li><p>Then, use the design bait file of the promoter capture HiC data, and extract the corresponding intervals (chromosome, start, end) in a separate file X. This file X will be used as the peak file in FitHiChIP execution (via the configuration parameter &quot;PeakFile=&quot;)</p></li>
 </ol>
 <p>We have used peak to all interactions (IntType=3) using coverage bias regression when executing FitHiChIP on promoter capture HiC data.</p>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>

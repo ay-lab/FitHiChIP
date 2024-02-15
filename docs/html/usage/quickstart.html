@@ -1,11 +1,14 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="English" >
+<html class="writer-html5" lang="English">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Quick start &mdash; FitHiChIP 0.1 documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css" />
+
+  
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -27,11 +30,15 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> FitHiChIP
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            FitHiChIP
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -66,8 +73,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Quick start</li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Quick start</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/usage/quickstart.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -77,7 +84,7 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="quick-start">
+  <section id="quick-start">
 <h1>Quick start<a class="headerlink" href="#quick-start" title="Permalink to this heading"></a></h1>
 <p><strong>(Assuming user has already installed the prerequisites, and is using the FitHiChIP source downloaded from GitHub)</strong></p>
 <p>The file <em>sample_script.sh</em> (provided in GitHub archive) contains the sample script to execute FitHiChIP. The sample command to run FitHiChIP is:</p>
@@ -129,7 +136,7 @@
 <li><p>For installing FitHiChIP via Docker or Singularity image, please check the section <a class="reference internal" href="installation.html#installation"><span class="std std-ref">Installation</span></a></p></li>
 </ul>
 </div>
-<div class="section" id="description-of-the-test-data">
+<section id="description-of-the-test-data">
 <h2>Description of the test data<a class="headerlink" href="#description-of-the-test-data" title="Permalink to this heading"></a></h2>
 <p>Above mentioned configuration files are set according to the dataset provided in the folder <strong>TestData</strong> within the GitHub archieve. The folder contains sample HiChIP data, peak files, and also sample dataset for differential analysis of HiChIP loops.</p>
 <p>User need to download following files within the &quot;TestData&quot; folder for executing FitHiChIP:</p>
@@ -162,18 +169,18 @@
 <p>The folder &quot;TestData&quot; also contains one directory &quot;DiffLoopData&quot; which contains dataset regarding differential HiChIP loop analysis.
 The dataset is described in the page <a class="reference internal" href="DiffLoops.html#differential-analysis-of-hichip-loops"><span class="std std-ref">Differential analysis of HiChIP loops</span></a>.</p>
 </div>
-</div>
-<div class="section" id="configuration-parameters-according-to-the-test-data">
+</section>
+<section id="configuration-parameters-according-to-the-test-data">
 <h2>Configuration parameters according to the test data<a class="headerlink" href="#configuration-parameters-according-to-the-test-data" title="Permalink to this heading"></a></h2>
 <blockquote>
 <div><p>Please check the page <a class="reference internal" href="configuration.html#setting-up-configuration-file"><span class="std std-ref">Setting up configuration file</span></a> for a detailed description.</p>
 </div></blockquote>
-</div>
-<div class="section" id="sample-logs-from-the-console-corresponding-to-the-testdata">
+</section>
+<section id="sample-logs-from-the-console-corresponding-to-the-testdata">
 <h2>Sample logs from the console, corresponding to the TestData<a class="headerlink" href="#sample-logs-from-the-console-corresponding-to-the-testdata" title="Permalink to this heading"></a></h2>
 <p>Upon executing the test data with one of the above mentioned configuration files, user can tally the output logs in console with the model console output provided in the file <strong>SampleConsoleOutput.txt</strong>, to debug about any errors regarding installation / execution.</p>
-</div>
-<div class="section" id="output-file-description">
+</section>
+<section id="output-file-description">
 <h2>Output file description<a class="headerlink" href="#output-file-description" title="Permalink to this heading"></a></h2>
 <p>Output files are generated within the specified <strong>OutDir</strong>.</p>
 <p>User can check the details of FitHiChIP output files are provided in the page <a class="reference internal" href="output.html#details-of-fithichip-outputs"><span class="std std-ref">Details of FitHiChIP outputs</span></a>.</p>
@@ -184,8 +191,8 @@ The dataset is described in the page <a class="reference internal" href="DiffLoo
 <li><p><em>PREFIX</em>.interactions_FitHiC_Q&quot;QVALUE&quot;_MergeNearContacts.bed (generated only if <strong>MergeInt</strong> = 1)</p></li>
 </ol>
 </div></blockquote>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>
