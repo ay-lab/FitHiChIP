@@ -373,27 +373,19 @@ errcond=0
 ## and there is no matrix file or bin interval file
 ## then, get the installed HiC-pro version
 ##=============
-
-if [[ -z $InpCoolFile && -z $InpHiCFile && -z $InpInitialInteractionBedFile ]]; then
-	if [[ -z $InpBinIntervalFile || -z $InpMatrixFile ]]; then
-		echo '====>>> User did not provide any file in the COOL= option or the HIC= option or the Bed= option of the configuration file'
-		echo '==>>> So, the input interaction file is from the HiC-pro (valid pairs format)'
-		echo '==>>> But the matrix and bin interval files (HiC-pro) are not provided  - we need to generate them from HiC-pro'
-		HiCProExec=`which HiC-Pro`
-		if [[ -z $HiCProExec ]]; then
-			echo 'ERROR ===>>>> HiC-pro is not installed in the system - FitHiChIP quits !!!'
-			exit 1
-		fi
-		# path of HiC pro executable
-		# of the format somedir/bin/HiC-Pro		
-		d1=$(dirname ${HiCProExec})
-		HiCProBasedir=$(dirname ${d1})
-		echo 'Base directory containing HiCPro package : '$HiCProBasedir
-		if [[ -z $HiCProBasedir ]]; then
-			echo 'ERROR ====>>> Invalid HiC-pro installation directory - FitHiChIP quits - exit !!'
-			exit 1
-		fi
-	fi
+HiCProExec=`which HiC-Pro`
+if [[ -z $HiCProExec ]]; then
+	echo 'ERROR ===>>>> HiC-pro is not installed in the system - FitHiChIP quits !!!'
+	exit 1
+fi
+# path of HiC pro executable
+# of the format somedir/bin/HiC-Pro		
+d1=$(dirname ${HiCProExec})
+HiCProBasedir=$(dirname ${d1})
+echo 'Base directory containing HiCPro package : '$HiCProBasedir
+if [[ -z $HiCProBasedir ]]; then
+	echo 'ERROR ====>>> Invalid HiC-pro installation directory - FitHiChIP quits - exit !!'
+	exit 1
 fi
 
 #*****************************

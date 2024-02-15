@@ -396,28 +396,20 @@ errcond=0
 ## then, get the installed HiC-pro version
 ##=============
 
-if [[ -z $InpCoolFile && -z $InpHiCFile && -z $InpInitialInteractionBedFile ]]; then
-	if [[ -z $InpBinIntervalFile || -z $InpMatrixFile ]]; then
-		echo '====>>> User did not provide any file in the COOL= option or the HIC= option or the Bed= option of the configuration file'
-		echo '==>>> So, the input interaction file is from the HiC-pro (valid pairs format)'
-		echo '==>>> But the matrix and bin interval files (HiC-pro) are not provided  - we need to generate them from HiC-pro'
-		HiCProExec=`which HiC-Pro`
-		if [[ -z $HiCProExec ]]; then
-			echo 'ERROR ===>>>> HiC-pro is not installed in the system - FitHiChIP quits !!!'
-			exit 1
-		fi
-		# path of HiC pro executable
-		# of the format somedir/bin/HiC-Pro		
-		d1=$(dirname ${HiCProExec})
-		HiCProBasedir=$(dirname ${d1})
-		echo 'Base directory containing HiCPro package : '$HiCProBasedir
-		if [[ -z $HiCProBasedir ]]; then
-			echo 'ERROR ====>>> Invalid HiC-pro installation directory - FitHiChIP quits - exit !!'
-			exit 1
-		fi
-	fi
+HiCProExec=`which HiC-Pro`
+if [[ -z $HiCProExec ]]; then
+	echo 'ERROR ===>>>> HiC-pro is not installed in the system - FitHiChIP quits !!!'
+	exit 1
 fi
-
+# path of HiC pro executable
+# of the format somedir/bin/HiC-Pro		
+d1=$(dirname ${HiCProExec})
+HiCProBasedir=$(dirname ${d1})
+echo 'Base directory containing HiCPro package : '$HiCProBasedir
+if [[ -z $HiCProBasedir ]]; then
+	echo 'ERROR ====>>> Invalid HiC-pro installation directory - FitHiChIP quits - exit !!'
+	exit 1
+fi
 
 #*****************************
 # error checking - 
@@ -824,18 +816,18 @@ if [[ ! -z $OutDir ]]; then
 	fi
 fi
 
-# if [[ ! -z $HiCProBasedir ]]; then
-# 	if [ ! -d $HiCProBasedir ]; then
-# 		echo 'ERROR ===>>>> Base directory of HiC-Pro package as provided : '$HiCProBasedir
-# 		echo 'However, no such directory exists in the system - check input file and path - FitHiChIP quits !!'
-# 		exit 1
-# 	fi	
-# 	if [[ "${HiCProBasedir:0:1}" != / && "${HiCProBasedir:0:2}" != ~[/a-z] ]]; then
-# 		# relative path - convert to absolute path
-# 		HiCProBasedir="$(cd $(dirname $HiCProBasedir); pwd)/$(basename $HiCProBasedir)"
-# 		echo 'Absolute converted path: HiCProBasedir: '$HiCProBasedir
-# 	fi
-# fi
+if [[ ! -z $HiCProBasedir ]]; then
+	if [ ! -d $HiCProBasedir ]; then
+		echo 'ERROR ===>>>> Base directory of HiC-Pro package as provided : '$HiCProBasedir
+		echo 'However, no such directory exists in the system - check input file and path - FitHiChIP quits !!'
+		exit 1
+	fi	
+	if [[ "${HiCProBasedir:0:1}" != / && "${HiCProBasedir:0:2}" != ~[/a-z] ]]; then
+		# relative path - convert to absolute path
+		HiCProBasedir="$(cd $(dirname $HiCProBasedir); pwd)/$(basename $HiCProBasedir)"
+		echo 'Absolute converted path: HiCProBasedir: '$HiCProBasedir
+	fi
+fi
 
 # revert to the old directory
 cd -
@@ -941,9 +933,10 @@ if [[ ! -f $ConfFile || $OverWrite == 1 ]]; then
 	fi
 
 	echo "Output directory which will store all the results: $OutDir " >> $ConfFile
-	# if [[ ! -z $HiCProBasedir ]]; then
-	# 	echo "Base directory containing the HIC-PRO executable: $HiCProBasedir " >> $ConfFile
-	# fi
+
+	if [[ ! -z $HiCProBasedir ]]; then
+		echo "Base directory containing the HIC-PRO executable: $HiCProBasedir " >> $ConfFile
+	fi
 
 	echo "Low distance threshold: $LowDistThres " >> $ConfFile
 	echo "Higher distance threshold: $UppDistThres " >> $ConfFile
@@ -1231,7 +1224,7 @@ fi
 #============================
 # this directory stores the features and associated data
 #============================
-FeatureDir=$OutDir'/NormFeatures'
+FeatureDir=$OutDir'/NormFeatures_BinSize'$BIN_SIZE
 mkdir -p $FeatureDir
 
 # if all of these three files exist
@@ -1434,10 +1427,6 @@ if [[ ! -f $CoverageBiasFile || $OverWrite == 1 ]]; then
 	else
 		# here ICE specific bias is used
 		# compute the bias vector from the HiC-pro contact matrix
-
-		# Note - if HiC-pro version >= 2.11.4, ICE is not a part of HiC-pro as an executable
-		# rather ICE is installed in the /usr/local/bin environment
-		# for older version of HiC-pro, ICE is a part of HiC-pro as an executable
 		if [ -f $HiCProBasedir'/scripts/ice' ]; then
 			ICEExec=$HiCProBasedir'/scripts/ice'
 		else
@@ -1451,7 +1440,11 @@ if [[ ! -f $CoverageBiasFile || $OverWrite == 1 ]]; then
 		NormContactMatrixFile=$AllFeatureDir'/'$PREFIX'.norm.Contact.Matrix'
 		BiasVecFile=$NormContactMatrixFile'.biases'
 		if [[ ! -f $BiasVecFile || $OverWrite == 1 ]]; then
-			$ICEExec $InpMatrixFile --results_filename $NormContactMatrixFile --output-bias $BiasVecFile
+			if [ -f $HiCProBasedir'/scripts/ice' ]; then
+				$PythonExec $ICEExec $InpMatrixFile --results_filename $NormContactMatrixFile --output-bias $BiasVecFile
+			else 
+				$ICEExec $InpMatrixFile --results_filename $NormContactMatrixFile --output-bias $BiasVecFile
+			fi
 			# replace the NANs of the derived bias vector with zero
 			sed -i 's/nan/0/g' $BiasVecFile
 		fi

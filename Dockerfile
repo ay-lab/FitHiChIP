@@ -13,15 +13,18 @@ RUN R -e "BiocManager::install('edgeR');"
 
 # Install python 3
 RUN apt-get -y install python3
-RUN apt-get -y install python-pip
-RUN pip install networkx
-RUN pip install numpy
-RUN pip install hicstraw
-RUN pip install cooler
+RUN apt-get -y install python3-pip
+RUN apt install python3-networkx
+RUN apt install python3-numpy
+RUN apt-get -y install python3-hic-straw
+RUN apt -y install python3-cooler
+
+# before installing bedtools, create alias
+RUN alias python=python3
 
 # Install Bedtools
-RUN wget https://github.com/arq5x/bedtools2/releases/download/v2.30.0/bedtools-2.30.0.tar.gz
-RUN tar -zxvf bedtools-2.30.0.tar.gz
+RUN wget https://github.com/arq5x/bedtools2/releases/download/v2.31.0/bedtools-2.31.0.tar.gz
+RUN tar -zxvf bedtools-2.31.0.tar.gz
 RUN cd bedtools2 && make && cp -r ./bin/* /usr/local/bin/
 
 # Install Samtools and Htslib
@@ -46,9 +49,14 @@ RUN conda config --add channels conda-forge
 # Install bowtie2
 RUN conda install bowtie2
 
+# Install hic-straw
+#RUN conda install -c jrhawley hic-straw
 
 # Install HiCPro dependencies
-RUN pip install pysam bx-python numpy scipy
+RUN apt install python3-pysam 
+RUN apt install bx-python 
+RUN apt install python3-numpy 
+RUN apt install python3-scipy
 RUN conda install -y -c anaconda scipy 
 RUN conda install -y -c anaconda numpy 
 RUN conda install -y -c bcbio bx-python 
@@ -65,13 +73,13 @@ ENV PATH="/HiC-Pro-3.1.0/bin/:${PATH}"
 ENV PATH="/HiC-Pro-3.1.0/bin/utils/:${PATH}"
 
 # Install Macs2
-RUN pip install MACS2
+RUN apt install python3-MACS2
 
 # Get FitHiChIP
-RUN apt-get -y install git
-RUN cd / && git clone https://github.com/ay-lab/FitHiChIP
-RUN cd /FitHiChIP && sed -i 's/\/home\/sourya\/packages\/HiCPro\/HiC-Pro_2.9.0\//\/HiC-Pro-3.1.0\//g' configfile_*
-RUN pip install networkx
+# RUN apt-get -y install git
+# RUN cd / && git clone https://github.com/ay-lab/FitHiChIP
+# RUN cd /FitHiChIP
+# RUN pip install networkx
 
 
 # Cleanup
