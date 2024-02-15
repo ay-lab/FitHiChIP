@@ -35,7 +35,13 @@ DiffLoopWashUConvert <- function(inpfile, WashUfile) {
 	n <- GetNumLines(inpfile)
 	if (n > 1) {
 		system(paste("awk -F[\'\t\'] \'{if (NR>1) {if ($(NF-2) > 0) {x=(-log($(NF-2))/log(10))} else {x=500}; print $1\"\t\"(($2+$3)/2-1)\"\t\"(($2+$3)/2+1)\"\t\"$4\":\"(($5+$6)/2-1)\"-\"(($5+$6)/2+1)\",\"x\"\t\"(NR-1)\"\t.\"}}\' ", inpfile, " | sort -k1,1 -k2,2n > ", WashUfile))
+		if (file.exists(paste0(WashUfile, ".gz"))) {
+			system(paste("rm", paste0(WashUfile, ".gz")))
+		}
 		system(paste("bgzip", WashUfile))
+		if (file.exists(paste0(WashUfile, ".gz.tbi"))) {
+			system(paste("rm", paste0(WashUfile, ".gz.tbi")))
+		}
 		system(paste0("tabix -p bed ", WashUfile, ".gz"))
 	}
 }
@@ -293,7 +299,32 @@ ApplyEdgeR <- function(ALLLoopData, MainDir, CountData, CategoryList, ReplicaCou
 
 		# Estimate Common, Trended and Tagwise Negative Binomial dispersions 
 		# by weighted likelihood empirical Bayes
-		y <- estimateDisp(y, design)
+		## using try-catch module of R		
+		out <- tryCatch({    			
+			y <- estimateDisp(y, design)
+		}, error=function(cond) {		
+			cat(sprintf("\n\n ****** edgeR default estimateDisp - error **** \n"))
+		})
+
+		## condition to check if error occurred
+		if ((any(class(out) == "error") == "TRUE") | (!exists("y"))) {
+			## try with another version of estimateDisp
+			out <- tryCatch({    			
+				y <- estimateDisp(y, design, trend.method="locfit", mixed.df=TRUE)
+			}, error=function(cond) {		
+				cat(sprintf("\n\n ****** edgeR default estimateDisp - trend locfit - mixed.df TRUE - error **** \n"))
+			})
+		}
+
+		## condition to check if error occurred
+		if ((any(class(out) == "error") == "TRUE") | (!exists("y"))) {
+			## try with another version of estimateDisp
+			out <- tryCatch({    			
+				y <- estimateDisp(y, design, trend.method="loess")
+			}, error=function(cond) {		
+				cat(sprintf("\n\n ****** edgeR default estimateDisp - trend loess - error **** \n"))
+			})
+		}
 
 		# approach 1 - identifying DE tags - qCML method
 		# exact test (applicable for experiments with single factor) 
