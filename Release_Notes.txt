@@ -1,6 +1,14 @@
 Release Notes for FitHiChIP
 ---------------------------
 
+Release - Version 12.0 (To do)
+---------------------------
+
+1. Differential analysis of HiChIP loops is incorporated with an additional parameter - *BackgroundFDRThr*. This parameter denotes the FDR threshold used for determining the background FitHiChIP loops in the edgeR model. By default the threshold is 1, means every FitHiChIP contact is used as the background. A value of 0.01 would indicate that the FitHiChIP loops with q-value < 0.01 in at least one sample would be used as the background. User can test with different thresholds to vary the background set of loops for edgeR.
+
+
+
+
 Release - Version 11.0 (December 2022)
 ---------------------------
 1. FitHiChIP now support HiChIP interactions in .hic and .cool / .mcool formats, in addition to the earlier formats.
