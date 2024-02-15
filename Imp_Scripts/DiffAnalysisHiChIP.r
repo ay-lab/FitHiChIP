@@ -532,11 +532,6 @@ FillFeatureValues <- function(UnionLoopFile, AllLoopList, BinSize, AllRepLabels,
 				currcovfile <- ChIPCovFileList[i]
 				cat(sprintf("\n Merging reference ChIP-seq coverage values: file number : %s  file name : %s ", i, currcovfile))
 
-				# # extract the coverage information only for the current chromosome
-				# # check the first field of chromosome name
-				# # and second and third fields as integers
-				# system(paste0("awk \'(($1==\"", chrName, "\") && ($2 ~ /^[0-9]+$/) && ($3 ~ /^[0-9]+$/))\' ", currcovfile, " > ", InpTempChIPCoverageFile))
-
 				# extract the coverage information only for the current chromosome
 				# check the first field of chromosome name
 				# and second and third fields as integers
@@ -573,26 +568,10 @@ FillFeatureValues <- function(UnionLoopFile, AllLoopList, BinSize, AllRepLabels,
 					Seg2_ChIP_Label[idx_Loop] <- ChIPCoverageData[idx_Cov, ncol(ChIPCoverageData)]
 				}
 
-				# # overlap of the current set of merged loops (for the current chromosome)
-				# # and the 1D segments (for the current chromosome)
-				# ov1 <- Overlap1D(MergedIntTempData[,1:3], ChIPCoverageData[,1:3], boundary=1, offset=0, uniqov=FALSE)
-				# ov2 <- Overlap1D(MergedIntTempData[,4:6], ChIPCoverageData[,1:3], boundary=1, offset=0, uniqov=FALSE)
-
-				# # assign the ChIP coverage of overlapping bins 
-				# # we assume that 4th field of ChIP coverage file stores the coverage information
-				# seg1_chip_coverage_vec[ov1$A_AND_B] <- ChIPCoverageData[ov1$B_AND_A, 4]
-				# seg2_chip_coverage_vec[ov2$A_AND_B] <- ChIPCoverageData[ov2$B_AND_A, 4]
-
 				# assign the feature vectors for the current input file
 				# into the final list of feature arrays
 				Seg1_ChIP_Coverage[[i]] <- seg1_chip_coverage_vec
 				Seg2_ChIP_Coverage[[i]] <- seg2_chip_coverage_vec
-
-				# # assign the 1D label as well
-				# if (i == 1) {
-				# 	Seg1_ChIP_Label[ov1$A_AND_B] <- ChIPCoverageData[ov1$B_AND_A, ncol(ChIPCoverageData)]
-				# 	Seg2_ChIP_Label[ov2$A_AND_B] <- ChIPCoverageData[ov2$B_AND_A, ncol(ChIPCoverageData)]
-				# }
 
 				cat(sprintf("\n ***** Assigned reference ChIP-seq coverage information for the file index: %s for the chromosome : %s ***** \n", i, chrName))
 			}
@@ -664,7 +643,9 @@ option_list = list(
 
 	make_option(c("--ChrSizeFile"), type="character", default=NULL, help="File containing size of chromosomes for reference genome. Mandatory parameter."),
 
-	make_option(c("--FDRThr"), type="numeric", default=0.01, help="FDR threshold used for determining FitHiChIP significant loops. Generally, 0.01 q-value threshold (default) is used."),	
+	make_option(c("--FDRThr"), type="numeric", default=0.01, help="FDR threshold used for determining FitHiChIP significant loops. Generally, 0.01 q-value threshold (default) is used."),
+
+	make_option(c("--BackgroundFDRThr"), type="numeric", default=1, help="FDR threshold used for determining the background FitHiChIP loops in the edgeR model. By default the threshold is 1, means every FitHiChIP contact is used as the background. A value of 0.01 would indicate that the FitHiChIP loops with q-value < 0.01 in at least one sample would be used as the background."),
 
 	make_option(c("--CovThr"), type="integer", action="store", default=25, help="Threshold signifying the max allowed deviation of ChIP coverage between two categories, to consider those bins as ND (i.e. no difference). Default is 25, means 25% deviation of ChIP coverage is set as maximum, for a bin to be classified as ND. If user chooses 50, 50% maximum ChIP seq coverage deviation would be allowed."),
 
@@ -765,6 +746,7 @@ FDR_Th_FitHiChIP <- as.numeric(opt$FDRThr)	# FitHiChIP q-value threshold
 FOLD_Change_Thr <- log2(opt$FoldChangeThr) 	# as.integer(opt$FoldChangeThr)
 FDR_Th_DESeq <- as.numeric(opt$DiffFDRThr)
 ChIP_Cov_Thr <- (opt$CovThr * 1.0) / 100	# max allowed deviation for ChIP seq coverage
+FDR_Thr_FitHiChIP_backgrnd <- as.numeric(opt$BackgroundFDRThr)	# FitHiChIP q-value threshold - background loops
 
 # combining all the replica labels
 AllRepLabels <- c(paste0(CategoryList[1], '_', ReplicaLabels1), paste0(CategoryList[2], '_', ReplicaLabels2))
@@ -829,6 +811,9 @@ outtext <- paste0("\n ===>>> All FitHiChIP input loop files (without significant
 writeLines(outtext, con=fp_out, sep="\n")
 
 outtext <- paste0("\n ===>>> FDR threshold of FitHiChIP loops: ", FDR_Th_FitHiChIP)
+writeLines(outtext, con=fp_out, sep="\n")
+
+outtext <- paste0("\n ===>>> FDR threshold of FitHiChIP loops for background loops: ", FDR_Thr_FitHiChIP_backgrnd)
 writeLines(outtext, con=fp_out, sep="\n")
 
 outtext <- paste0("\n ===>>> Output directory: ", opt$OutDir)
@@ -1029,15 +1014,15 @@ if (1) {
 		cat(sprintf("\n Creating master set of interactions - processing the loop file idx : %s  file name : %s ", idx, CurrLoopFile))
 		if (tools::file_ext(CurrLoopFile) == "gz") {
 			if (idx == 1) {
-				system(paste0("zcat ", CurrLoopFile, " | awk \'(NR>1)\' - | cut -f1-6 > ", tempLoopFile1))
+				system(paste0("zcat ", CurrLoopFile, " | awk \'((NR>1) && ($NF < ", FDR_Thr_FitHiChIP_backgrnd, "))\' - | cut -f1-6 > ", tempLoopFile1))
 			} else {
-				system(paste0("zcat ", CurrLoopFile, " | awk \'(NR>1)\' - | cut -f1-6 >> ", tempLoopFile1))
+				system(paste0("zcat ", CurrLoopFile, " | awk \'((NR>1) && ($NF < ", FDR_Thr_FitHiChIP_backgrnd, "))\' - | cut -f1-6 >> ", tempLoopFile1))
 			}
 		} else {
 			if (idx == 1) {
-				system(paste0("awk \'(NR>1)\' ", CurrLoopFile, " | cut -f1-6 > ", tempLoopFile1))
+				system(paste0("awk \'((NR>1) && ($NF < ", FDR_Thr_FitHiChIP_backgrnd, "))\' ", CurrLoopFile, " | cut -f1-6 > ", tempLoopFile1))
 			} else {
-				system(paste0("awk \'(NR>1)\' ", CurrLoopFile, " | cut -f1-6 >> ", tempLoopFile1))
+				system(paste0("awk \'((NR>1) && ($NF < ", FDR_Thr_FitHiChIP_backgrnd, "))\' ", CurrLoopFile, " | cut -f1-6 >> ", tempLoopFile1))
 			}			
 		}
 	}
